@@ -3,6 +3,7 @@
 namespace App\Casts;
 
 use App\Support\BlindIndex;
+use App\Support\NormalizesForBlindIndex;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
@@ -12,12 +13,21 @@ use Illuminate\Support\Facades\Crypt;
  * in the same write, so the two can never drift (no model events involved).
  *
  * Usage: 'phone' => EncryptedWithBlindIndex::class.':phone_hash'
+ *        'license_number' => EncryptedWithBlindIndex::class.':license_number_hash,'.LicenseNumber::class
+ * The optional second argument (a NormalizesForBlindIndex class) canonicalises the value
+ * before it is stored and hashed; lookups must apply the same normaliser.
  *
  * @implements CastsAttributes<string|null, string|null>
  */
 final class EncryptedWithBlindIndex implements CastsAttributes
 {
-    public function __construct(private readonly string $hashColumn) {}
+    /**
+     * @param  class-string<NormalizesForBlindIndex>|null  $normalizer
+     */
+    public function __construct(
+        private readonly string $hashColumn,
+        private readonly ?string $normalizer = null,
+    ) {}
 
     public function get(Model $model, string $key, mixed $value, array $attributes): ?string
     {
@@ -33,7 +43,7 @@ final class EncryptedWithBlindIndex implements CastsAttributes
             return [$key => null, $this->hashColumn => null];
         }
 
-        $value = (string) $value;
+        $value = $this->normalizer === null ? (string) $value : $this->normalizer::normalize((string) $value);
 
         return [
             $key => Crypt::encryptString($value),

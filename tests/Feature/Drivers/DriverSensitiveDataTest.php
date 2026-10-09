@@ -4,6 +4,7 @@ namespace Tests\Feature\Drivers;
 
 use App\Models\DriverBankAccount;
 use App\Models\DriverProfile;
+use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
@@ -76,5 +77,39 @@ class DriverSensitiveDataTest extends TestCase
         $this->assertSame('9876', $accountArray['account_last4']);
         $this->assertStringNotContainsString('5555', $profile->fresh()->toJson());
         $this->assertStringNotContainsString('22229876', $account->fresh()->toJson());
+    }
+
+    public function test_license_numbers_are_stored_normalised_and_looked_up_ignoring_case_and_spaces(): void
+    {
+        $profile = DriverProfile::factory()->create(['license_number' => ' am-dl 42 ']);
+
+        $row = DB::table('driver_profiles')->where('id', $profile->id)->first();
+        $this->assertSame('AM-DL42', Crypt::decryptString($row->license_number));
+        $this->assertSame(hash_hmac('sha256', 'AM-DL42', config('app.blind_index_key')), $row->license_number_hash);
+
+        foreach (['AM-DL42', 'am-dl42', 'AM-DL 42', " am-dl\t42 "] as $typed) {
+            $this->assertTrue(
+                DriverProfile::query()->whereLicenseNumber($typed)->sole()->is($profile),
+                "Lookup for [{$typed}] must find the driver.",
+            );
+        }
+        $this->assertSame(0, DriverProfile::query()->whereLicenseNumber('AM-DL-42')->count(), 'Hyphens stay significant.');
+    }
+
+    public function test_the_same_license_in_a_different_case_or_spacing_is_a_duplicate(): void
+    {
+        DriverProfile::factory()->create(['license_number' => 'AM-DL-2000']);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        $this->expectExceptionMessage('driver_profiles_license_number_hash_unique');
+
+        DriverProfile::factory()->create(['license_number' => ' am-dl-2000']);
+    }
+
+    public function test_phone_blind_index_is_not_normalised_by_the_license_rule(): void
+    {
+        $user = User::factory()->withPhone('+15550007777')->create();
+
+        $this->assertSame(hash_hmac('sha256', '+15550007777', config('app.blind_index_key')), DB::table('users')->where('id', $user->id)->value('phone_hash'));
     }
 }

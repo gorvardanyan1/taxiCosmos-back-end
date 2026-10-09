@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\VehicleClass;
 use App\Enums\VehicleStatus;
+use App\Exceptions\DeletedRecordException;
 use Database\Factories\VehicleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -56,6 +57,12 @@ class Vehicle extends Model
     {
         DB::transaction(function () {
             DriverProfile::query()->whereKey($this->driver_id)->lockForUpdate()->first();
+
+            // Re-read under the lock: a removed (soft-deleted) row must never take the flag,
+            // or the driver would be left without a usable one.
+            if (static::query()->whereKey($this->getKey())->doesntExist()) {
+                throw DeletedRecordException::for('vehicle');
+            }
 
             static::query()
                 ->where('driver_id', $this->driver_id)

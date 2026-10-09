@@ -6,6 +6,7 @@ use App\Casts\EncryptedWithBlindIndex;
 use App\Enums\DriverAvailability;
 use App\Enums\DriverVerificationStatus;
 use App\Support\BlindIndex;
+use App\Support\LicenseNumber;
 use Database\Factories\DriverProfileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -40,7 +41,7 @@ class DriverProfile extends Model
     protected function casts(): array
     {
         return [
-            'license_number' => EncryptedWithBlindIndex::class.':license_number_hash',
+            'license_number' => EncryptedWithBlindIndex::class.':license_number_hash,'.LicenseNumber::class,
             'license_expiry' => 'date',
             'verification_status' => DriverVerificationStatus::class,
             'approved_at' => 'datetime',
@@ -100,11 +101,12 @@ class DriverProfile extends Model
     }
 
     /**
-     * Exact license lookup through the blind index (the column itself is encrypted).
+     * Exact license lookup through the blind index (the column itself is encrypted),
+     * ignoring case and whitespace like storage does.
      */
     #[Scope]
     protected function whereLicenseNumber(Builder $query, string $licenseNumber): void
     {
-        $query->where('license_number_hash', app(BlindIndex::class)->hash($licenseNumber));
+        $query->where('license_number_hash', app(BlindIndex::class)->hash(LicenseNumber::normalize($licenseNumber)));
     }
 }

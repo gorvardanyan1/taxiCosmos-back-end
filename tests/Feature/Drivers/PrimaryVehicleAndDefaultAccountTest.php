@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Drivers;
 
+use App\Exceptions\DeletedRecordException;
 use App\Models\DriverBankAccount;
 use App\Models\DriverProfile;
 use App\Models\Vehicle;
@@ -144,5 +145,56 @@ class PrimaryVehicleAndDefaultAccountTest extends TestCase
         $this->assertTrue($second->fresh()->is_default);
         $this->assertTrue($othersDefault->fresh()->is_default);
         $this->assertSame(1, $driver->bankAccounts()->where('is_default', true)->count());
+    }
+
+    public function test_a_deleted_vehicle_cannot_be_made_primary_and_the_current_primary_is_kept(): void
+    {
+        $driver = DriverProfile::factory()->create();
+        $current = Vehicle::factory()->primary()->for($driver, 'driver')->create();
+        $removed = Vehicle::factory()->for($driver, 'driver')->create();
+        $removed->delete();
+
+        try {
+            $removed->markAsPrimary();
+            $this->fail('A deleted vehicle must not become primary.');
+        } catch (DeletedRecordException) {
+        }
+
+        $this->assertTrue($driver->fresh()->primaryVehicle->is($current));
+        $this->assertDatabaseHas('vehicles', ['id' => $current->id, 'is_primary' => true]);
+        $this->assertDatabaseHas('vehicles', ['id' => $removed->id, 'is_primary' => false]);
+    }
+
+    public function test_a_stale_instance_of_a_vehicle_deleted_elsewhere_cannot_be_made_primary(): void
+    {
+        $driver = DriverProfile::factory()->create();
+        $current = Vehicle::factory()->primary()->for($driver, 'driver')->create();
+        $stale = Vehicle::factory()->for($driver, 'driver')->create();
+        Vehicle::query()->findOrFail($stale->id)->delete();
+
+        $this->expectException(DeletedRecordException::class);
+
+        try {
+            $stale->markAsPrimary();
+        } finally {
+            $this->assertTrue($current->fresh()->is_primary);
+        }
+    }
+
+    public function test_a_deleted_bank_account_cannot_be_made_default_and_the_current_default_is_kept(): void
+    {
+        $driver = DriverProfile::factory()->create();
+        $current = DriverBankAccount::factory()->default()->for($driver, 'driver')->create();
+        $removed = DriverBankAccount::factory()->for($driver, 'driver')->create();
+        $removed->delete();
+
+        try {
+            $removed->markAsDefault();
+            $this->fail('A deleted bank account must not become default.');
+        } catch (DeletedRecordException) {
+        }
+
+        $this->assertTrue($driver->fresh()->defaultBankAccount->is($current));
+        $this->assertDatabaseHas('driver_bank_accounts', ['id' => $removed->id, 'is_default' => false]);
     }
 }
