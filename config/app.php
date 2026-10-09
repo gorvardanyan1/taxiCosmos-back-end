@@ -107,6 +107,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Blind Index Key
+    |--------------------------------------------------------------------------
+    |
+    | HMAC key for the deterministic *_hash companion columns of encrypted,
+    | searchable fields (phone, license number). Keep it separate from APP_KEY
+    | and never rotate it without re-hashing every blind-index column.
+    |
+    */
+
+    'blind_index_key' => env('BLIND_INDEX_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Maintenance Mode Driver
     |--------------------------------------------------------------------------
     |
