@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -58,6 +59,16 @@ class User extends Authenticatable
             'rider_rating_count' => 'integer',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Driver-side data; present once the user has applied to drive (P4-T4).
+     *
+     * @return HasOne<DriverProfile, $this>
+     */
+    public function driverProfile(): HasOne
+    {
+        return $this->hasOne(DriverProfile::class);
     }
 
     /**

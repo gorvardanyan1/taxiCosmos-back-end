@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Models;
+
+use App\Casts\EncryptedWithBlindIndex;
+use App\Enums\DriverAvailability;
+use App\Enums\DriverVerificationStatus;
+use App\Support\BlindIndex;
+use Database\Factories\DriverProfileFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+/**
+ * Driver-side data of a user (is_driver). Verification, availability and ratings are
+ * changed by services, never mass-assigned from driver input.
+ */
+#[Fillable(['license_number', 'license_expiry', 'home_zone_id'])]
+#[Hidden(['license_number', 'license_number_hash'])]
+class DriverProfile extends Model
+{
+    /** @use HasFactory<DriverProfileFactory> */
+    use HasFactory;
+
+    protected $attributes = [
+        'verification_status' => DriverVerificationStatus::Pending->value,
+        'availability' => DriverAvailability::Offline->value,
+        'rating_count' => 0,
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'license_number' => EncryptedWithBlindIndex::class.':license_number_hash',
+            'license_expiry' => 'date',
+            'verification_status' => DriverVerificationStatus::class,
+            'approved_at' => 'datetime',
+            'availability' => DriverAvailability::class,
+            'last_online_at' => 'datetime',
+            'rating_avg' => 'decimal:2',
+            'rating_count' => 'integer',
+        ];
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * @return HasMany<Vehicle, $this>
+     */
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class, 'driver_id');
+    }
+
+    /**
+     * @return HasOne<Vehicle, $this>
+     */
+    public function primaryVehicle(): HasOne
+    {
+        return $this->hasOne(Vehicle::class, 'driver_id')->where('is_primary', true);
+    }
+
+    /**
+     * @return HasMany<DriverBankAccount, $this>
+     */
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(DriverBankAccount::class, 'driver_id');
+    }
+
+    /**
+     * @return HasOne<DriverBankAccount, $this>
+     */
+    public function defaultBankAccount(): HasOne
+    {
+        return $this->hasOne(DriverBankAccount::class, 'driver_id')->where('is_default', true);
+    }
+
+    /**
+     * Exact license lookup through the blind index (the column itself is encrypted).
+     */
+    #[Scope]
+    protected function whereLicenseNumber(Builder $query, string $licenseNumber): void
+    {
+        $query->where('license_number_hash', app(BlindIndex::class)->hash($licenseNumber));
+    }
+}
