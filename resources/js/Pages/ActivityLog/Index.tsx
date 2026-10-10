@@ -6,7 +6,7 @@ import PaginatedTable from '@/Components/PaginatedTable';
 import { formatDateTime } from '@/lib/format';
 import { label } from '@/lib/labels';
 import { filterKey, visitQuery } from '@/lib/query';
-import { card, field, ghost } from '@/lib/ui';
+import { card, filterInput, ghost } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { ActivityEntry, Actions, Filters, Paginated } from '@/types';
 
@@ -43,9 +43,9 @@ export default function ActivityLogIndex({ entries, filters, targetTypes, actors
                     { key: 'target_type', allLabel: 'All target types', options: targetTypes.map((t) => ({ value: t, label: label(t) })) },
                 ]}
             >
-                <input type="number" min={1} aria-label="Target ID" placeholder="Target ID" defaultValue={filters.target_id ?? ''} onBlur={(e) => e.target.value !== (filters.target_id ?? '') && setFilter('target_id', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setFilter('target_id', e.currentTarget.value)} className={`${field} w-28`} />
-                <input type="date" aria-label="From date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value)} className={`${field} w-40`} />
-                <input type="date" aria-label="To date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value)} className={`${field} w-40`} />
+                <input type="number" min={1} aria-label="Target ID" placeholder="Target ID" defaultValue={filters.target_id ?? ''} onBlur={(e) => e.target.value !== (filters.target_id ?? '') && setFilter('target_id', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setFilter('target_id', e.currentTarget.value)} className={`${filterInput} w-28`} />
+                <input type="date" aria-label="From date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value)} className={`${filterInput} w-40`} />
+                <input type="date" aria-label="To date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value)} className={`${filterInput} w-40`} />
             </FilterBar>
             <PaginatedTable
                 paginator={entries}
