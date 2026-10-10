@@ -43,6 +43,9 @@ return [
         'mime_types' => ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
     ],
 
+    // Languages a rider can use in the apps (their `locale`).
+    'locales' => ['en', 'hy', 'ru'],
+
     'zones' => [
         // A zone polygon may have at most this many points (all rings together).
         'max_vertices' => (int) env('ZONE_MAX_VERTICES', 5000),

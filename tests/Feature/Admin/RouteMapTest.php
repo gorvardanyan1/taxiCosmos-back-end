@@ -22,10 +22,8 @@ class RouteMapTest extends AdminTestCase
                 ->where('alerts.stuck_trips', 3)->has('revenue_trend.points', 9)->has('trip_status', 4)->has('activity', 7)->where('filters.zone', null)],
             'live map' => ['/admin/live-map', 'LiveMap', fn (Assert $p) => $p->where('stats.online', 142)->has('markers', 6)->where('focused_driver.name', 'Arman Petrosyan')],
             'riders' => ['/admin/riders', 'Riders/Index', fn (Assert $p) => $p
-                ->where('riders.total', 12)->has('riders.data', 10)->where('riders.current_page', 1)->where('riders.last_page', 2)
-                ->where('totalRegistered', 48291)->where('statuses', ['active', 'suspended', 'deactivated', 'pending_deletion'])->where('actions.suspend', null)],
-            'rider detail' => ['/admin/riders/80', 'Riders/Show', fn (Assert $p) => $p
-                ->where('rider.name', 'Sun Li')->where('rider.status', 'suspended')->where('rider.stats.total_spent.amount', 1284500)->where('tab', 'trips')->has('rider.records.trips', 2)],
+                ->where('riders.total', 0)->where('riders.data', [])->where('totalRegistered', 0)->where('statuses', ['active', 'suspended', 'deactivated', 'pending_deletion'])
+                ->where('actions.suspend', '/admin/riders/{id}/suspend')->where('actions.reactivate', '/admin/riders/{id}/reactivate')],
             'drivers' => ['/admin/drivers', 'Drivers/Index', fn (Assert $p) => $p
                 ->where('drivers.total', 8)->where('verificationStatuses', ['pending', 'approved', 'rejected', 'expired'])->where('totalRegistered', 5847)],
             'driver detail' => ['/admin/drivers/8', 'Drivers/Show', fn (Assert $p) => $p

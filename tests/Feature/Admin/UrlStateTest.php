@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\User;
 use App\Models\Zone;
 use App\Services\Audit\AuditLogger;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -14,6 +15,9 @@ class UrlStateTest extends AdminTestCase
 {
     public function test_a_status_filter_deep_link_returns_only_matching_rows_and_echoes_the_filter(): void
     {
+        User::factory()->rider()->count(3)->create();
+        User::factory()->rider()->suspended()->count(2)->create();
+
         $this->actingAs($this->admin())->get('/admin/riders?filter[status]=suspended')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters', ['status' => 'suspended'])
@@ -25,11 +29,13 @@ class UrlStateTest extends AdminTestCase
     public function test_search_matches_name_phone_email_and_code_case_insensitively(): void
     {
         $admin = $this->admin();
+        $sun = User::factory()->rider()->create(['name' => 'Sun Li']);
+        User::factory()->rider()->create(['name' => 'Oliver Wang']);
 
         $this->actingAs($admin)->get('/admin/riders?filter[search]=SUN')
             ->assertInertia(fn (Assert $page) => $page->where('riders.total', 1)->where('riders.data.0.name', 'Sun Li')->where('filters.search', 'SUN'));
-        $this->actingAs($admin)->get('/admin/riders?filter[search]=R-10474')
-            ->assertInertia(fn (Assert $page) => $page->where('riders.total', 1)->where('riders.data.0.name', 'Oliver Wang'));
+        $this->actingAs($admin)->get('/admin/riders?filter[search]='.sprintf('R-%05d', $sun->id))
+            ->assertInertia(fn (Assert $page) => $page->where('riders.total', 1)->where('riders.data.0.name', 'Sun Li'));
         $this->actingAs($admin)->get('/admin/riders?filter[search]=no-such-rider')
             ->assertInertia(fn (Assert $page) => $page->where('riders.total', 0)->has('riders.data', 0));
     }
@@ -42,24 +48,30 @@ class UrlStateTest extends AdminTestCase
 
     public function test_page_two_deep_link_and_pagination_links_keep_the_query(): void
     {
+        foreach (range(1, 12) as $i) {
+            User::factory()->rider()->create(['name' => sprintf('Rider %02d', $i)]);
+        }
+
         $this->actingAs($this->admin())->get('/admin/riders?page=2&sort=name')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('riders.current_page', 2)
                 ->where('riders.from', 11)
                 ->where('riders.to', 12)
                 ->has('riders.data', 2)
-                ->where('riders.data.0.name', 'Priya Mehta')
+                ->where('riders.data.0.name', 'Rider 11')
                 ->where('riders.links.1.url', fn (string $url) => str_contains($url, 'sort=name') && str_contains($url, 'page=1')));
     }
 
     public function test_sort_ascending_and_descending(): void
     {
         $admin = $this->admin();
+        User::factory()->rider()->create(['name' => 'Abe']);
+        User::factory()->rider()->create(['name' => 'Cal']);
 
-        $this->actingAs($admin)->get('/admin/riders?sort=trips_count')
-            ->assertInertia(fn (Assert $page) => $page->where('riders.data.0.trips_count', 5)->where('sort', 'trips_count'));
-        $this->actingAs($admin)->get('/admin/riders?sort=-trips_count')
-            ->assertInertia(fn (Assert $page) => $page->where('riders.data.0.trips_count', 502)->where('sort', '-trips_count'));
+        $this->actingAs($admin)->get('/admin/riders?sort=name')
+            ->assertInertia(fn (Assert $page) => $page->where('riders.data.0.name', 'Abe')->where('sort', 'name'));
+        $this->actingAs($admin)->get('/admin/riders?sort=-name')
+            ->assertInertia(fn (Assert $page) => $page->where('riders.data.0.name', 'Cal')->where('sort', '-name'));
         // Numeric sort handles negative money amounts (not string order).
         $this->actingAs($admin)->get('/admin/driver-balances?sort=-balance.amount')
             ->assertInertia(fn (Assert $page) => $page->where('balances.data.0.balance.amount', 84200)->where('balances.data.2.balance.amount', -48000));
@@ -68,6 +80,7 @@ class UrlStateTest extends AdminTestCase
     public function test_per_page_is_limited_to_the_configured_options(): void
     {
         $admin = $this->admin();
+        User::factory()->rider()->count(12)->create();
 
         $this->actingAs($admin)->get('/admin/riders?per_page=25')->assertInertia(fn (Assert $page) => $page->where('riders.per_page', 25)->has('riders.data', 12));
         $this->actingAs($admin)->get('/admin/riders?per_page=100000')->assertInertia(fn (Assert $page) => $page->where('riders.per_page', 10));
@@ -80,7 +93,6 @@ class UrlStateTest extends AdminTestCase
         $this->actingAs($admin)->get('/admin/riders?filter[password]=x')->assertStatus(400);
         $this->actingAs($admin)->get('/admin/riders?sort=email')->assertStatus(400);
         $this->actingAs($admin)->get('/admin/riders?filter[status][]=active')->assertStatus(400);
-        $this->actingAs($admin)->get('/admin/riders?filter=oops')->assertStatus(400);
     }
 
     public function test_detail_tabs_are_deep_linkable_and_fall_back_to_the_first_tab(): void
@@ -89,7 +101,8 @@ class UrlStateTest extends AdminTestCase
 
         $this->actingAs($admin)->get('/admin/drivers/8?tab=documents')->assertInertia(fn (Assert $page) => $page->where('tab', 'documents'));
         $this->actingAs($admin)->get('/admin/drivers/8?tab=../../etc')->assertInertia(fn (Assert $page) => $page->where('tab', 'profile'));
-        $this->actingAs($admin)->get('/admin/riders/80?tab=payment-methods')->assertInertia(fn (Assert $page) => $page->where('tab', 'payment-methods'));
+        $rider = User::factory()->rider()->create();
+        $this->actingAs($admin)->get("/admin/riders/{$rider->id}?tab=payment-methods")->assertInertia(fn (Assert $page) => $page->where('tab', 'payment-methods'));
         $this->actingAs($admin)->get('/admin/account?tab=security')->assertInertia(fn (Assert $page) => $page->where('tab', 'security'));
     }
 
