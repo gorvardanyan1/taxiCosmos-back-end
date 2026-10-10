@@ -22,6 +22,8 @@ final class PiiColumns
             new PiiColumn('users', 'phone', 'phone_hash', E164PhoneNumber::class),
             // Searchable: the verification workflow looks drivers up by license number.
             new PiiColumn('driver_profiles', 'license_number', 'license_number_hash', LicenseNumber::class),
+            // Not searchable (no blind index): shown to reviewers on the document, never searched.
+            new PiiColumn('driver_documents', 'document_number'),
             // Not searchable (no blind index): shown masked from account_last4, revealed on demand.
             new PiiColumn('driver_bank_accounts', 'account_number'),
         ];

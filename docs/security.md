@@ -12,13 +12,13 @@ sensitive is missing from it.
 | --- | --- | --- | --- |
 | `users.phone` | `users.phone_hash` (unique) | Mobile OTP login and admin search by exact phone | Stored and hashed in **E.164** (`+37491440221`); input is normalised first, see below |
 | `driver_profiles.license_number` | `driver_profiles.license_number_hash` (unique) | The verification workflow looks drivers up by license number | Stored and hashed trimmed, without spaces, upper-case |
+| `driver_documents.document_number` | none | Reviewers read it next to the document; nobody searches by it | Hidden on the model and never sent to the browser; document files are covered below |
 | `driver_bank_accounts.account_number` | none | Nothing searches by account number, so no index is added | `account_last4` (last 4 characters, plaintext) drives the masked display `•••• 4821`; revealing the full number is an audited action (P4-T2) |
 
 **Columns that will exist later and must be encrypted the same way** (add them to `PiiColumns` when you create them; `PiiColumnsGuardTest` enforces it):
 
 | Column | Task | Blind index |
 | --- | --- | --- |
-| `driver_documents.document_number` | P2-T3 | none unless a search requirement appears |
 | two-factor secrets and recovery codes | P3-T2 | none |
 | stored gateway / provider credentials | P13-T5 | none |
 
@@ -83,3 +83,17 @@ lookups. Run `php artisan pii:reencrypt` after deploying the change.
 ## Tests
 
 `PiiColumnsGuardTest` (every registered column is `text`, unreadable in a raw query, readable through the model, hidden from serialisation; no unregistered sensitive-looking column exists), `PiiLookupTest` (indexed hash lookups without decrypting), `ApplicationKeyRotationTest` (rotation with and without the previous key), `BlindIndexKeyTest`.
+
+## Driver and vehicle documents (P2-T3)
+
+- Files are stored on the **private** `driver_documents` disk (`DRIVER_DOCUMENTS_DISK`; set it to an
+  S3-compatible disk in staging and production, no code change). Paths are random
+  (`drivers/<driver id>/<random>.<ext>`); the client's file name is never used.
+- `DriverDocumentUploader` validates by the file's **content** (PDF, JPEG, PNG, WebP; never SVG or HTML) and
+  size (`DRIVER_DOCUMENT_MAX_KB`), and removes the file again if saving the row fails.
+- Files are only reachable through `GET /admin/drivers/{id}/documents/{docId}/file` with a **signed,
+  expiring** link (`DRIVER_DOCUMENT_URL_TTL` minutes, issued fresh on every page load), by a signed-in admin
+  with `drivers.view`. The response is `inline`, `nosniff`, `Cache-Control: private, no-store` and carries a
+  sandboxing Content-Security-Policy. No route, disk URL or Inertia prop exposes the stored path.
+- Reviewing (approve / reject) needs `drivers.verify`, is logged to the activity log (`driver-documents`) with
+  the reviewer, the document and the rejection reason, and never logs the document number.

@@ -38,6 +38,15 @@ return [
             'report' => false,
         ],
 
+        // Driver and vehicle papers: private, never linked publicly (served by DriverDocumentFileController).
+        'driver_documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/driver-documents'),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

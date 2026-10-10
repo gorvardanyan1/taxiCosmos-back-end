@@ -34,6 +34,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     Route::middleware('permission:drivers.view')->group(function () {
         Route::get('/drivers', [Admin\DriverController::class, 'index'])->name('drivers.index');
         Route::get('/drivers/{driver}', [Admin\DriverController::class, 'show'])->whereNumber('driver')->name('drivers.show');
+
+        // Document files: only with a valid, unexpired signature (links are issued per page load).
+        Route::get('/drivers/{driver}/documents/{document}/file', [Admin\DriverDocumentController::class, 'file'])
+            ->whereNumber(['driver', 'document'])->middleware('signed:relative')->name('drivers.documents.file');
+    });
+
+    Route::middleware('permission:drivers.verify')->group(function () {
+        Route::post('/drivers/{driver}/documents/{document}/approve', [Admin\DriverDocumentController::class, 'approve'])
+            ->whereNumber(['driver', 'document'])->name('drivers.documents.approve');
+        Route::post('/drivers/{driver}/documents/{document}/reject', [Admin\DriverDocumentController::class, 'reject'])
+            ->whereNumber(['driver', 'document'])->name('drivers.documents.reject');
     });
 
     Route::middleware('permission:trips.view')->group(function () {

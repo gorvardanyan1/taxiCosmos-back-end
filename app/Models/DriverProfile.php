@@ -88,6 +88,14 @@ class DriverProfile extends Model
     }
 
     /**
+     * @return HasMany<DriverDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(DriverDocument::class, 'driver_id');
+    }
+
+    /**
      * @return HasMany<DriverBankAccount, $this>
      */
     public function bankAccounts(): HasMany

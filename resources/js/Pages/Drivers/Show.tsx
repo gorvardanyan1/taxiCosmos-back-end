@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, Eye, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import ActionButton from '@/Components/ActionButton';
 import Avatar from '@/Components/Avatar';
@@ -69,21 +69,27 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                                 const expiringIn = doc.expires_at ? daysUntil(doc.expires_at) : null;
                                 return (
                                     <div key={doc.id} className="flex items-center gap-3 rounded-2xl p-4" style={tile}>
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-xl text-[10px] font-bold" style={{ background: '#f1f5f9', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>PDF</div>
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-xl text-[10px] font-bold" style={{ background: '#f1f5f9', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{doc.mime_type?.startsWith('image/') ? 'IMG' : 'PDF'}</div>
                                         <div className="flex-1">
                                             <p className="text-sm font-semibold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{label(doc.type)}</p>
                                             <div className="mt-1 flex items-center gap-2">
                                                 <StatusBadge status={doc.status} />
-                                                {expiringIn !== null && expiringIn <= 30 && <span className="text-[11px] font-semibold text-amber-600">Expires in {expiringIn} days</span>}
+                                                {expiringIn !== null && expiringIn <= 30 && <span className="text-[11px] font-semibold text-amber-600">{expiringIn < 0 ? 'Expired' : `Expires in ${expiringIn} days`}</span>}
                                             </div>
+                                            {doc.rejection_reason && <p className="mt-1 text-xs text-red-600">{doc.rejection_reason}</p>}
                                         </div>
                                         <div className="flex gap-1.5">
-                                            <ActionButton url={withId(actions.approveDocument, doc.id)} className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#f0fdf4', color: '#16a34a', fontFamily: 'var(--font-display)' }}>
+                                            {doc.file_url && (
+                                                <a href={doc.file_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#eef2ff', color: '#4f46e5', fontFamily: 'var(--font-display)' }}>
+                                                    <Eye size={11} /> View
+                                                </a>
+                                            )}
+                                            {doc.status === 'pending' && <><ActionButton url={withId(actions.approveDocument, doc.id)} className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#f0fdf4', color: '#16a34a', fontFamily: 'var(--font-display)' }}>
                                                 <CheckCircle size={11} /> Approve
                                             </ActionButton>
                                             <button onClick={() => setRejecting(doc)} className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#fef2f2', color: '#dc2626', fontFamily: 'var(--font-display)' }}>
                                                 <XCircle size={11} /> Reject
-                                            </button>
+                                            </button></>}
                                         </div>
                                     </div>
                                 );

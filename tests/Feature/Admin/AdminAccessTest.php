@@ -17,7 +17,7 @@ class AdminAccessTest extends AdminTestCase
     {
         return collect(Route::getRoutes()->getRoutes())
             ->filter(fn ($route) => str_starts_with($route->uri(), 'admin') && in_array('GET', $route->methods(), true))
-            ->map(fn ($route) => '/'.str_replace(['{rider}', '{driver}', '{trip}'], ['80', '8', '4'], $route->uri()))
+            ->map(fn ($route) => '/'.str_replace(['{rider}', '{driver}', '{trip}', '{document}'], ['80', '8', '4', '1'], $route->uri()))
             ->values()
             ->all();
     }
