@@ -7,6 +7,7 @@ use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -39,10 +40,13 @@ class AuditTargetTypeTest extends TestCase
         $this->assertSame("Vehicle #{$vehicle->id}", AuditTargetType::describe($vehicle));
         $this->assertSame("User #{$user->id}", AuditTargetType::describe($user));
         $this->assertStringNotContainsString('Gor', AuditTargetType::describe($user));
+        $zone = Zone::factory()->create(['code' => 'YEREVAN']);
+        $this->assertSame(AuditTargetType::Zone, AuditTargetType::forModel($zone));
+        $this->assertSame('Zone YEREVAN', AuditTargetType::describe($zone));
     }
 
     public function test_the_filter_values_are_stable(): void
     {
-        $this->assertSame(['driver', 'driver_document', 'vehicle', 'user'], AuditTargetType::values());
+        $this->assertSame(['driver', 'driver_document', 'vehicle', 'user', 'zone'], AuditTargetType::values());
     }
 }

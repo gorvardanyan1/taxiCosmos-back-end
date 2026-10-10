@@ -4,6 +4,11 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\AuthPageController;
 use Illuminate\Support\Facades\Route;
 
+// Record ids in URLs: 1-18 digits, so an id too large for a bigint is a plain 404, never a type error.
+foreach (['rider', 'driver', 'document', 'trip', 'zone'] as $parameter) {
+    Route::pattern($parameter, '[0-9]{1,18}');
+}
+
 Route::redirect('/', '/admin');
 
 // Admin authentication screens. Fortify (views disabled) handles POST /login, /logout,
@@ -28,28 +33,28 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
 
     Route::middleware('permission:riders.view')->group(function () {
         Route::get('/riders', [Admin\RiderController::class, 'index'])->name('riders.index');
-        Route::get('/riders/{rider}', [Admin\RiderController::class, 'show'])->whereNumber('rider')->name('riders.show');
+        Route::get('/riders/{rider}', [Admin\RiderController::class, 'show'])->name('riders.show');
     });
 
     Route::middleware('permission:drivers.view')->group(function () {
         Route::get('/drivers', [Admin\DriverController::class, 'index'])->name('drivers.index');
-        Route::get('/drivers/{driver}', [Admin\DriverController::class, 'show'])->whereNumber('driver')->name('drivers.show');
+        Route::get('/drivers/{driver}', [Admin\DriverController::class, 'show'])->name('drivers.show');
 
         // Document files: only with a valid, unexpired signature (links are issued per page load).
         Route::get('/drivers/{driver}/documents/{document}/file', [Admin\DriverDocumentController::class, 'file'])
-            ->whereNumber(['driver', 'document'])->middleware('signed:relative')->name('drivers.documents.file');
+            ->middleware('signed:relative')->name('drivers.documents.file');
     });
 
     Route::middleware('permission:drivers.verify')->group(function () {
         Route::post('/drivers/{driver}/documents/{document}/approve', [Admin\DriverDocumentController::class, 'approve'])
-            ->whereNumber(['driver', 'document'])->name('drivers.documents.approve');
+            ->name('drivers.documents.approve');
         Route::post('/drivers/{driver}/documents/{document}/reject', [Admin\DriverDocumentController::class, 'reject'])
-            ->whereNumber(['driver', 'document'])->name('drivers.documents.reject');
+            ->name('drivers.documents.reject');
     });
 
     Route::middleware('permission:trips.view')->group(function () {
         Route::get('/trips', [Admin\TripController::class, 'index'])->name('trips.index');
-        Route::get('/trips/{trip}', [Admin\TripController::class, 'show'])->whereNumber('trip')->name('trips.show');
+        Route::get('/trips/{trip}', [Admin\TripController::class, 'show'])->name('trips.show');
     });
 
     Route::get('/support-tickets', Admin\SupportTicketController::class)->middleware('permission:support.manage')->name('support-tickets.index');
@@ -59,7 +64,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     Route::get('/chargebacks', Admin\ChargebackController::class)->middleware('permission:chargebacks.manage')->name('chargebacks.index');
     Route::get('/driver-balances', Admin\DriverBalanceController::class)->middleware('permission:driver_balances.view')->name('driver-balances.index');
     Route::get('/reports', Admin\ReportController::class)->middleware('permission:reports.view')->name('reports.index');
-    Route::get('/zones', Admin\ZoneController::class)->middleware('permission:zones.manage')->name('zones.index');
+    Route::middleware('permission:zones.manage')->group(function () {
+        Route::get('/zones', [Admin\ZoneController::class, 'index'])->name('zones.index');
+        Route::post('/zones', [Admin\ZoneController::class, 'store'])->name('zones.store');
+        Route::patch('/zones/{zone}', [Admin\ZoneController::class, 'update'])->name('zones.update');
+        Route::post('/zones/{zone}/deactivate', [Admin\ZoneController::class, 'deactivate'])->name('zones.deactivate');
+        Route::post('/zones/{zone}/activate', [Admin\ZoneController::class, 'activate'])->name('zones.activate');
+    });
     Route::get('/surge', Admin\SurgeController::class)->middleware('permission:fares.manage')->name('surge.index');
     Route::get('/commission-rules', Admin\CommissionRuleController::class)->middleware('permission:fares.manage')->name('commission-rules.index');
 

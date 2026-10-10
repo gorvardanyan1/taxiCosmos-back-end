@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Zone;
 use App\Services\Audit\AuditLogger;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -103,9 +104,10 @@ class UrlStateTest extends AdminTestCase
         $entry = app(AuditLogger::class)->record($admin, 'driver.document.rejected', reason: 'Expired policy');
         $this->actingAs($admin)->get('/admin/activity-logs?entry='.$entry->id)->assertInertia(fn (Assert $page) => $page->where('expandedId', $entry->id)->where('expanded.action', 'driver.document.rejected'));
         $this->actingAs($admin)->get('/admin/activity-logs?entry=999999')->assertInertia(fn (Assert $page) => $page->where('expandedId', null)->where('expanded', null));
-        $this->actingAs($admin)->get('/admin/zones?zone=2')
-            ->assertInertia(fn (Assert $page) => $page->where('selectedZoneId', 2)->has('fareRules', 2)->where('fareRules.0.zone_id', 2)->where('fareRules.1.zone_id', 2));
-        $this->actingAs($admin)->get('/admin/zones?zone=99')->assertInertia(fn (Assert $page) => $page->where('selectedZoneId', 1));
+        $zones = Zone::factory()->count(2)->sequence(['priority' => 5], ['priority' => 1])->create();
+        $this->actingAs($admin)->get('/admin/zones?zone='.$zones[1]->id)
+            ->assertInertia(fn (Assert $page) => $page->where('selectedZoneId', $zones[1]->id)->where('selectedPolygon.type', 'MultiPolygon'));
+        $this->actingAs($admin)->get('/admin/zones?zone=999999')->assertInertia(fn (Assert $page) => $page->where('selectedZoneId', $zones[0]->id));
     }
 
     public function test_report_builder_state_comes_from_the_url_and_invalid_values_fall_back(): void

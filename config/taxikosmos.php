@@ -43,6 +43,11 @@ return [
         'mime_types' => ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
     ],
 
+    'zones' => [
+        // A zone polygon may have at most this many points (all rings together).
+        'max_vertices' => (int) env('ZONE_MAX_VERTICES', 5000),
+    ],
+
     'audit' => [
         // CSV export of the Activity Log stops after this many rows.
         'export_max_rows' => (int) env('AUDIT_EXPORT_MAX_ROWS', 50000),

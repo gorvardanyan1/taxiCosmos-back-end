@@ -6,6 +6,7 @@ use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\Zone;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -18,6 +19,7 @@ enum AuditTargetType: string
     case DriverDocument = 'driver_document';
     case Vehicle = 'vehicle';
     case User = 'user';
+    case Zone = 'zone';
 
     /**
      * @return class-string<Model>
@@ -29,6 +31,7 @@ enum AuditTargetType: string
             self::DriverDocument => DriverDocument::class,
             self::Vehicle => Vehicle::class,
             self::User => User::class,
+            self::Zone => Zone::class,
         };
     }
 
@@ -65,6 +68,7 @@ enum AuditTargetType: string
             $model instanceof DriverProfile => sprintf('D-%04d', $model->getKey()),
             $model instanceof Vehicle => sprintf('Vehicle #%d', $model->getKey()),
             $model instanceof User => sprintf('User #%d', $model->getKey()),
+            $model instanceof Zone => sprintf('Zone %s', $model->code),
             default => class_basename($model).' #'.$model->getKey(),
         };
     }

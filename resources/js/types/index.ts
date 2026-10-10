@@ -253,8 +253,15 @@ export type ReportPoint = { label: string; trips: number; cancellations: number 
 export interface Zone {
     id: number;
     name: string;
+    code: string;
     status: 'active' | 'inactive';
     polygon_valid: boolean;
+    timezone: string;
+    currency: string;
+    /** Overlapping zones: the highest priority wins. */
+    priority: number;
+    /** Number of points in the polygon. */
+    points: number;
 }
 
 export interface FareRule {
