@@ -203,16 +203,16 @@ class DriverVerificationStatusTest extends DriverDocumentTestCase
 
         $this->review($license);
         Event::assertNotDispatched(DriverVerificationChanged::class);
-        $this->assertSame(0, Activity::where('event', 'verification_changed')->count());
+        $this->assertSame(0, Activity::where('description', 'driver.verification.changed')->count());
 
         $this->review($idCard);
 
         Event::assertDispatchedTimes(DriverVerificationChanged::class, 1);
-        $log = Activity::where('event', 'verification_changed')->sole();
+        $log = Activity::where('description', 'driver.verification.changed')->sole();
         $this->assertSame($this->reviewer->id, $log->causer_id);
         $this->assertSame($driver->id, $log->subject_id);
-        $this->assertSame(['verification_status' => 'pending'], $log->properties['old']);
-        $this->assertSame(['verification_status' => 'approved'], $log->properties['new']);
+        $this->assertSame(['verification_status' => 'pending'], $log->attribute_changes['old']);
+        $this->assertSame(['verification_status' => 'approved'], $log->attribute_changes['attributes']);
     }
 
     public function test_other_drivers_are_untouched(): void

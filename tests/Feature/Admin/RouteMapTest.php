@@ -48,7 +48,7 @@ class RouteMapTest extends AdminTestCase
             'settings currencies' => ['/admin/settings/currencies', 'Settings/Currencies', fn (Assert $p) => $p->has('currencies', 4)->where('baseCurrency', 'AMD')->where('currencies.3.active', false)],
             'settings platform' => ['/admin/settings/platform', 'Settings/Platform', fn (Assert $p) => $p->has('settings', 7)],
             'settings maps' => ['/admin/settings/maps', 'Settings/Maps', fn (Assert $p) => $p->where('maps.provider', 'google')],
-            'activity log' => ['/admin/activity-logs', 'ActivityLog/Index', fn (Assert $p) => $p->where('entries.total', 3)->where('expandedId', null)],
+            'activity log' => ['/admin/activity-logs', 'ActivityLog/Index', fn (Assert $p) => $p->where('entries.total', 0)->where('expandedId', null)->where('expanded', null)->where('actions.export', '/admin/activity-logs/export')],
             'my account' => ['/admin/account', 'Account/Show', fn (Assert $p) => $p->where('tab', 'profile')->has('sessions', 2)->has('notification_preferences', 8)],
         ];
     }

@@ -39,7 +39,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/surge`, `/admin/commission-rules` | `fares.manage` |
 | `GET /admin/settings/users` | `admins.manage` |
 | `GET /admin/settings/{gateways,currencies,platform,maps}` | `settings.manage` |
-| `GET /admin/activity-logs` | `activity_log.view` |
+| `GET /admin/activity-logs`, `/admin/activity-logs/export` (CSV) | `activity_log.view` |
 | `GET /admin/account` | admin access only (self-service) |
 
 ## Source of truth

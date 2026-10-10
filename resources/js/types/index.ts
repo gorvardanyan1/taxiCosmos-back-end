@@ -303,12 +303,15 @@ export interface AdminUserRow {
 export interface ActivityEntry {
     id: number;
     occurred_at: string;
-    actor: { name: string; role: string };
+    /** Copy stored with the entry; id is null for system and failed-sign-in entries. */
+    actor: { id: number | null; name: string; role: string | null };
     action: string;
-    target_type: string;
+    target_type: string | null;
+    target_id: number | null;
     target: string;
     reason: string | null;
     ip: string;
+    user_agent: string | null;
     before: Record<string, unknown>;
     after: Record<string, unknown>;
 }
