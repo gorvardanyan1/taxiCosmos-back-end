@@ -15,6 +15,17 @@ enum AdminRole: string
     case Finance = 'finance';
     case Dispatcher = 'dispatcher';
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::SuperAdmin => 'Super Admin',
+            self::Admin => 'Admin',
+            self::Support => 'Support',
+            self::Finance => 'Finance',
+            self::Dispatcher => 'Dispatcher',
+        };
+    }
+
     /**
      * @return list<AdminPermission>
      */
@@ -27,6 +38,7 @@ enum AdminRole: string
                 fn (AdminPermission $permission) => $permission !== AdminPermission::AdminsManage,
             )),
             self::Support => [
+                AdminPermission::DashboardView,
                 AdminPermission::RidersView,
                 AdminPermission::RidersSuspend,
                 AdminPermission::DriversView,
@@ -35,8 +47,10 @@ enum AdminRole: string
                 AdminPermission::TripsView,
                 AdminPermission::PaymentsView,
                 AdminPermission::SupportManage,
+                AdminPermission::RatingsView,
             ],
             self::Finance => [
+                AdminPermission::DashboardView,
                 AdminPermission::RidersView,
                 AdminPermission::DriversView,
                 AdminPermission::TripsView,
@@ -46,10 +60,12 @@ enum AdminRole: string
                 AdminPermission::PaymentsManual,
                 AdminPermission::PayoutsView,
                 AdminPermission::PayoutsApprove,
+                AdminPermission::DriverBalancesView,
                 AdminPermission::ChargebacksManage,
                 AdminPermission::ReportsView,
             ],
             self::Dispatcher => [
+                AdminPermission::DashboardView,
                 AdminPermission::RidersView,
                 AdminPermission::DriversView,
                 AdminPermission::TripsView,

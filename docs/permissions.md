@@ -14,6 +14,31 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
   the account still has admin access (a suspended super admin loses the bypass).
 - The admin UI hides actions the current user lacks (P13-T2), but the server is the only
   enforcement point.
+- **Self-service pages need no permission**: `GET /admin/account` (My Account) only requires
+  admin access, because every admin manages their own profile and security.
+
+## Admin page → permission (P13-T1 route map)
+
+| Route | Permission |
+| --- | --- |
+| `GET /admin` | `dashboard.view` |
+| `GET /admin/live-map` | `live_map.view` |
+| `GET /admin/riders`, `/admin/riders/{id}` | `riders.view` |
+| `GET /admin/drivers`, `/admin/drivers/{id}` | `drivers.view` |
+| `GET /admin/trips`, `/admin/trips/{id}` | `trips.view` |
+| `GET /admin/support-tickets` | `support.manage` |
+| `GET /admin/ratings` | `ratings.view` |
+| `GET /admin/transactions` | `payments.view` |
+| `GET /admin/payouts` | `payouts.view` |
+| `GET /admin/chargebacks` | `chargebacks.manage` |
+| `GET /admin/driver-balances` | `driver_balances.view` |
+| `GET /admin/reports` | `reports.view` |
+| `GET /admin/zones` | `zones.manage` |
+| `GET /admin/surge`, `/admin/commission-rules` | `fares.manage` |
+| `GET /admin/settings/users` | `admins.manage` |
+| `GET /admin/settings/{gateways,currencies,platform,maps}` | `settings.manage` |
+| `GET /admin/activity-logs` | `activity_log.view` |
+| `GET /admin/account` | admin access only (self-service) |
 
 ## Source of truth
 
@@ -38,6 +63,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 
 | Permission | `super_admin` | `admin` | `support` | `finance` | `dispatcher` | What it allows |
 | --- | :---: | :---: | :---: | :---: | :---: | --- |
+| `dashboard.view` | ✓ | ✓ | ✓ | ✓ | ✓ | Admin dashboard (KPIs, recent activity) |
 | `riders.view` | ✓ | ✓ | ✓ | ✓ | ✓ | View rider list, profiles, trips and payments |
 | `riders.suspend` | ✓ | ✓ | ✓ | — | — | Suspend / reactivate a rider (reason required) |
 | `drivers.view` | ✓ | ✓ | ✓ | ✓ | ✓ | View driver list, profiles, vehicles and documents |
@@ -51,6 +77,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `payments.manual` | ✓ | ✓ | — | ✓ | — | Record manual/offline payments, wallet & ledger adjustments, cash settlements |
 | `payouts.view` | ✓ | ✓ | — | ✓ | — | View driver payouts |
 | `payouts.approve` | ✓ | ✓ | — | ✓ | — | Approve / reject driver payouts |
+| `driver_balances.view` | ✓ | ✓ | — | ✓ | — | Driver balances and debt ageing |
 | `chargebacks.manage` | ✓ | ✓ | — | ✓ | — | Manage bank chargebacks |
 | `zones.manage` | ✓ | ✓ | — | — | — | Create/edit cities and zones |
 | `fares.manage` | ✓ | ✓ | — | — | — | Manage fare rules, surge and commission rules |
@@ -60,6 +87,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `live_map.view` | ✓ | ✓ | — | — | ✓ | Live operations map |
 | `reports.view` | ✓ | ✓ | — | ✓ | — | Reports and exports |
 | `support.manage` | ✓ | ✓ | ✓ | — | — | Support tickets (rider & driver complaints) |
+| `ratings.view` | ✓ | ✓ | ✓ | — | — | Ratings and reviews list |
 
 ### Roles
 

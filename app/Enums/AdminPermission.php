@@ -9,6 +9,8 @@ namespace App\Enums;
  */
 enum AdminPermission: string
 {
+    case DashboardView = 'dashboard.view';
+
     case RidersView = 'riders.view';
     case RidersSuspend = 'riders.suspend';
 
@@ -27,6 +29,8 @@ enum AdminPermission: string
     case PayoutsView = 'payouts.view';
     case PayoutsApprove = 'payouts.approve';
 
+    case DriverBalancesView = 'driver_balances.view';
+
     case ChargebacksManage = 'chargebacks.manage';
 
     case ZonesManage = 'zones.manage';
@@ -38,6 +42,7 @@ enum AdminPermission: string
     case LiveMapView = 'live_map.view';
     case ReportsView = 'reports.view';
     case SupportManage = 'support.manage';
+    case RatingsView = 'ratings.view';
 
     /**
      * @return list<string>
