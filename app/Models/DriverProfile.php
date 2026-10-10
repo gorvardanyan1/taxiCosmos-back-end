@@ -5,11 +5,13 @@ namespace App\Models;
 use App\Casts\EncryptedWithBlindIndex;
 use App\Enums\DriverAvailability;
 use App\Enums\DriverVerificationStatus;
+use App\Observers\DriverProfileObserver;
 use App\Support\BlindIndex;
 use App\Support\LicenseNumber;
 use Database\Factories\DriverProfileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 #[Fillable(['license_number', 'license_expiry', 'home_zone_id'])]
 #[Hidden(['license_number', 'license_number_hash'])]
+#[ObservedBy([DriverProfileObserver::class])]
 class DriverProfile extends Model
 {
     /** @use HasFactory<DriverProfileFactory> */
