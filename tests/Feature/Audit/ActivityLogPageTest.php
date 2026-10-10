@@ -125,6 +125,22 @@ class ActivityLogPageTest extends AuditTestCase
         }
     }
 
+    public function test_a_filter_given_several_values_is_refused_not_a_server_error(): void
+    {
+        foreach (['filter[action]=a,b', 'filter[action][]=x', 'filter[target_type]=driver,user', 'filter[target_type][]=driver', 'filter[from]=2026-10-01,2026-10-02', 'filter[to][]=2026-10-01', 'filter[actor][]=1', 'filter[target_id]=1,2'] as $query) {
+            $this->page('?'.$query)->assertStatus(400);
+            $this->actingAs($this->viewer)->get('/admin/activity-logs/export?'.$query)->assertStatus(400);
+        }
+    }
+
+    public function test_a_search_containing_a_comma_is_matched_as_typed(): void
+    {
+        $this->audit()->record($this->admin(), 'driver.document.rejected', null, 'Expired policy, renew it');
+        $this->audit()->record($this->admin(), 'driver.document.rejected', null, 'Expired policy renew it');
+
+        $this->page('?filter[search]=policy,+renew')->assertInertia(fn (Assert $p) => $p->where('entries.total', 1));
+    }
+
     public function test_search_matches_action_actor_target_and_reason_case_insensitively_and_literally(): void
     {
         $actor = $this->admin(AdminRole::Support, ['name' => 'Riley Chen']);

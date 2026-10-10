@@ -27,6 +27,11 @@ class AuditEntryBuilder extends Builder
         throw ActivityLogEntry::immutable();
     }
 
+    public function truncate(): never
+    {
+        throw ActivityLogEntry::immutable();
+    }
+
     public function increment($column, $amount = 1, array $extra = []): never
     {
         throw ActivityLogEntry::immutable();

@@ -30,7 +30,8 @@ final class AuditLogQuery
         return QueryBuilder::for(ActivityLogEntry::query(), $request)
             ->allowedFilters(...[
                 AllowedFilter::callback('search', function (Builder $query, $value) {
-                    $term = '%'.addcslashes(mb_strtolower((string) (is_array($value) ? implode(' ', $value) : $value)), '\\%_').'%';
+                    // The query builder splits "a, b" at commas; put the text back together.
+                    $term = '%'.addcslashes(mb_strtolower(is_array($value) ? implode(',', $value) : (string) $value), '\\%_').'%';
                     $query->where(fn (Builder $q) => $q
                         ->whereRaw('lower(description) like ?', [$term])
                         ->orWhereRaw("lower(properties->>'reason') like ?", [$term])
@@ -39,13 +40,13 @@ final class AuditLogQuery
                 }),
                 AllowedFilter::callback('actor', fn (Builder $query, $value) => $query->where('causer_id', self::integer($value, 'actor'))),
                 AllowedFilter::callback('action', function (Builder $query, $value) {
-                    $name = (string) $value;
+                    $name = self::single($value, 'action');
                     $query->where(fn (Builder $q) => $q
                         ->where('description', $name)
                         ->orWhere('description', 'like', addcslashes($name, '\\%_').'.%'));
                 }),
                 AllowedFilter::callback('target_type', function (Builder $query, $value) {
-                    $type = AuditTargetType::tryFrom((string) $value) ?? abort(400, 'Unknown target type.');
+                    $type = AuditTargetType::tryFrom(self::single($value, 'target_type')) ?? abort(400, 'Unknown target type.');
                     $query->where('subject_type', $type->modelClass());
                 }),
                 AllowedFilter::callback('target_id', fn (Builder $query, $value) => $query->where('subject_id', self::integer($value, 'target_id'))),
@@ -56,14 +57,23 @@ final class AuditLogQuery
             ->defaultSort('-created_at', '-id');
     }
 
+    /**
+     * Every filter but search takes one value; the query builder turns "a,b" and "x[]=1" into
+     * arrays, which are refused instead of crashing the cast.
+     */
+    private static function single(mixed $value, string $filter): string
+    {
+        return is_array($value) ? abort(400, "The {$filter} filter takes a single value.") : (string) $value;
+    }
+
     private static function integer(mixed $value, string $filter): int
     {
-        return filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: abort(400, "Invalid {$filter} filter.");
+        return filter_var(self::single($value, $filter), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: abort(400, "Invalid {$filter} filter.");
     }
 
     private static function day(mixed $value, string $timezone): CarbonImmutable
     {
-        $value = (string) $value;
+        $value = self::single($value, 'date');
         $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? CarbonImmutable::createFromFormat('!Y-m-d', $value, $timezone) : false;
 
         return $date !== false && $date->format('Y-m-d') === $value ? $date : abort(400, 'Dates must look like 2026-10-05.');

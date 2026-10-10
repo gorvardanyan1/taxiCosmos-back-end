@@ -59,6 +59,8 @@ class AuditImmutabilityTest extends AuditTestCase
             fn () => ActivityLogEntry::query()->where('id', $entry->id)->increment('id'),
             fn () => ActivityLogEntry::query()->upsert([['id' => $entry->id, 'description' => 'tampered']], ['id']),
             fn () => ActivityLogEntry::destroy($entry->id),
+            fn () => ActivityLogEntry::query()->truncate(),
+            fn () => ActivityLogEntry::truncate(),
         ] as $attempt) {
             try {
                 $attempt();
@@ -100,6 +102,6 @@ class AuditImmutabilityTest extends AuditTestCase
             ->filter(fn ($m) => $m->getDeclaringClass()->getName() === AuditEntryBuilder::class)
             ->map(fn ($m) => $m->getName())->all();
 
-        $this->assertEqualsCanonicalizing(['update', 'delete', 'forceDelete', 'increment', 'decrement', 'upsert', 'purgeOlderThan'], $methods);
+        $this->assertEqualsCanonicalizing(['update', 'delete', 'forceDelete', 'truncate', 'increment', 'decrement', 'upsert', 'purgeOlderThan'], $methods);
     }
 }
