@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\DisableRememberMe;
 use Laravel\Fortify\Features;
 
 return [
@@ -107,7 +108,8 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // DisableRememberMe: admin sessions must always respect the idle timeout.
+    'middleware' => ['web', DisableRememberMe::class],
 
     /*
     |--------------------------------------------------------------------------

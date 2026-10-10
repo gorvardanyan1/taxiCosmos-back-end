@@ -13,17 +13,18 @@ describe('Login screen', () => {
         fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Corr3ct-Horse!Battery' } });
     };
 
-    it('posts email, password and remember to the login endpoint', () => {
+    it('posts only email and password (admin sessions have no remember-me)', () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         render(<Login status={null} submitUrl="/login" />);
         fill();
-        fireEvent.click(screen.getByLabelText(/Remember me/));
+        expect(screen.queryByLabelText(/Remember me/)).toBeNull();
         fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
         expect(visit).toHaveBeenCalledTimes(1);
         const [url, options] = visit.mock.calls[0];
         expect(url).toBe('/login');
-        expect(options).toMatchObject({ method: 'post', data: { email: 'morgan@taxikosmos.test', password: 'Corr3ct-Horse!Battery', remember: true } });
+        expect(options).toMatchObject({ method: 'post', data: { email: 'morgan@taxikosmos.test', password: 'Corr3ct-Horse!Battery' } });
+        expect(Object.keys((options as { data: object }).data).sort()).toEqual(['email', 'password']);
     });
 
     it('shows the server error (wrong credentials or rate limit) and clears the password', () => {

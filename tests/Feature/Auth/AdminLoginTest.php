@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
 use Inertia\Testing\AssertableInertia as Assert;
+use Symfony\Component\HttpFoundation\Cookie;
 use Tests\Feature\Admin\AdminTestCase;
 
 class AdminLoginTest extends AdminTestCase
@@ -152,5 +153,39 @@ class AdminLoginTest extends AdminTestCase
     {
         $this->get('/admin/riders')->assertRedirect('/login');
         $this->get('/login')->assertInertia(fn (Assert $page) => $page->component('Auth/Login')->where('submitUrl', '/login'));
+    }
+
+    public function test_remember_me_is_never_honoured_so_it_cannot_outlive_the_idle_timeout(): void
+    {
+        $admin = $this->adminWithPassword();
+        $tokenBefore = $admin->getRememberToken();
+        $this->travelTo(now()->startOfMinute());
+
+        $login = $this->withHeaders(self::INERTIA)->post('/login', ['email' => $admin->email, 'password' => self::PASSWORD, 'remember' => '1']);
+
+        $login->assertRedirect('/admin');
+        $recallers = collect($login->headers->getCookies())->filter(fn (Cookie $cookie) => str_starts_with($cookie->getName(), 'remember_web_'));
+        $this->assertCount(0, $recallers, 'No remember cookie may be issued for an admin session.');
+        $this->assertSame($tokenBefore, $admin->fresh()->getRememberToken(), 'Signing in must not mint a remember token.');
+    }
+
+    public function test_after_the_server_session_expires_the_admin_must_sign_in_again_even_if_remember_was_ticked(): void
+    {
+        $admin = $this->adminWithPassword();
+        $this->travelTo(now()->startOfMinute());
+        $login = $this->post('/login', ['email' => $admin->email, 'password' => self::PASSWORD, 'remember' => '1']);
+        $cookies = collect($login->headers->getCookies());
+
+        $this->travel(3)->hours();
+        $this->flushSession();
+        Auth::forgetGuards();
+
+        $request = $this;
+        foreach ($cookies->filter(fn (Cookie $cookie) => str_starts_with($cookie->getName(), 'remember_web_')) as $cookie) {
+            $request = $request->withUnencryptedCookie($cookie->getName(), $cookie->getValue());
+        }
+
+        $request->get('/admin')->assertRedirect('/login');
+        $this->assertGuest();
     }
 }
