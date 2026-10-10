@@ -17,16 +17,19 @@ final class DriverDetailPresenter
      */
     public static function present(DriverProfile $profile): array
     {
-        $profile->loadMissing(['user', 'vehicles', 'bankAccounts', 'primaryVehicle', 'documents.reviewer:id,name']);
+        $profile->loadMissing(['user' => fn ($query) => $query->withTrashed(), 'vehicles', 'bankAccounts', 'primaryVehicle', 'documents.reviewer:id,name']);
 
         $zero = ['amount' => 0, 'currency' => config('taxikosmos.base_currency')];
         $primary = $profile->primaryVehicle;
+        // The driver's records outlive their account (account deletion keeps trips and documents
+        // reviewable), so a deleted user shows a placeholder and no personal data.
+        $deleted = $profile->user->trashed();
 
         return [
             'id' => $profile->id,
             'code' => sprintf('D-%04d', $profile->id),
-            'name' => $profile->user->name,
-            'phone' => $profile->user->phone ?? '—',
+            'name' => $deleted ? 'Deleted account' : $profile->user->name,
+            'phone' => $deleted ? '—' : ($profile->user->phone ?? '—'),
             'vehicle' => $primary === null ? null : ['label' => "{$primary->make} {$primary->model}", 'year' => $primary->year],
             'verification_status' => $profile->verification_status->value,
             'rating' => $profile->rating_avg,

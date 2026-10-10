@@ -109,6 +109,34 @@ class DriverDetailPageTest extends DriverDocumentTestCase
         }
     }
 
+    public function test_a_driver_whose_account_was_deleted_still_opens_without_personal_data(): void
+    {
+        $user = User::factory()->driver()->withPhone('+37491440221')->create(['name' => 'Gor Hakobyan']);
+        $driver = DriverProfile::factory()->for($user, 'user')->create();
+        $document = $this->pendingDocument($driver);
+        $user->delete();
+
+        $this->actingAs($this->admin())->get("/admin/drivers/{$driver->id}?tab=documents")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('driver.name', 'Deleted account')
+                ->where('driver.phone', '—')
+                ->where('driver.documents.0.id', $document->id)
+                ->where('actions.approveDocument', "/admin/drivers/{$driver->id}/documents/{id}/approve"));
+        $this->assertStringNotContainsString('Gor Hakobyan', json_encode($this->props($driver)));
+    }
+
+    public function test_documents_of_a_deleted_account_can_still_be_reviewed(): void
+    {
+        $driver = DriverProfile::factory()->create();
+        $document = $this->pendingDocument($driver);
+        $driver->user->delete();
+
+        $this->actingAs($this->admin())->post($this->approveUrl($document))->assertRedirect();
+
+        $this->assertSame('approved', $document->fresh()->status->value);
+    }
+
     public function test_a_database_driver_wins_over_a_fixture_driver_with_the_same_id(): void
     {
         DriverProfile::factory()->count(3)->create();
