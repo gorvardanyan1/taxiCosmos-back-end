@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { Bell, Car, CheckCheck, ChevronDown, CreditCard, LogOut, Menu, Search, ShieldAlert, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { UNAVAILABLE_HINT } from '@/Components/ActionButton';
@@ -108,7 +108,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar: () => voi
                                         <User size={13} /> My Account
                                     </Link>
                                     <div style={{ borderTop: '1px solid #f1f5f9', margin: '4px 0' }} />
-                                    <button disabled title={UNAVAILABLE_HINT} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-red-50 disabled:opacity-40" style={{ color: '#ef4444' }}>
+                                    <button onClick={() => router.post('/logout')} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-red-50" style={{ color: '#ef4444' }}>
                                         <LogOut size={13} /> Sign out
                                     </button>
                                 </div>

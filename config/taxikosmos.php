@@ -20,6 +20,10 @@ return [
     'display_timezone' => env('ADMIN_DISPLAY_TIMEZONE', 'Asia/Yerevan'),
 
     'admin' => [
+        // Admins are signed out after this many minutes without a request (P3-T1).
+        // Keep SESSION_LIFETIME at least as long so the session survives until then.
+        'idle_timeout_minutes' => (int) env('ADMIN_IDLE_TIMEOUT', 60),
+
         // Rows per page on admin lists; a request may ask for any of these.
         'per_page_options' => [10, 25, 50],
     ],

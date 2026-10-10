@@ -7,20 +7,20 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * GET screens for admin authentication, named like Fortify's routes so P3-T1 can enable
- * Fortify with views disabled and keep these pages. Each page's `submitUrl` stays null
- * until the matching POST route exists (P3-T1 login/reset, P3-T2 2FA, P3-T4 invitations).
+ * GET screens for admin authentication. Fortify runs with views disabled and handles the
+ * POSTs (login, forgot/reset password). A page's `submitUrl` stays null until its POST route
+ * exists (P3-T2 two-factor, P3-T4 invitations).
  */
 class AuthPageController extends Controller
 {
     public function login(Request $request): Response
     {
-        return Inertia::render('Auth/Login', ['status' => $request->session()->get('status'), 'submitUrl' => null]);
+        return Inertia::render('Auth/Login', ['status' => $request->session()->get('status'), 'submitUrl' => route('login.store', absolute: false)]);
     }
 
     public function forgotPassword(Request $request): Response
     {
-        return Inertia::render('Auth/ForgotPassword', ['status' => $request->session()->get('status'), 'submitUrl' => null]);
+        return Inertia::render('Auth/ForgotPassword', ['status' => $request->session()->get('status'), 'submitUrl' => route('password.email', absolute: false)]);
     }
 
     public function resetPassword(Request $request, string $token): Response
@@ -28,7 +28,7 @@ class AuthPageController extends Controller
         return Inertia::render('Auth/ResetPassword', [
             'token' => $token,
             'email' => (string) $request->query('email', ''),
-            'submitUrl' => null,
+            'submitUrl' => route('password.update', absolute: false),
         ]);
     }
 

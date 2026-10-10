@@ -9,6 +9,7 @@
         "php": "^8.3",
         "authorizenet/authorizenet": "^2.0",
         "inertiajs/inertia-laravel": "^2.0",
+        "laravel/fortify": "^1.41",
         "laravel/framework": "^13.17",
         "laravel/horizon": "^5.50",
         "laravel/sanctum": "^4.0",
