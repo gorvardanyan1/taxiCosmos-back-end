@@ -24,6 +24,8 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin` | `dashboard.view` |
 | `GET /admin/live-map` | `live_map.view` |
 | `GET /admin/riders`, `/admin/riders/{id}` | `riders.view` |
+| `PATCH /admin/riders/{id}` (contact details, reason required) | `riders.edit` |
+| `POST /admin/riders/{id}/suspend`, `.../reactivate` (reason required) | `riders.suspend` |
 | `GET /admin/drivers`, `/admin/drivers/{id}` | `drivers.view` |
 | `GET /admin/drivers/{id}/documents/{docId}/file` (signed, expiring link) | `drivers.view` |
 | `POST /admin/drivers/{id}/documents/{docId}/approve`, `.../reject` (reason required) | `drivers.verify` |
@@ -67,6 +69,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | --- | :---: | :---: | :---: | :---: | :---: | --- |
 | `dashboard.view` | ✓ | ✓ | ✓ | ✓ | ✓ | Admin dashboard (KPIs, recent activity) |
 | `riders.view` | ✓ | ✓ | ✓ | ✓ | ✓ | View rider list, profiles, trips and payments |
+| `riders.edit` | ✓ | ✓ | ✓ | — | — | Edit a rider's name, email, phone and language (reason required) |
 | `riders.suspend` | ✓ | ✓ | ✓ | — | — | Suspend / reactivate a rider (reason required) |
 | `drivers.view` | ✓ | ✓ | ✓ | ✓ | ✓ | View driver list, profiles, vehicles and documents |
 | `drivers.suspend` | ✓ | ✓ | ✓ | — | — | Suspend / reactivate a driver (reason required) |
