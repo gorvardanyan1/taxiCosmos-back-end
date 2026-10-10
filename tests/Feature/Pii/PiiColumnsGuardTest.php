@@ -3,6 +3,7 @@
 namespace Tests\Feature\Pii;
 
 use App\Models\DriverBankAccount;
+use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Support\Pii\PiiColumns;
@@ -29,6 +30,8 @@ class PiiColumnsGuardTest extends TestCase
                 'make' => fn () => User::factory()->withPhone('091 440 221')->create()],
             'driver_profiles.license_number' => ['table' => 'driver_profiles', 'column' => 'license_number', 'plaintext' => 'AM-DL42', 'attribute' => 'license_number',
                 'make' => fn () => DriverProfile::factory()->create(['license_number' => ' am-dl 42 '])],
+            'driver_documents.document_number' => ['table' => 'driver_documents', 'column' => 'document_number', 'plaintext' => 'AB-1234567', 'attribute' => 'document_number',
+                'make' => fn () => DriverDocument::factory()->create(['document_number' => 'AB-1234567'])],
             'driver_bank_accounts.account_number' => ['table' => 'driver_bank_accounts', 'column' => 'account_number', 'plaintext' => 'AM12345678904821', 'attribute' => 'account_number',
                 'make' => fn () => DriverBankAccount::factory()->create(['account_number' => 'AM12 3456 7890 4821'])],
         ];

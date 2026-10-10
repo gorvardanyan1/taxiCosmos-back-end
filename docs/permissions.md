@@ -25,6 +25,8 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/live-map` | `live_map.view` |
 | `GET /admin/riders`, `/admin/riders/{id}` | `riders.view` |
 | `GET /admin/drivers`, `/admin/drivers/{id}` | `drivers.view` |
+| `GET /admin/drivers/{id}/documents/{docId}/file` (signed, expiring link) | `drivers.view` |
+| `POST /admin/drivers/{id}/documents/{docId}/approve`, `.../reject` (reason required) | `drivers.verify` |
 | `GET /admin/trips`, `/admin/trips/{id}` | `trips.view` |
 | `GET /admin/support-tickets` | `support.manage` |
 | `GET /admin/ratings` | `ratings.view` |

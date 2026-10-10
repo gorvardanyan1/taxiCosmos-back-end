@@ -115,6 +115,12 @@ export interface DriverDocument {
     status: 'pending' | 'approved' | 'rejected' | 'expired';
     expires_at: string | null;
     rejection_reason: string | null;
+    /** Absent on fixture data; real documents carry the stored (content-sniffed) type. */
+    mime_type?: string;
+    reviewed_at?: string | null;
+    reviewer?: string | null;
+    /** Short-lived signed link to the file, issued per page load. Absent on fixture data. */
+    file_url?: string;
 }
 
 export interface Vehicle {

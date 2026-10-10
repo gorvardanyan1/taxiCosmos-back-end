@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\DocumentReviewException;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -37,6 +38,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // A review the document's state does not allow is a conflict (409). The Inertia admin gets
+        // it as a flash message on the page it came from.
+        $exceptions->render(function (DocumentReviewException $e, Request $request) {
+            return $request->header('X-Inertia')
+                ? back()->with('error', $e->getMessage())
+                : response()->json(['message' => $e->getMessage()], 409);
+        });
 
         // Admin web errors render the template's error page through Inertia (outside debug mode).
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {

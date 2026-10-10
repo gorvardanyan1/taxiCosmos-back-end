@@ -25,6 +25,24 @@ return [
         'default_region' => env('PHONE_DEFAULT_REGION', 'AM'),
     ],
 
+    'documents' => [
+        // Private disk for driver and vehicle papers. Switch to an S3-compatible disk (staging,
+        // production) with DRIVER_DOCUMENTS_DISK=s3; no code change is needed.
+        'disk' => env('DRIVER_DOCUMENTS_DISK', 'driver_documents'),
+
+        // Document types a driver needs approved before the profile becomes verified
+        // (comma separated DriverDocumentType values; background_check is optional by default).
+        'required' => array_values(array_filter(array_map('trim', explode(',', (string) env('DRIVER_REQUIRED_DOCUMENTS', 'license,id_card,vehicle_registration,insurance'))))),
+
+        // How long a signed file link stays valid. Short on purpose: the page issues a fresh one
+        // on every load.
+        'url_ttl_minutes' => (int) env('DRIVER_DOCUMENT_URL_TTL', 5),
+
+        // Upload limits, checked against the file's real content (not the client-sent name).
+        'max_kilobytes' => (int) env('DRIVER_DOCUMENT_MAX_KB', 8192),
+        'mime_types' => ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+    ],
+
     'admin' => [
         // Admins are signed out after this many minutes without a request (P3-T1).
         // Keep SESSION_LIFETIME at least as long so the session survives until then.

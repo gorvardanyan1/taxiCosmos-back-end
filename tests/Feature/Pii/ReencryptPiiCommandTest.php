@@ -3,6 +3,7 @@
 namespace Tests\Feature\Pii;
 
 use App\Models\DriverBankAccount;
+use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Support\BlindIndex;
@@ -54,6 +55,19 @@ class ReencryptPiiCommandTest extends TestCase
         $this->assertStringContainsString('users.phone', $output);
         $this->assertStringNotContainsString('37491440221', $output, 'Values are never printed.');
         $this->assertStringNotContainsString('AM-DL42', $output);
+    }
+
+    public function test_driver_document_numbers_are_re_encrypted_too(): void
+    {
+        $document = DriverDocument::factory()->create(['document_number' => 'AB-1234567']);
+        $withoutNumber = DriverDocument::factory()->create();
+        $before = DB::table('driver_documents')->find($document->id)->document_number;
+
+        $this->assertSame(0, Artisan::call('pii:reencrypt'));
+
+        $this->assertNotSame($before, DB::table('driver_documents')->find($document->id)->document_number);
+        $this->assertSame('AB-1234567', $document->fresh()->document_number);
+        $this->assertNull($withoutNumber->fresh()->document_number, 'Documents without a number are skipped.');
     }
 
     public function test_a_dry_run_checks_everything_and_changes_nothing(): void
