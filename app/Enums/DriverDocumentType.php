@@ -10,6 +10,17 @@ enum DriverDocumentType: string
     case Insurance = 'insurance';
     case BackgroundCheck = 'background_check';
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::License => "Driver's license",
+            self::IdCard => 'ID card',
+            self::VehicleRegistration => 'Vehicle registration',
+            self::Insurance => 'Insurance certificate',
+            self::BackgroundCheck => 'Background check',
+        };
+    }
+
     /**
      * Documents that belong to a vehicle rather than to the driver, so they need a vehicle_id.
      */

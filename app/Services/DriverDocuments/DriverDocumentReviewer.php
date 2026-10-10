@@ -6,6 +6,7 @@ use App\Enums\DriverDocumentStatus;
 use App\Exceptions\DocumentReviewException;
 use App\Models\DriverDocument;
 use App\Models\User;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -16,7 +17,10 @@ use InvalidArgumentException;
  */
 final class DriverDocumentReviewer
 {
-    public function __construct(private readonly DriverVerificationSync $verification) {}
+    public function __construct(
+        private readonly DriverVerificationSync $verification,
+        private readonly AuditLogger $audit,
+    ) {}
 
     public function approve(DriverDocument $document, User $reviewer): DriverDocument
     {
@@ -56,19 +60,17 @@ final class DriverDocumentReviewer
                 'rejection_reason' => $reason,
             ])->save();
 
-            // The document number is never logged (docs/security.md).
-            activity('driver-documents')
-                ->performedOn($locked)
-                ->causedBy($reviewer)
-                ->event($decision->value)
-                ->withProperties([
-                    'driver_id' => $locked->driver_id,
-                    'type' => $locked->type->value,
-                    'old' => ['status' => DriverDocumentStatus::Pending->value],
-                    'new' => ['status' => $decision->value],
-                    'reason' => $reason,
-                ])
-                ->log("Document {$decision->value}: {$locked->type->value}");
+            // The document number is never logged (AuditRedactor / docs/security.md).
+            $this->audit->record(
+                actor: $reviewer,
+                action: "driver.document.{$decision->value}",
+                target: $locked,
+                reason: $reason,
+                old: ['status' => DriverDocumentStatus::Pending->value],
+                new: ['status' => $decision->value],
+                context: ['driver_id' => $locked->driver_id, 'type' => $locked->type->value],
+                reasonRequired: $decision === DriverDocumentStatus::Rejected,
+            );
 
             $this->verification->sync($locked->driver, $reviewer);
 

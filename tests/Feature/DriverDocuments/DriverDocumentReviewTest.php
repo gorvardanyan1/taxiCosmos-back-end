@@ -135,7 +135,7 @@ class DriverDocumentReviewTest extends DriverDocumentTestCase
         $this->actingAs($admin)->postJson($this->approveUrl($document))->assertStatus(409);
 
         $this->assertEquals($reviewedAt, $document->fresh()->reviewed_at);
-        $this->assertSame(1, Activity::where('event', 'approved')->count());
+        $this->assertSame(1, Activity::where('description', 'driver.document.approved')->count());
     }
 
     public function test_the_admin_ui_gets_a_conflict_as_a_flash_message_on_the_same_page(): void
@@ -178,24 +178,31 @@ class DriverDocumentReviewTest extends DriverDocumentTestCase
         $approved = $this->pendingDocument();
         $rejected = $this->pendingDocument(type: DriverDocumentType::IdCard);
 
-        $this->actingAs($admin)->post($this->approveUrl($approved));
+        $this->actingAs($admin)->withServerVariables(['REMOTE_ADDR' => '10.10.4.21', 'HTTP_USER_AGENT' => 'QA Browser/1.0'])->post($this->approveUrl($approved));
         $this->actingAs($admin)->post($this->rejectUrl($rejected), ['reason' => 'Name does not match']);
 
-        $approval = Activity::where('event', 'approved')->sole();
+        $approval = Activity::where('description', 'driver.document.approved')->sole();
         $this->assertSame($admin->id, $approval->causer_id);
         $this->assertSame($approved->id, $approval->subject_id);
         $this->assertSame($approved::class, $approval->subject_type);
-        $this->assertSame('driver-documents', $approval->log_name);
-        $this->assertSame(['status' => 'pending'], $approval->properties['old']);
-        $this->assertSame(['status' => 'approved'], $approval->properties['new']);
-        $this->assertSame($approved->driver_id, $approval->properties['driver_id']);
-        $this->assertSame('license', $approval->properties['type']);
+        $this->assertSame('admin', $approval->log_name);
+        $this->assertSame('approved', $approval->event);
+        $this->assertSame(['status' => 'pending'], $approval->attribute_changes['old']);
+        $this->assertSame(['status' => 'approved'], $approval->attribute_changes['attributes']);
+        $this->assertSame($approved->driver_id, $approval->properties['context']['driver_id']);
+        $this->assertSame('license', $approval->properties['context']['type']);
+        $this->assertSame('10.10.4.21', $approval->properties['ip']);
+        $this->assertSame('QA Browser/1.0', $approval->properties['user_agent']);
+        $this->assertSame($admin->name, $approval->properties['actor_name']);
+        $this->assertSame('support', $approval->properties['actor_role']);
+        $this->assertSame(sprintf('D-%04d / Driver\'s license', $approved->driver_id), $approval->properties['target_label']);
+        $this->assertArrayNotHasKey('reason', $approval->properties->all(), 'An approval has no reason.');
 
-        $rejection = Activity::where('event', 'rejected')->sole();
+        $rejection = Activity::where('description', 'driver.document.rejected')->sole();
         $this->assertSame($admin->id, $rejection->causer_id);
         $this->assertSame($rejected->id, $rejection->subject_id);
         $this->assertSame('Name does not match', $rejection->properties['reason']);
-        $this->assertSame(['status' => 'rejected'], $rejection->properties['new']);
+        $this->assertSame(['status' => 'rejected'], $rejection->attribute_changes['attributes']);
     }
 
     public function test_the_document_number_never_reaches_the_activity_log(): void

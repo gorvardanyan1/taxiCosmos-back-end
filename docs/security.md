@@ -96,4 +96,4 @@ lookups. Run `php artisan pii:reencrypt` after deploying the change.
   with `drivers.view`. The response is `inline`, `nosniff`, `Cache-Control: private, no-store` and carries a
   sandboxing Content-Security-Policy. No route, disk URL or Inertia prop exposes the stored path.
 - Reviewing (approve / reject) needs `drivers.verify`, is logged to the activity log (`driver-documents`) with
-  the reviewer, the document and the rejection reason, and never logs the document number.
+  the reviewer, the document and the rejection reason, and never logs the document number. All audit entries go through `AuditLogger`, which redacts sensitive values (see [audit-log.md](audit-log.md)).

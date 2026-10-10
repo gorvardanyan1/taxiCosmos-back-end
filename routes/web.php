@@ -72,7 +72,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
         Route::get('/settings/maps', [Admin\SettingsController::class, 'maps'])->name('settings.maps');
     });
 
-    Route::get('/activity-logs', Admin\ActivityLogController::class)->middleware('permission:activity_log.view')->name('activity-logs.index');
+    Route::middleware('permission:activity_log.view')->group(function () {
+        Route::get('/activity-logs', [Admin\ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('/activity-logs/export', [Admin\ActivityLogController::class, 'export'])->name('activity-logs.export');
+    });
 
     // Self-service: admin access only, no permission (docs/permissions.md).
     Route::get('/account', Admin\AccountController::class)->name('account');

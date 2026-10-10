@@ -5,6 +5,7 @@ namespace App\Services\DriverDocuments;
 use App\Enums\DriverVerificationStatus;
 use App\Models\DriverProfile;
 use App\Models\User;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -13,7 +14,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class DriverVerificationSync
 {
-    public function __construct(private readonly VerificationResolver $resolver) {}
+    public function __construct(
+        private readonly VerificationResolver $resolver,
+        private readonly AuditLogger $audit,
+    ) {}
 
     /**
      * Call inside the transaction that changed the documents. The profile row is locked so two
@@ -39,15 +43,13 @@ final class DriverVerificationSync
             ])->save();
 
             if ($reviewer !== null) {
-                activity('driver-documents')
-                    ->performedOn($locked)
-                    ->causedBy($reviewer)
-                    ->event('verification_changed')
-                    ->withProperties([
-                        'old' => ['verification_status' => $previous->value],
-                        'new' => ['verification_status' => $status->value],
-                    ])
-                    ->log("Driver verification changed to {$status->value}");
+                $this->audit->record(
+                    actor: $reviewer,
+                    action: 'driver.verification.changed',
+                    target: $locked,
+                    old: ['verification_status' => $previous->value],
+                    new: ['verification_status' => $status->value],
+                );
             }
 
             return $locked;

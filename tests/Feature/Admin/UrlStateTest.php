@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Services\Audit\AuditLogger;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -99,7 +100,9 @@ class UrlStateTest extends AdminTestCase
             ->assertInertia(fn (Assert $page) => $page->where('selected.code', 'TXN-104876')->where('selected.failure_reason', 'do_not_honor'));
         $this->actingAs($admin)->get('/admin/transactions?txn=999')->assertInertia(fn (Assert $page) => $page->where('selected', null));
         $this->actingAs($admin)->get('/admin/support-tickets?ticket=2')->assertInertia(fn (Assert $page) => $page->where('selected.code', 'TKT-2939'));
-        $this->actingAs($admin)->get('/admin/activity-logs?entry=2')->assertInertia(fn (Assert $page) => $page->where('expandedId', 2));
+        $entry = app(AuditLogger::class)->record($admin, 'driver.document.rejected', reason: 'Expired policy');
+        $this->actingAs($admin)->get('/admin/activity-logs?entry='.$entry->id)->assertInertia(fn (Assert $page) => $page->where('expandedId', $entry->id)->where('expanded.action', 'driver.document.rejected'));
+        $this->actingAs($admin)->get('/admin/activity-logs?entry=999999')->assertInertia(fn (Assert $page) => $page->where('expandedId', null)->where('expanded', null));
         $this->actingAs($admin)->get('/admin/zones?zone=2')
             ->assertInertia(fn (Assert $page) => $page->where('selectedZoneId', 2)->has('fareRules', 2)->where('fareRules.0.zone_id', 2)->where('fareRules.1.zone_id', 2));
         $this->actingAs($admin)->get('/admin/zones?zone=99')->assertInertia(fn (Assert $page) => $page->where('selectedZoneId', 1));
