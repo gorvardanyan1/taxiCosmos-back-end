@@ -45,6 +45,7 @@ are handled too. Failed sign-ins store the email that was typed, never the passw
 | `driver.verification.changed` | `DriverVerificationSync` (when a review changes the driver's status) |
 | `auth.login`, `auth.logout` (incl. idle timeout), `auth.login_failed` | `LogAuthActivity` |
 | `activity_log.exported` | `ActivityLogController::export` (filters used) |
+| `zone.created`, `zone.updated`, `zone.deactivated`, `zone.activated` | `ZoneService` (see [zones.md](zones.md)) |
 
 Refunds, manual payments, fare adjustments, suspensions, role and settings changes, 2FA reset and PII reveal
 are logged by their own tasks through the same service.

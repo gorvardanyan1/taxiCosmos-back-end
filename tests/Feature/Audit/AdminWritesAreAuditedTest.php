@@ -5,6 +5,8 @@ namespace Tests\Feature\Audit;
 use App\Models\Audit\ActivityLogEntry;
 use App\Models\DriverDocument;
 use App\Models\User;
+use App\Models\Zone;
+use Database\Factories\ZoneFactory;
 use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
@@ -36,6 +38,12 @@ class AdminWritesAreAuditedTest extends AuditTestCase
 
                 return $this->actingAs($admin)->post("/admin/drivers/{$doc->driver_id}/documents/{$doc->id}/reject", ['reason' => 'Unreadable']);
             }],
+            'admin.zones.store' => ['zone.created', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones', [
+                'name' => 'Guard zone', 'code' => strtoupper('GUARD-'.uniqid()), 'timezone' => 'Asia/Yerevan', 'currency' => 'AMD', 'polygon' => ZoneFactory::squareGeoJson(40.18, 44.51),
+            ])],
+            'admin.zones.update' => ['zone.updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/zones/'.Zone::factory()->create()->id, ['name' => 'Renamed '.uniqid()])],
+            'admin.zones.deactivate' => ['zone.deactivated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->create()->id.'/deactivate')],
+            'admin.zones.activate' => ['zone.activated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->inactive()->create()->id.'/activate')],
         ];
     }
 

@@ -50,7 +50,7 @@ class ActivityLogPageTest extends AuditTestCase
             ->where('entries.data.1.reason', 'Expired policy')
             ->where('entries.data.1.before', ['status' => 'pending', 'document_number' => 'changed'])
             ->where('entries.data.1.after', ['status' => 'rejected', 'document_number' => 'changed'])
-            ->where('targetTypes', ['driver', 'driver_document', 'vehicle', 'user'])
+            ->where('targetTypes', ['driver', 'driver_document', 'vehicle', 'user', 'zone'])
             ->where('actors', [['id' => $actor->id, 'name' => 'Morgan Webb']])
             ->where('actionNames', ['driver.document.rejected', 'driver.verification.changed']));
     }

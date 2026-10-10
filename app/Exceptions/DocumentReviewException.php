@@ -2,12 +2,10 @@
 
 namespace App\Exceptions;
 
-use DomainException;
-
 /**
  * A review action the document's current state does not allow (HTTP 409).
  */
-class DocumentReviewException extends DomainException
+class DocumentReviewException extends ConflictException
 {
     public static function notPending(): self
     {

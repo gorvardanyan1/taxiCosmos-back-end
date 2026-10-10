@@ -1,6 +1,6 @@
 <?php
 
-use App\Exceptions\DocumentReviewException;
+use App\Exceptions\ConflictException;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -39,9 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        // A review the document's state does not allow is a conflict (409). The Inertia admin gets
+        // An action the record's state does not allow (a reviewed document, an already inactive zone) is a conflict (409). The Inertia admin gets
         // it as a flash message on the page it came from.
-        $exceptions->render(function (DocumentReviewException $e, Request $request) {
+        $exceptions->render(function (ConflictException $e, Request $request) {
             return $request->header('X-Inertia')
                 ? back()->with('error', $e->getMessage())
                 : response()->json(['message' => $e->getMessage()], 409);

@@ -1,20 +1,26 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Check, Edit2, Map, X } from 'lucide-react';
+import { Check, Edit2, Map, Power, X } from 'lucide-react';
 import { useState } from 'react';
 import ActionButton, { UNAVAILABLE_HINT } from '@/Components/ActionButton';
 import PageHeader from '@/Components/PageHeader';
 import { parseMoneyInput } from '@/lib/format';
+import { polygonToSvgPoints, type GeoJsonPolygon } from '@/lib/geo';
 import { label } from '@/lib/labels';
-import { visitQuery } from '@/lib/query';
+import { visitQuery, withId } from '@/lib/query';
 import { shadowCard } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { Actions, FareRule, Money, Zone } from '@/types';
+import ZoneForm from './ZoneForm';
 
 interface Props {
     zones: Zone[];
-    selectedZoneId: number;
+    selectedZoneId: number | null;
+    /** The selected zone's shape (the list carries no geometry). */
+    selectedPolygon: GeoJsonPolygon | null;
     fareRules: FareRule[];
-    actions: Actions<'createZone' | 'updateFareRule' | 'drawPolygon'>;
+    timezones: string[];
+    currencies: string[];
+    actions: Actions<'createZone' | 'updateZone' | 'deactivateZone' | 'activateZone' | 'updateFareRule' | 'drawPolygon'>;
 }
 
 const zoneColors = ['#6366f1', '#0891b2', '#059669', '#d97706', '#e11d48', '#7c3aed'];
@@ -26,12 +32,14 @@ const classColors: Record<string, { bg: string; color: string }> = {
 const moneyFields = ['base_fare', 'per_km', 'per_minute', 'minimum_fare'] as const;
 type MoneyField = (typeof moneyFields)[number];
 
-export default function ZonesIndex({ zones, selectedZoneId, fareRules, actions }: Props) {
+export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, fareRules, timezones, currencies: zoneCurrencies, actions }: Props) {
     const { money, currencies } = useShared();
+    const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
     const [editing, setEditing] = useState<string | null>(null);
     const form = useForm<Record<MoneyField, string>>({ base_fare: '', per_km: '', per_minute: '', minimum_fare: '' });
     const zoneIndex = zones.findIndex((z) => z.id === selectedZoneId);
     const zone = zones[zoneIndex];
+    const rings = polygonToSvgPoints(selectedPolygon, 300, 330);
     const color = zone?.status === 'active' ? zoneColors[zoneIndex % zoneColors.length] : '#94a3b8';
     const decimalsOf = (m: Money) => currencies.find((c) => c.code === m.currency)?.decimals ?? 2;
     const major = (m: Money) => String(m.amount / 10 ** decimalsOf(m));
@@ -51,7 +59,14 @@ export default function ZonesIndex({ zones, selectedZoneId, fareRules, actions }
     return (
         <div>
             <Head title="Zones & Fares" />
-            <PageHeader title="Zones & Fares" description="Configure service zones and pricing rules" actions={<ActionButton url={actions.createZone} className="rounded-xl px-4 py-2 text-sm font-bold text-white hover:opacity-90" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontFamily: 'var(--font-display)' }}>+ Add Zone</ActionButton>} />
+            <PageHeader title="Zones & Fares" description="Configure service zones and pricing rules" actions={<button onClick={() => setFormMode('create')} disabled={actions.createZone === null} className="rounded-xl px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-40" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontFamily: 'var(--font-display)' }}>+ Add Zone</button>} />
+            {zones.length === 0 && (
+                <div className="rounded-2xl bg-white p-12 text-center" style={shadowCard}>
+                    <p className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>No zones yet</p>
+                    <p className="mt-1 text-xs" style={{ color: '#94a3b8' }}>Add the service area riders can book in. Fares, surge and reports hang off zones.</p>
+                </div>
+            )}
+            {zones.length > 0 && (
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
                 <div className="flex flex-col gap-3">
                     <div className="overflow-hidden rounded-2xl" style={shadowCard}>
@@ -61,7 +76,7 @@ export default function ZonesIndex({ zones, selectedZoneId, fareRules, actions }
                             return (
                                 <button key={z.id} aria-pressed={selected} onClick={() => visitQuery({ zone: z.id })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all" style={{ borderBottom: '1px solid #f8fafc', background: selected ? '#fafcff' : 'transparent', borderLeft: selected ? `3px solid ${zColor}` : '3px solid transparent' }}>
                                     <div className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: zColor }} />
-                                    <span className="flex-1 text-sm font-semibold" style={{ color: selected ? '#0f172a' : '#64748b', fontFamily: 'var(--font-display)' }}>{z.name}</span>
+                                    <span className="flex-1 text-sm font-semibold" style={{ color: selected ? '#0f172a' : '#64748b', fontFamily: 'var(--font-display)' }}>{z.name}<span className="ml-2 font-mono text-[10px] font-medium" style={{ color: '#94a3b8' }}>{z.code}</span></span>
                                     <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: z.status === 'active' ? '#f0fdf4' : '#f8fafc', color: z.status === 'active' ? '#16a34a' : '#94a3b8', fontFamily: 'var(--font-display)' }}>{z.status}</span>
                                 </button>
                             );
@@ -71,13 +86,17 @@ export default function ZonesIndex({ zones, selectedZoneId, fareRules, actions }
                         <div className="relative h-full" style={{ background: 'linear-gradient(160deg, #eef2ff 0%, #e0e7ff 60%, #ede9fe 100%)' }}>
                             {[25, 50, 75].map((p) => <div key={`h${p}`} className="absolute inset-x-0" style={{ top: `${p}%`, borderTop: '1px solid rgba(99,102,241,0.08)' }} />)}
                             {[25, 50, 75].map((p) => <div key={`v${p}`} className="absolute inset-y-0" style={{ left: `${p}%`, borderLeft: '1px solid rgba(99,102,241,0.08)' }} />)}
-                            <svg className="absolute inset-0 h-full w-full">
-                                <polygon points="42,78 188,34 260,126 218,270 74,294 24,186" fill={`${color}22`} stroke={color} strokeWidth="3" strokeDasharray="6 4" />
+                            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 330" preserveAspectRatio="xMidYMid meet" role="img" aria-label={zone ? `${zone.name} service area` : 'No zone selected'}>
+                                {rings.map((points, i) => <polygon key={i} points={points} fill={`${color}22`} stroke={color} strokeWidth="3" strokeDasharray="6 4" />)}
                             </svg>
                             <div className="absolute left-3 top-3 flex gap-1 rounded-xl bg-white p-1 shadow-lg">
                                 <ActionButton url={actions.drawPolygon} className="rounded-lg bg-indigo-50 p-2 text-indigo-600"><Map size={13} /></ActionButton>
-                                <button disabled title={UNAVAILABLE_HINT} className="rounded-lg p-2 text-slate-500 disabled:opacity-40"><Edit2 size={13} /></button>
-                                <button disabled title={UNAVAILABLE_HINT} className="rounded-lg p-2 text-red-500 disabled:opacity-40"><X size={13} /></button>
+                                <button aria-label="Edit zone" onClick={() => setFormMode('edit')} disabled={!zone || actions.updateZone === null} title={actions.updateZone === null ? UNAVAILABLE_HINT : 'Edit zone'} className="rounded-lg p-2 text-slate-500 disabled:opacity-40"><Edit2 size={13} /></button>
+                                {zone?.status === 'inactive' ? (
+                                    <ActionButton url={withId(actions.activateZone, zone.id)} confirm={`Reactivate ${zone.name}? Pickups inside it are accepted again.`} className="rounded-lg p-2 text-emerald-600"><Power size={13} aria-label="Reactivate zone" /></ActionButton>
+                                ) : (
+                                    <ActionButton url={withId(actions.deactivateZone, zone?.id)} confirm={`Deactivate ${zone?.name}? Pickups inside it are refused until it is reactivated.`} className="rounded-lg p-2 text-red-500"><X size={13} aria-label="Deactivate zone" /></ActionButton>
+                                )}
                             </div>
                             {zone && !zone.polygon_valid && <div className="absolute bottom-10 left-3 right-3 rounded-xl bg-red-50 p-2 text-center text-xs font-bold text-red-600">Polygon intersects itself</div>}
                             <div className="absolute bottom-2 left-0 right-0 flex justify-center">
@@ -85,6 +104,7 @@ export default function ZonesIndex({ zones, selectedZoneId, fareRules, actions }
                             </div>
                         </div>
                     </div>
+                    {zone && <p className="px-1 text-[11px]" style={{ color: '#94a3b8' }}>{zone.timezone} · {zone.currency} · priority {zone.priority} · {zone.points} points</p>}
                 </div>
 
                 <div className="overflow-hidden rounded-2xl lg:col-span-3" style={shadowCard}>
@@ -137,6 +157,16 @@ export default function ZonesIndex({ zones, selectedZoneId, fareRules, actions }
                     </table>
                 </div>
             </div>
+            )}
+            <ZoneForm
+                open={formMode !== null}
+                onClose={() => setFormMode(null)}
+                zone={formMode === 'edit' ? (zone ?? null) : null}
+                polygon={selectedPolygon}
+                timezones={timezones}
+                currencies={zoneCurrencies}
+                url={formMode === 'edit' ? withId(actions.updateZone, zone?.id) : actions.createZone}
+            />
         </div>
     );
 }

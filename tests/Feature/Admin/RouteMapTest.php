@@ -40,7 +40,7 @@ class RouteMapTest extends AdminTestCase
             'chargebacks' => ['/admin/chargebacks', 'Chargebacks/Index', fn (Assert $p) => $p->where('chargebacks.total', 3)->where('chargebacks.data.0.gateway_dispute_id', 'dp_1QV20a')],
             'driver balances' => ['/admin/driver-balances', 'DriverBalances/Index', fn (Assert $p) => $p->where('balances.total', 3)->where('balances.data.0.balance.amount', -48000)],
             'reports' => ['/admin/reports', 'Reports/Index', fn (Assert $p) => $p->has('series', 5)->where('filters.metric', 'revenue')->where('filters.currency', 'AMD')->has('metrics', 8)],
-            'zones' => ['/admin/zones', 'Zones/Index', fn (Assert $p) => $p->has('zones', 4)->where('selectedZoneId', 1)->has('fareRules', 3)],
+            'zones' => ['/admin/zones', 'Zones/Index', fn (Assert $p) => $p->where('zones', [])->where('selectedZoneId', null)->where('selectedPolygon', null)->where('fareRules', [])],
             'surge' => ['/admin/surge', 'Surge/Index', fn (Assert $p) => $p->where('surges.total', 3)->where('maxMultiplier', '3.00')],
             'commission rules' => ['/admin/commission-rules', 'CommissionRules/Index', fn (Assert $p) => $p->where('rules.total', 3)->where('previewRule.rate_bp', 1800)],
             'settings users' => ['/admin/settings/users', 'Settings/Users', fn (Assert $p) => $p->has('roles', 5)->has('matrix.finance')],

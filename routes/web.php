@@ -59,7 +59,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     Route::get('/chargebacks', Admin\ChargebackController::class)->middleware('permission:chargebacks.manage')->name('chargebacks.index');
     Route::get('/driver-balances', Admin\DriverBalanceController::class)->middleware('permission:driver_balances.view')->name('driver-balances.index');
     Route::get('/reports', Admin\ReportController::class)->middleware('permission:reports.view')->name('reports.index');
-    Route::get('/zones', Admin\ZoneController::class)->middleware('permission:zones.manage')->name('zones.index');
+    Route::middleware('permission:zones.manage')->group(function () {
+        Route::get('/zones', [Admin\ZoneController::class, 'index'])->name('zones.index');
+        Route::post('/zones', [Admin\ZoneController::class, 'store'])->name('zones.store');
+        Route::patch('/zones/{zone}', [Admin\ZoneController::class, 'update'])->whereNumber('zone')->name('zones.update');
+        Route::post('/zones/{zone}/deactivate', [Admin\ZoneController::class, 'deactivate'])->whereNumber('zone')->name('zones.deactivate');
+        Route::post('/zones/{zone}/activate', [Admin\ZoneController::class, 'activate'])->whereNumber('zone')->name('zones.activate');
+    });
     Route::get('/surge', Admin\SurgeController::class)->middleware('permission:fares.manage')->name('surge.index');
     Route::get('/commission-rules', Admin\CommissionRuleController::class)->middleware('permission:fares.manage')->name('commission-rules.index');
 
