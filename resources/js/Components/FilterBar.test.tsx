@@ -67,4 +67,36 @@ describe('FilterBar', () => {
         expect(screen.queryByText('Clear filters')).toBeNull();
         expect(get).not.toHaveBeenCalled();
     });
+
+    it('keeps what the user is still typing when the response to an earlier search arrives', () => {
+        setLocation('/admin/riders');
+        const { rerender } = render(<FilterBar filters={{}} />);
+        const input = () => screen.getByLabelText('Search') as HTMLInputElement;
+
+        fireEvent.change(input(), { target: { value: 'su' } });
+        act(() => vi.advanceTimersByTime(400)); // visit for "su" is in flight
+        fireEvent.change(input(), { target: { value: 'sun' } }); // user keeps typing
+        rerender(<FilterBar filters={{ search: 'su' }} />); // slow response for "su" lands
+        act(() => vi.advanceTimersByTime(400));
+
+        expect(input().value).toBe('sun');
+        expect(get.mock.calls.map((call: unknown[]) => call[0])).toEqual([
+            '/admin/riders?filter%5Bsearch%5D=su',
+            '/admin/riders?filter%5Bsearch%5D=sun',
+        ]);
+    });
+
+    it('takes the search from the URL on back/forward or when filters are cleared, without re-visiting', () => {
+        setLocation('/admin/riders?filter%5Bsearch%5D=sun');
+        const { rerender } = render(<FilterBar filters={{ search: 'sun' }} />);
+        const input = () => screen.getByLabelText('Search') as HTMLInputElement;
+
+        rerender(<FilterBar filters={{ search: 'oli' }} />); // browser back to an older search
+        expect(input().value).toBe('oli');
+        rerender(<FilterBar filters={{}} />); // filters cleared
+        expect(input().value).toBe('');
+        act(() => vi.advanceTimersByTime(1000));
+
+        expect(get).not.toHaveBeenCalled();
+    });
 });
