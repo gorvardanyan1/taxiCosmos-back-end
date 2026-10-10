@@ -48,7 +48,7 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                         <div className="grid grid-cols-2 gap-3">
                             {([
                                 ['Phone', driver.phone],
-                                ['Vehicle', `${driver.vehicle.label} ’${String(driver.vehicle.year).slice(2)}`],
+                                ['Vehicle', driver.vehicle ? `${driver.vehicle.label} ’${String(driver.vehicle.year).slice(2)}` : '—'],
                                 ['Total Trips', formatNumber(driver.trips_count)],
                                 ['Rating', driver.rating ? `${driver.rating} / 5.0` : '—'],
                                 ['Total Earnings', money(driver.earnings)],
