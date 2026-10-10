@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
+import { router } from '@inertiajs/core';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { page, sharedProps } from '@/test/inertia';
@@ -57,5 +58,16 @@ describe('AdminLayout', () => {
         render(<AdminLayout><p>content</p></AdminLayout>);
 
         expect(screen.queryByRole('status')).toBeNull();
+    });
+
+    it('signs out with a POST to /logout from the profile menu', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(<AdminLayout><p>content</p></AdminLayout>);
+
+        fireEvent.click(within(screen.getByRole('banner')).getByText('Test Admin'));
+        fireEvent.click(screen.getByRole('button', { name: /Sign out/ }));
+
+        expect(visit).toHaveBeenCalledWith('/logout', expect.objectContaining({ method: 'post' }));
+        visit.mockRestore();
     });
 });

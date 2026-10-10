@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Enums\AdminRole;
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Horizon\Horizon;
 use Laravel\Horizon\HorizonApplicationServiceProvider;
@@ -28,8 +30,9 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     protected function gate(): void
     {
         Gate::define('viewHorizon', function ($user = null) {
-            return $user && method_exists($user, 'hasAnyRole')
-                && $user->hasAnyRole(['super_admin', 'admin']);
+            return $user instanceof User
+                && $user->hasAdminAccess()
+                && $user->hasAnyRole([AdminRole::SuperAdmin->value, AdminRole::Admin->value]);
         });
     }
 }

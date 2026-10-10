@@ -45,12 +45,13 @@ class AdminAccessTest extends AdminTestCase
         }
     }
 
-    public function test_riders_and_drivers_without_admin_access_get_403_everywhere(): void
+    public function test_riders_and_drivers_without_admin_access_are_signed_out_on_every_admin_page(): void
     {
         $rider = User::factory()->rider()->driver()->create();
 
         foreach ($this->adminGetUris() as $uri) {
-            $this->actingAs($rider)->get($uri)->assertForbidden();
+            $this->actingAs($rider)->get($uri)->assertRedirect('/login')->assertSessionHas('status');
+            $this->assertGuest();
         }
     }
 
@@ -60,17 +61,22 @@ class AdminAccessTest extends AdminTestCase
         $roleOnly = User::factory()->create();
         $roleOnly->assignRole(AdminRole::SuperAdmin->value);
 
-        $this->actingAs($flagOnly)->get('/admin')->assertForbidden();
-        $this->actingAs($roleOnly)->get('/admin')->assertForbidden();
+        $this->actingAs($flagOnly)->get('/admin')->assertRedirect('/login');
+        $this->assertGuest();
+        $this->actingAs($roleOnly)->get('/admin')->assertRedirect('/login');
+        $this->assertGuest();
     }
 
-    public function test_a_suspended_admin_is_refused(): void
+    public function test_a_suspended_admin_is_signed_out_on_the_next_request(): void
     {
         $admin = $this->admin(AdminRole::Admin);
+        $this->actingAs($admin)->get('/admin')->assertOk();
+
         $admin->forceFill(['status' => UserStatus::Suspended])->save();
 
-        $this->actingAs($admin)->get('/admin')->assertForbidden();
-        $this->actingAs($admin)->get('/admin/account')->assertForbidden();
+        $this->get('/admin')->assertRedirect('/login')->assertSessionHas('status', fn ($m) => str_contains($m, 'no longer active'));
+        $this->assertGuest();
+        $this->get('/admin/account')->assertRedirect('/login');
     }
 
     /**

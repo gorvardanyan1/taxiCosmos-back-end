@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
 
-// Admin authentication screens (POST handlers: Fortify in P3-T1/P3-T2, invitations in P3-T4).
+// Admin authentication screens. Fortify (views disabled) handles POST /login, /logout,
+// /forgot-password and /reset-password; two-factor arrives in P3-T2, invitations in P3-T4.
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthPageController::class, 'login'])->name('login');
     Route::get('/forgot-password', [AuthPageController::class, 'forgotPassword'])->name('password.request');
@@ -16,11 +17,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::get('/two-factor-setup', [AuthPageController::class, 'twoFactorSetup'])
-    ->middleware(['auth', 'admin'])
+    ->middleware(['auth', 'admin.idle', 'admin'])
     ->name('two-factor.setup');
 
-// Admin panel: session guard + admin access, and a named permission per page (docs/permissions.md).
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
+// Admin panel: session guard + idle timeout + admin access, and a named permission per page
+// (docs/permissions.md).
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin'])->group(function () {
     Route::get('/', Admin\DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
     Route::get('/live-map', Admin\LiveMapController::class)->middleware('permission:live_map.view')->name('live-map');
 

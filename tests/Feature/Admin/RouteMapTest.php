@@ -63,23 +63,24 @@ class RouteMapTest extends AdminTestCase
     }
 
     /**
-     * @return array<string, array{string, string}>
+     * @return array<string, array{string, string, ?string}>
      */
     public static function authPages(): array
     {
         return [
-            'login' => ['/login', 'Auth/Login'],
-            'forgot password' => ['/forgot-password', 'Auth/ForgotPassword'],
-            'reset password' => ['/reset-password/token-123?email=a%40b.test', 'Auth/ResetPassword'],
-            'accept invitation' => ['/accept-invitation/invite-abc', 'Auth/AcceptInvitation'],
-            'two-factor challenge' => ['/two-factor-challenge', 'Auth/TwoFactorChallenge'],
+            'login' => ['/login', 'Auth/Login', '/login'],
+            'forgot password' => ['/forgot-password', 'Auth/ForgotPassword', '/forgot-password'],
+            'reset password' => ['/reset-password/token-123?email=a%40b.test', 'Auth/ResetPassword', '/reset-password'],
+            // POST handlers arrive with P3-T4 (invitations) and P3-T2 (two-factor).
+            'accept invitation' => ['/accept-invitation/invite-abc', 'Auth/AcceptInvitation', null],
+            'two-factor challenge' => ['/two-factor-challenge', 'Auth/TwoFactorChallenge', null],
         ];
     }
 
     #[DataProvider('authPages')]
-    public function test_each_auth_screen_renders_for_guests_with_its_submit_url_not_yet_wired(string $url, string $component): void
+    public function test_each_auth_screen_renders_for_guests_with_its_submit_url(string $url, string $component, ?string $submitUrl): void
     {
-        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page->component($component)->where('submitUrl', null));
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page->component($component)->where('submitUrl', $submitUrl));
     }
 
     public function test_reset_password_and_invitation_receive_their_token(): void
