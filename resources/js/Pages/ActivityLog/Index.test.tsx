@@ -37,6 +37,23 @@ describe('Activity Log page', () => {
         expect(screen.getByRole('cell', { name: 'auth.login_failed' })).toBeInTheDocument();
     });
 
+    it('keeps the filter inputs compact so the filter bar stays on one row (QA-14)', () => {
+        render(<ActivityLogIndex {...base} entries={paginator([entry({})])} />);
+
+        // The shared form-field style is full width; a filter-bar input must not use it.
+        for (const [label, width] of [['Target ID', 'w-28'], ['From date', 'w-40'], ['To date', 'w-40']] as const) {
+            const input = screen.getByLabelText(label);
+            expect(input).toHaveClass(width);
+            expect(input).not.toHaveClass('w-full');
+        }
+        // All filter controls live in the same wrapping flex row as the search box.
+        const bar = screen.getByLabelText('Search').closest('div.flex-wrap');
+        expect(bar).not.toBeNull();
+        for (const label of ['All actors', 'All actions', 'All target types', 'Target ID', 'From date', 'To date']) {
+            expect(bar).toContainElement(screen.getByLabelText(label));
+        }
+    });
+
     it('shows the empty state', () => {
         render(<ActivityLogIndex {...base} entries={paginator([])} />);
 
