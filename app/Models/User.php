@@ -6,10 +6,12 @@ namespace App\Models;
 use App\Casts\EncryptedWithBlindIndex;
 use App\Enums\AdminRole;
 use App\Enums\UserStatus;
+use App\Observers\UserObserver;
 use App\Support\BlindIndex;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +29,7 @@ use Spatie\Permission\Traits\HasRoles;
  */
 #[Fillable(['name', 'email', 'password', 'phone', 'locale', 'timezone'])]
 #[Hidden(['password', 'remember_token', 'phone', 'phone_hash'])]
+#[ObservedBy([UserObserver::class])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
