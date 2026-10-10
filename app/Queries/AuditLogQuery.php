@@ -71,11 +71,18 @@ final class AuditLogQuery
         return filter_var(self::single($value, $filter), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: abort(400, "Invalid {$filter} filter.");
     }
 
+    /** PostgreSQL has no year 0 and the log starts with this product: keep dates in a sane range. */
+    private const MIN_YEAR = 1970;
+
+    private const MAX_YEAR = 2100;
+
     private static function day(mixed $value, string $timezone): CarbonImmutable
     {
         $value = self::single($value, 'date');
         $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? CarbonImmutable::createFromFormat('!Y-m-d', $value, $timezone) : false;
 
-        return $date !== false && $date->format('Y-m-d') === $value ? $date : abort(400, 'Dates must look like 2026-10-05.');
+        $valid = $date !== false && $date->format('Y-m-d') === $value && $date->year >= self::MIN_YEAR && $date->year <= self::MAX_YEAR;
+
+        return $valid ? $date : abort(400, 'Dates must look like 2026-10-05 (years '.self::MIN_YEAR.'-'.self::MAX_YEAR.').');
     }
 }

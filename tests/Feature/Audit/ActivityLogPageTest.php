@@ -133,6 +133,17 @@ class ActivityLogPageTest extends AuditTestCase
         }
     }
 
+    public function test_dates_outside_the_supported_years_are_refused_at_the_boundaries(): void
+    {
+        foreach (['filter[from]=0000-01-01', 'filter[to]=0000-12-31', 'filter[from]=1969-12-31', 'filter[to]=2101-01-01', 'filter[from]=9999-12-31'] as $query) {
+            $this->page('?'.$query)->assertStatus(400);
+            $this->actingAs($this->viewer)->get('/admin/activity-logs/export?'.$query)->assertStatus(400);
+        }
+
+        $this->page('?filter[from]=1970-01-01&filter[to]=2100-12-31')->assertOk();
+        $this->actingAs($this->viewer)->get('/admin/activity-logs/export?filter[from]=1970-01-01&filter[to]=2100-12-31')->assertOk();
+    }
+
     public function test_a_search_containing_a_comma_is_matched_as_typed(): void
     {
         $this->audit()->record($this->admin(), 'driver.document.rejected', null, 'Expired policy, renew it');
