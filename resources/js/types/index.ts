@@ -143,7 +143,9 @@ export interface LedgerEntry {
     occurred_at: string;
 }
 
-export interface DriverDetail extends DriverRow {
+export interface DriverDetail extends Omit<DriverRow, 'vehicle'> {
+    /** The primary vehicle; null when the driver has none yet. */
+    vehicle: DriverRow['vehicle'] | null;
     documents: DriverDocument[];
     vehicles: Vehicle[];
     earnings_detail: {

@@ -6,7 +6,7 @@ use App\Enums\DriverVerificationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\DriverProfile;
 use App\Support\AdminFixtures;
-use App\Support\DriverDocumentPresenter;
+use App\Support\DriverDetailPresenter;
 use App\Support\FixtureTable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,13 +34,18 @@ class DriverController extends Controller
 
     public function show(Request $request, int $driver): Response
     {
-        $data = $this->fixtures->get('drivers');
-        $profile = DriverProfile::query()->with(['documents' => fn ($q) => $q->with('reviewer:id,name')->orderBy('id')])->find($driver);
-        $row = collect($data['rows'])->firstWhere('id', $driver) ?? ($profile === null ? abort(404) : null);
         $tab = in_array($request->query('tab'), self::TABS, true) ? $request->query('tab') : self::TABS[0];
+        $profile = DriverProfile::query()->find($driver);
+
+        // Drivers in the database show real data; ids 1-8 are the fixture drivers until P4-T2
+        // makes the whole page real.
+        if ($profile === null) {
+            $data = $this->fixtures->get('drivers');
+            $row = collect($data['rows'])->firstWhere('id', $driver) ?? abort(404);
+        }
 
         return Inertia::render('Drivers/Show', [
-            'driver' => [...$row ?? [], ...$data['detail'], ...($profile === null ? [] : $this->realDocuments($profile))],
+            'driver' => $profile === null ? [...$row, ...$data['detail']] : DriverDetailPresenter::present($profile),
             'tab' => $tab,
             'tabs' => self::TABS,
             'actions' => [
@@ -50,20 +55,6 @@ class DriverController extends Controller
                 'addAdjustment' => null, 'recordCashSettlement' => null, 'revealBankAccount' => null,
             ],
         ]);
-    }
-
-    /**
-     * The Documents tab and the verification badge come from the database once the driver exists
-     * there; the rest of the page stays on fixtures until P4-T2 / P11-T2.
-     *
-     * @return array<string, mixed>
-     */
-    private function realDocuments(DriverProfile $profile): array
-    {
-        return [
-            'verification_status' => $profile->verification_status->value,
-            'documents' => $profile->documents->map(DriverDocumentPresenter::present(...))->all(),
-        ];
     }
 
     /**
