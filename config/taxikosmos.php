@@ -19,6 +19,12 @@ return [
     // Used when the admin user has no personal timezone set.
     'display_timezone' => env('ADMIN_DISPLAY_TIMEZONE', 'Asia/Yerevan'),
 
+    'phone' => [
+        // Region used to read numbers typed without a country code (fallback for the open
+        // "launch country" decision; the template is Armenian).
+        'default_region' => env('PHONE_DEFAULT_REGION', 'AM'),
+    ],
+
     'admin' => [
         // Admins are signed out after this many minutes without a request (P3-T1).
         // Keep SESSION_LIFETIME at least as long so the session survives until then.

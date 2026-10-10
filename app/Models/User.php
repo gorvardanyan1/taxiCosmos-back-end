@@ -8,6 +8,7 @@ use App\Enums\AdminRole;
 use App\Enums\UserStatus;
 use App\Observers\UserObserver;
 use App\Support\BlindIndex;
+use App\Support\E164PhoneNumber;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -53,7 +54,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'phone' => EncryptedWithBlindIndex::class.':phone_hash',
+            'phone' => EncryptedWithBlindIndex::class.':phone_hash,'.E164PhoneNumber::class,
             'is_rider' => 'boolean',
             'is_driver' => 'boolean',
             'is_admin' => 'boolean',
@@ -75,13 +76,18 @@ class User extends Authenticatable
     }
 
     /**
-     * Exact phone lookup through the blind index (the phone column itself is encrypted).
-     * Pass the E.164-normalised number.
+     * Exact phone lookup through the blind index (the phone column itself is encrypted). The input
+     * is normalised to E.164 first, so any way of writing the number finds the account; input that
+     * is not a phone number matches nothing.
      */
     #[Scope]
     protected function wherePhone(Builder $query, string $phone): void
     {
-        $query->where('phone_hash', app(BlindIndex::class)->hash($phone));
+        $normalised = E164PhoneNumber::tryNormalize($phone);
+
+        $normalised === null
+            ? $query->whereRaw('false')
+            : $query->where('phone_hash', app(BlindIndex::class)->hash($normalised));
     }
 
     public function isActive(): bool

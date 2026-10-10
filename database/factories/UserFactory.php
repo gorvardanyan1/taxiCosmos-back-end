@@ -40,7 +40,7 @@ class UserFactory extends Factory
     public function withPhone(?string $phone = null): static
     {
         return $this->state(fn (array $attributes) => [
-            'phone' => $phone ?? '+1'.fake()->unique()->numerify('##########'),
+            'phone' => $phone ?? '+37491'.fake()->unique()->numerify('######'),
         ]);
     }
 
