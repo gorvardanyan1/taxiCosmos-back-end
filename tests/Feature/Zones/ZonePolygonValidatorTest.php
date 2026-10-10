@@ -50,6 +50,22 @@ class ZonePolygonValidatorTest extends TestCase
         $this->assertSame($multi, $this->validate($multi));
     }
 
+    public function test_extra_values_in_positions_are_dropped_so_the_shape_is_two_dimensional(): void
+    {
+        $withAltitude = $this->polygon([[44.4, 40.1, 1200], [44.6, 40.1, 1210.5], [44.6, 40.3, 1190], [44.4, 40.3, 1200], [44.4, 40.1, 1200]]);
+        $withMeasure = ['type' => 'MultiPolygon', 'coordinates' => [[[[44.4, 40.1, 0, 7], [44.6, 40.1, 0, 7], [44.6, 40.3, 0, 7], [44.4, 40.1, 0, 7]]]]];
+
+        $this->assertSame($this->polygon(self::SQUARE), $this->validate($withAltitude));
+        $this->assertSame([[[[44.4, 40.1], [44.6, 40.1], [44.6, 40.3], [44.4, 40.1]]]], $this->validate($withMeasure)['coordinates']);
+    }
+
+    public function test_numeric_strings_become_numbers_and_ring_order_is_kept(): void
+    {
+        $result = $this->validate($this->polygon([['44.4', '40.1'], ['44.6', '40.1'], ['44.6', '40.3'], ['44.4', '40.1']]));
+
+        $this->assertSame([[44.4, 40.1], [44.6, 40.1], [44.6, 40.3], [44.4, 40.1]], $result['coordinates'][0]);
+    }
+
     public function test_a_polygon_with_a_hole_is_accepted(): void
     {
         $hole = [[44.45, 40.15], [44.55, 40.15], [44.55, 40.25], [44.45, 40.25], [44.45, 40.15]];

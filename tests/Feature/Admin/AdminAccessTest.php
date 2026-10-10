@@ -38,6 +38,21 @@ class AdminAccessTest extends AdminTestCase
         }
     }
 
+    public function test_an_id_too_large_for_the_database_is_a_404_on_every_record_route(): void
+    {
+        $admin = $this->admin(AdminRole::SuperAdmin);
+        $big = '99999999999999999999';
+
+        foreach (['/admin/riders/', '/admin/drivers/', '/admin/trips/'] as $prefix) {
+            $this->actingAs($admin)->get($prefix.$big)->assertNotFound();
+        }
+        $this->actingAs($admin)->post("/admin/drivers/{$big}/documents/{$big}/approve")->assertNotFound();
+        $this->actingAs($admin)->post("/admin/drivers/{$big}/documents/{$big}/reject", ['reason' => 'x'])->assertNotFound();
+        $this->actingAs($admin)->get("/admin/drivers/{$big}/documents/{$big}/file")->assertNotFound();
+        // The largest accepted id still reaches the controller (404 there, no type error).
+        $this->actingAs($admin)->get('/admin/drivers/999999999999999999')->assertNotFound();
+    }
+
     public function test_guests_are_redirected_to_login_from_every_admin_page(): void
     {
         foreach ($this->adminGetUris() as $uri) {

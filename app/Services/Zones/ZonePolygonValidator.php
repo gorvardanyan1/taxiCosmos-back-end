@@ -63,30 +63,36 @@ final class ZonePolygonValidator
             $this->fail('The polygon must be a GeoJSON Polygon or MultiPolygon with coordinates.');
         }
 
-        $polygons = $type === 'Polygon' ? [$coordinates] : $coordinates;
         $points = 0;
-
-        foreach ($polygons as $polygon) {
+        $normalise = function (mixed $polygon) use (&$points): array {
             if (! is_array($polygon) || $polygon === []) {
                 $this->fail('Every polygon needs at least one ring of coordinates.');
             }
 
-            foreach ($polygon as $ring) {
-                $points += $this->assertRing($ring);
-            }
-        }
+            return array_map(function ($ring) use (&$points) {
+                $ring = $this->ring($ring);
+                $points += count($ring);
+
+                return $ring;
+            }, array_values($polygon));
+        };
+
+        $normalised = $type === 'Polygon' ? $normalise($coordinates) : array_map($normalise, array_values($coordinates));
 
         if ($points > (int) config('taxikosmos.zones.max_vertices')) {
             $this->fail('The polygon has too many points (at most '.config('taxikosmos.zones.max_vertices').').');
         }
 
-        return ['type' => $type, 'coordinates' => $coordinates];
+        return ['type' => $type, 'coordinates' => $normalised];
     }
 
     /**
-     * @return int number of positions in the ring
+     * Checks one ring and returns it as plain [longitude, latitude] floats: extra values GeoJSON
+     * tools add (altitude, measure) are dropped, because the zone column is 2-D.
+     *
+     * @return list<array{float, float}>
      */
-    private function assertRing(mixed $ring): int
+    private function ring(mixed $ring): array
     {
         if (! is_array($ring) || ! array_is_list($ring)) {
             $this->fail('A ring must be a list of [longitude, latitude] positions.');
@@ -115,7 +121,7 @@ final class ZonePolygonValidator
             $this->fail('A ring must be closed: the last position must equal the first.');
         }
 
-        return count($ring);
+        return array_map(fn ($p) => [(float) $p[0], (float) $p[1]], $ring);
     }
 
     /**

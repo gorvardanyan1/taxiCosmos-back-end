@@ -198,6 +198,30 @@ class ZoneAdminTest extends AdminTestCase
         $this->assertSame(2, Zone::count());
     }
 
+    public function test_a_polygon_exported_with_altitude_is_stored_in_two_dimensions(): void
+    {
+        $withAltitude = ['type' => 'Polygon', 'coordinates' => [[[44.4, 40.1, 1200], [44.6, 40.1, 1200], [44.6, 40.3, 1200], [44.4, 40.3, 1200], [44.4, 40.1, 1200]]]];
+
+        $this->actingAs($this->admin)->post('/admin/zones', $this->payload(['polygon' => $withAltitude]))->assertSessionHasNoErrors();
+
+        $zone = Zone::where('code', 'YEREVAN')->sole();
+        $this->assertFalse(DB::selectOne('SELECT ST_HasZ(polygon) AS z FROM zones WHERE id = ?', [$zone->id])->z);
+        $this->assertSame(5, (int) Zone::query()->withGeometry()->find($zone->id)->polygon_points);
+
+        $this->actingAs($this->admin)->patch("/admin/zones/{$zone->id}", ['polygon' => ['type' => 'Polygon', 'coordinates' => [[[45.0, 41.0, 5], [45.2, 41.0, 5], [45.2, 41.2, 5], [45.0, 41.0, 5]]]]])->assertSessionHasNoErrors();
+        $this->assertEqualsWithDelta(45.0, $this->geoJsonOf($zone)['coordinates'][0][0][0][0], 1e-6);
+    }
+
+    public function test_a_zone_id_too_large_for_the_database_is_a_404_not_a_server_error(): void
+    {
+        $tooBig = '99999999999999999999';
+
+        $this->actingAs($this->admin)->patch("/admin/zones/{$tooBig}", ['name' => 'X'])->assertNotFound();
+        $this->actingAs($this->admin)->post("/admin/zones/{$tooBig}/deactivate")->assertNotFound();
+        $this->actingAs($this->admin)->post("/admin/zones/{$tooBig}/activate")->assertNotFound();
+        $this->actingAs($this->admin)->get('/admin/zones?zone='.$tooBig)->assertOk();
+    }
+
     // ---- update ----
 
     public function test_a_zone_is_updated_field_by_field_and_audited_with_a_diff(): void
