@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Zone;
 use App\Realtime\RealtimeEventType;
 use App\Realtime\StreamClient;
+use App\Services\Audit\AuditLogger;
 use App\Services\MobileAuth\MobileSessionService;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
@@ -47,6 +48,7 @@ final class E2eFixtures
             'admin' => $this->admin($a),
             'rider' => $this->rider($a),
             'riders' => $this->riders($a),
+            'system_audit_entry' => $this->systemAuditEntry($a),
             'driver_with_documents' => $this->driverWithDocuments($a),
             'signed_document_url' => $this->signedDocumentUrl($a),
             'zone' => $this->zone($a),
@@ -82,7 +84,7 @@ final class E2eFixtures
     }
 
     /**
-     * A rider account. {name, email?, phone?, locale?, status?, driver?, deleted?}
+     * A rider account. {name, email?, phone?, locale?, status?, driver?, deleted?, unnamed?}
      */
     private function rider(array $a): array
     {
@@ -100,11 +102,25 @@ final class E2eFixtures
             $user->forceFill(['status' => UserStatus::from($a['status']), 'suspension_reason' => $a['status'] === 'suspended' ? 'Set up by e2e' : null])->save();
         }
 
+        if ($a['unnamed'] ?? false) {
+            $user->forceFill(['name' => null])->save();
+        }
+
         if ($a['deleted'] ?? false) {
             $user->delete();
         }
 
         return ['id' => $user->id, 'code' => sprintf('R-%05d', $user->id), 'name' => $user->name, 'email' => $user->email, 'phone' => $user->phone];
+    }
+
+    /**
+     * An audit entry made by the system, with no admin behind it. {action, rider_id}
+     */
+    private function systemAuditEntry(array $a): array
+    {
+        $entry = app(AuditLogger::class)->record(null, $a['action'], isset($a['rider_id']) ? User::query()->findOrFail($a['rider_id']) : null);
+
+        return ['id' => $entry->id];
     }
 
     /**

@@ -14,6 +14,9 @@ const ROUTE_MAP = [
     '/admin/settings/platform', '/admin/settings/maps', '/admin/activity-logs', '/admin/account',
 ];
 
+/** English words of the page chrome (menu, header, page title) that must never remain in another language. */
+const ENGLISH_CHROME = /\b(Super Admin|Riders|Drivers|Trips|Dashboard|Settings|Reports|Zones|Payments|Payouts|Support|Finance|Dispatcher|Overview|Operations|Platform|Activity Log|Live Map|Admin Console|Surge|Ratings)\b/;
+
 const savedLocale = (email: string) => cy.sql('select locale from users where email = ?', [email]).its('0.locale');
 
 describe('P13-T11 · Localisation (en / ru / hy)', () => {
@@ -151,9 +154,9 @@ describe('P13-T11 · Localisation (en / ru / hy)', () => {
 
     // Criterion: no hardcoded visible strings: every page of the route map is translated, in each language.
     [
-        { email: 'cy-i18n-ru@taxikosmos.test', lang: 'ru', script: CYRILLIC, home: 'Панель управления' },
-        { email: 'cy-i18n-hy@taxikosmos.test', lang: 'hy', script: ARMENIAN, home: 'Վահանակ' },
-    ].forEach(({ email, lang, script, home }) => {
+        { email: 'cy-i18n-ru@taxikosmos.test', lang: 'ru', script: CYRILLIC, home: 'Панель управления', role: 'Суперадминистратор' },
+        { email: 'cy-i18n-hy@taxikosmos.test', lang: 'hy', script: ARMENIAN, home: 'Վահանակ', role: 'Գլխավոր ադմինիստրատոր' },
+    ].forEach(({ email, lang, script, home, role }) => {
         it(`renders every admin page in ${lang} (heading, menu and no console errors)`, () => {
             cy.loginAs(email);
 
@@ -161,6 +164,10 @@ describe('P13-T11 · Localisation (en / ru / hy)', () => {
                 cy.visit(path);
                 cy.get('html').should('have.attr', 'lang', lang);
                 cy.get('main h1').first().invoke('text').should('match', script);
+                // The signed-in user's role (sent by the server) is translated, and nothing of the page chrome stays English.
+                cy.get('aside').should('contain', role);
+                cy.get('header').should('contain', role);
+                cy.get('aside, header, main h1').each(($el) => expect($el.text(), `English left in ${path}`).not.to.match(ENGLISH_CHROME));
             });
 
             cy.visit('/admin');
@@ -220,6 +227,51 @@ describe('P13-T11 · Localisation (en / ru / hy)', () => {
 
             cy.adminRequest('PATCH', `/admin/riders/${rider.id}`, { name: 'No reason' }).its('status').should('eq', 303);
             cy.pageProps(`/admin/riders/${rider.id}`).its('errors.reason').should('eq', 'Պատճառ դաշտը պարտադիր է։');
+        });
+    });
+
+    // Text the server itself sends (placeholders, roles, who-did-what) is in the admin's language.
+    it('shows the server\'s own display text in the admin\'s language: role, placeholders, activity and system actor', () => {
+        cy.make('rider', { name: 'Anon', unnamed: true }).then((rider) => {
+            cy.loginAs('cy-i18n-ru@taxikosmos.test');
+
+            cy.visit(`/admin/riders?filter[search]=${encodeURIComponent(rider.code)}`);
+            cy.contains('tbody tr', 'Пассажир без имени').should('contain', rider.code);
+
+            cy.visit(`/admin/riders/${rider.id}`);
+            cy.findByRole('button', { name: 'Заблокировать' }).click();
+            cy.findByRole('dialog').within(() => {
+                cy.findByLabelText(/Причина/).type('Повторные неявки');
+                cy.findByRole('button', { name: 'Подтвердить блокировку' }).click();
+            });
+            cy.findByRole('status').should('contain', 'Пассажир заблокирован.');
+
+            cy.visit(`/admin/riders/${rider.id}?tab=activity`);
+            cy.contains('rider.suspended, выполнил(а): Rita Russian. Причина: Повторные неявки').should('be.visible');
+
+            cy.make('system_audit_entry', { action: 'rider.updated', rider_id: rider.id });
+            cy.visit(`/admin/riders/${rider.id}?tab=activity`);
+            cy.contains('rider.updated, выполнил(а): Система').should('be.visible');
+
+            cy.visit('/admin/activity-logs?filter[action]=rider.updated');
+            cy.contains('tbody tr', 'rider.updated').should('contain', 'Система');
+
+            // The same data for an Armenian admin.
+            cy.loginAs('cy-i18n-hy@taxikosmos.test');
+            cy.visit(`/admin/riders?filter[search]=${encodeURIComponent(rider.code)}`);
+            cy.contains('tbody tr', 'Անանուն ուղևոր').should('exist');
+            cy.visit(`/admin/riders/${rider.id}?tab=activity`);
+            cy.contains('rider.suspended՝ կատարող՝ Rita Russian։ Պատճառ՝ Повторные неявки').should('be.visible');
+            cy.visit('/admin/activity-logs?filter[action]=rider.updated');
+            cy.contains('tbody tr', 'rider.updated').should('contain', 'Համակարգ');
+        });
+
+        // The stored audit text is not translated: an English admin reads the same entry as written.
+        cy.loginAs('cy-i18n-en@taxikosmos.test');
+        cy.visit('/admin/activity-logs?filter[action]=rider.suspended');
+        cy.contains('tbody tr', 'Повторные неявки').should('contain', 'Rita Russian');
+        cy.sql("select properties->>'reason' as reason, properties->>'actor_role' as role from activity_log where description = 'rider.suspended' order by id desc limit 1").then(([row]) => {
+            expect(row).to.deep.equal({ reason: 'Повторные неявки', role: 'super_admin' });
         });
     });
 

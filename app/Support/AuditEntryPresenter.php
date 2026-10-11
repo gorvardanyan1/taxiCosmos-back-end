@@ -22,7 +22,7 @@ final class AuditEntryPresenter
         return [
             'id' => $entry->id,
             'occurred_at' => $entry->created_at->toIso8601String(),
-            'actor' => ['id' => $entry->causer_id, 'name' => $properties['actor_name'] ?? 'System', 'role' => $properties['actor_role'] ?? null],
+            'actor' => ['id' => $entry->causer_id, 'name' => $properties['actor_name'] ?? __('System'), 'role' => $properties['actor_role'] ?? null],
             'action' => $entry->description,
             'target_type' => AuditTargetType::forClass($entry->subject_type)?->value,
             'target_id' => $entry->subject_id,

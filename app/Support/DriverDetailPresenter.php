@@ -28,7 +28,7 @@ final class DriverDetailPresenter
         return [
             'id' => $profile->id,
             'code' => sprintf('D-%04d', $profile->id),
-            'name' => $deleted ? 'Deleted account' : $profile->user->name,
+            'name' => $deleted ? __('Deleted account') : $profile->user->name,
             'phone' => $deleted ? '—' : ($profile->user->phone ?? '—'),
             'vehicle' => $primary === null ? null : ['label' => "{$primary->make} {$primary->model}", 'year' => $primary->year],
             'verification_status' => $profile->verification_status->value,
