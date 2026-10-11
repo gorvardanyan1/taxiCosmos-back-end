@@ -36,6 +36,6 @@ class StoreZoneRequest extends FormRequest
      */
     public function messages(): array
     {
-        return ['code.regex' => 'The code must be 2-32 characters: capital letters, digits, "-" or "_".'];
+        return ['code.regex' => __('The code must be 2-32 characters: capital letters, digits, "-" or "_".')];
     }
 }

@@ -5,6 +5,7 @@ import Modal from '@/Components/Modal';
 import { field } from '@/lib/ui';
 import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import type { RiderDetail } from '@/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
     open: boolean;
@@ -59,39 +60,39 @@ export default function EditRider({ open, onClose, rider, locales, url }: Props)
         <Modal
             open={open}
             onClose={onClose}
-            title={`Edit ${rider.name}`}
+            title={t('Edit :name', { name: rider.name })}
             footer={
                 <>
-                    <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-100" style={{ color: '#64748b', fontFamily: 'var(--font-display)' }}>Cancel</button>
+                    <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-100" style={{ color: '#64748b', fontFamily: 'var(--font-display)' }}>{t('Cancel')}</button>
                     <button
                         onClick={submit}
                         disabled={url === null || form.processing || changed.length === 0 || !form.data.reason.trim()}
                         className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40"
                         style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontFamily: 'var(--font-display)' }}
                     >
-                        Save changes
+                        {t('Save changes')}
                     </button>
                 </>
             }
         >
             <div className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto pr-1">
-                <FormField label="Name" error={form.errors.name} htmlFor="rider-name">
+                <FormField label={t('Name')} error={form.errors.name} htmlFor="rider-name">
                     <input id="rider-name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} className={field} />
                 </FormField>
-                <FormField label="Email" error={form.errors.email} htmlFor="rider-email">
+                <FormField label={t('Email')} error={form.errors.email} htmlFor="rider-email">
                     <input id="rider-email" type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} className={field} />
                 </FormField>
-                <FormField label="Phone" error={form.errors.phone} htmlFor="rider-phone">
+                <FormField label={t('Phone')} error={form.errors.phone} htmlFor="rider-phone">
                     <input id="rider-phone" inputMode="tel" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} className={`${field} font-mono`} />
                 </FormField>
-                <FormField label="Language" error={form.errors.locale} htmlFor="rider-locale">
+                <FormField label={t('Language')} error={form.errors.locale} htmlFor="rider-locale">
                     <select id="rider-locale" value={form.data.locale} onChange={(e) => form.setData('locale', e.target.value)} className={field}>
-                        <option value="">Not set</option>
+                        <option value="">{t('Not set')}</option>
                         {locales.map((code) => <option key={code} value={code}>{localeNames[code] ?? code}</option>)}
                     </select>
                 </FormField>
-                <FormField label="Reason for the change" required error={form.errors.reason} htmlFor="rider-reason">
-                    <textarea id="rider-reason" value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} rows={3} placeholder="e.g. Rider asked to correct their phone number" className={`${field} resize-none`} />
+                <FormField label={t('Reason for the change')} required error={form.errors.reason} htmlFor="rider-reason">
+                    <textarea id="rider-reason" value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} rows={3} placeholder={t('e.g. Rider asked to correct their phone number')} className={`${field} resize-none`} />
                 </FormField>
             </div>
         </Modal>

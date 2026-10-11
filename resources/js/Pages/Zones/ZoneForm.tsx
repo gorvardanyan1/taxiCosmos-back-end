@@ -6,6 +6,7 @@ import { field } from '@/lib/ui';
 import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import type { GeoJsonPolygon } from '@/lib/geo';
 import type { Zone } from '@/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
     open: boolean;
@@ -63,41 +64,41 @@ export default function ZoneForm({ open, onClose, zone, polygon, timezones, curr
         <Modal
             open={open}
             onClose={onClose}
-            title={editing ? `Edit ${zone.name}` : 'Add zone'}
+            title={editing ? t('Edit :name', { name: zone.name }) : t('Add zone')}
             footer={
                 <>
-                    <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-100" style={{ color: '#64748b', fontFamily: 'var(--font-display)' }}>Cancel</button>
+                    <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-100" style={{ color: '#64748b', fontFamily: 'var(--font-display)' }}>{t('Cancel')}</button>
                     <button onClick={submit} disabled={url === null || form.processing} className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontFamily: 'var(--font-display)' }}>
-                        {editing ? 'Save changes' : 'Create zone'}
+                        {editing ? t('Save changes') : t('Create zone')}
                     </button>
                 </>
             }
         >
             <div className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto pr-1">
-                <FormField label="Name" required error={form.errors.name} htmlFor="zone-name">
+                <FormField label={t('Name')} required error={form.errors.name} htmlFor="zone-name">
                     <input id="zone-name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} className={field} />
                 </FormField>
-                <FormField label="Code" required error={form.errors.code} htmlFor="zone-code">
+                <FormField label={t('Code')} required error={form.errors.code} htmlFor="zone-code">
                     <input id="zone-code" value={form.data.code} disabled={editing} onChange={(e) => form.setData('code', e.target.value.toUpperCase())} className={`${field} font-mono disabled:opacity-60`} placeholder="YEREVAN" />
                 </FormField>
                 <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Timezone" required error={form.errors.timezone} htmlFor="zone-timezone">
+                    <FormField label={t('Timezone')} required error={form.errors.timezone} htmlFor="zone-timezone">
                         <select id="zone-timezone" value={form.data.timezone} onChange={(e) => form.setData('timezone', e.target.value)} className={field}>
                             {timezones.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
                         </select>
                     </FormField>
-                    <FormField label="Currency" required error={form.errors.currency} htmlFor="zone-currency">
+                    <FormField label={t('Currency')} required error={form.errors.currency} htmlFor="zone-currency">
                         <select id="zone-currency" value={form.data.currency} onChange={(e) => form.setData('currency', e.target.value)} className={field}>
                             {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </FormField>
                 </div>
-                <FormField label="Priority (higher wins where zones overlap)" error={form.errors.priority} htmlFor="zone-priority">
+                <FormField label={t('Priority (higher wins where zones overlap)')} error={form.errors.priority} htmlFor="zone-priority">
                     <input id="zone-priority" type="number" min={0} max={1000} value={form.data.priority} onChange={(e) => form.setData('priority', e.target.value)} className={field} />
                 </FormField>
-                <FormField label="Polygon (GeoJSON)" required error={form.errors.polygon} htmlFor="zone-polygon">
+                <FormField label={t('Polygon (GeoJSON)')} required error={form.errors.polygon} htmlFor="zone-polygon">
                     <textarea id="zone-polygon" value={form.data.polygon} onChange={(e) => form.setData('polygon', e.target.value)} rows={6} spellCheck={false} placeholder='{"type":"Polygon","coordinates":[[[44.4,40.1],[44.6,40.1],[44.6,40.3],[44.4,40.1]]]}' className={`${field} resize-y font-mono text-xs`} />
-                    <p className="mt-1 text-[11px]" style={{ color: '#94a3b8' }}>Paste a GeoJSON Polygon or MultiPolygon ([longitude, latitude] pairs, closed rings). Drawing on the map arrives with the map editor.</p>
+                    <p className="mt-1 text-[11px]" style={{ color: '#94a3b8' }}>{t('Paste a GeoJSON Polygon or MultiPolygon ([longitude, latitude] pairs, closed rings). Drawing on the map arrives with the map editor.')}</p>
                 </FormField>
             </div>
         </Modal>

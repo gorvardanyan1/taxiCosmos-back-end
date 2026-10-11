@@ -38,6 +38,6 @@ class UpdateZoneRequest extends FormRequest
      */
     public function messages(): array
     {
-        return ['code.prohibited' => 'The zone code cannot be changed.'];
+        return ['code.prohibited' => __('The zone code cannot be changed.')];
     }
 }

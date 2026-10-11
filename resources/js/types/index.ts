@@ -36,7 +36,7 @@ export interface NotificationItem {
 export interface SharedProps {
     auth: { user: AuthUser | null; permissions: string[] };
     flash: { success: string | null; error: string | null };
-    app: { name: string; locale: string; timezone: string; currencies: Currency[]; baseCurrency: string };
+    app: { name: string; locale: string; locales: string[]; timezone: string; currencies: Currency[]; baseCurrency: string };
     navigation: { badges: Record<string, number>; notifications: NotificationItem[] } | null;
     errors: Record<string, string>;
     [key: string]: unknown;

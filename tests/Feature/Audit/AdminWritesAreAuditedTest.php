@@ -47,6 +47,7 @@ class AdminWritesAreAuditedTest extends AuditTestCase
             'admin.zones.update' => ['zone.updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/zones/'.Zone::factory()->create()->id, ['name' => 'Renamed '.uniqid()])],
             'admin.zones.deactivate' => ['zone.deactivated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->create()->id.'/deactivate')],
             'admin.zones.activate' => ['zone.activated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->inactive()->create()->id.'/activate')],
+            'admin.account.locale' => ['account.locale_changed', fn (User $admin) => $this->actingAs($admin)->patch('/admin/account/locale', ['locale' => $admin->locale === 'ru' ? 'hy' : 'ru'])],
         ];
     }
 

@@ -36,7 +36,7 @@ class AuthController extends Controller
         $this->otp->request($request->phone());
 
         return response()->json([
-            'message' => 'If the number can receive a code, it is on its way.',
+            'message' => __('If the number can receive a code, it is on its way.'),
             'expires_in' => config('taxikosmos.mobile_auth.otp.ttl_minutes') * 60,
         ], 202);
     }

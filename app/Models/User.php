@@ -9,7 +9,9 @@ use App\Enums\UserStatus;
 use App\Observers\UserObserver;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
+use App\Support\Locales;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -31,7 +33,7 @@ use Spatie\Permission\Traits\HasRoles;
 #[Fillable(['name', 'email', 'password', 'phone', 'locale', 'timezone'])]
 #[Hidden(['password', 'remember_token', 'phone', 'phone_hash'])]
 #[ObservedBy([UserObserver::class])]
-class User extends Authenticatable
+class User extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
@@ -88,6 +90,14 @@ class User extends Authenticatable
         $normalised === null
             ? $query->whereRaw('false')
             : $query->where('phone_hash', app(BlindIndex::class)->hash($normalised));
+    }
+
+    /**
+     * Mail and notifications (password reset) go out in the user's language.
+     */
+    public function preferredLocale(): ?string
+    {
+        return Locales::forUser($this);
     }
 
     public function isActive(): bool

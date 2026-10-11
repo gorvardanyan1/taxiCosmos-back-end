@@ -20,14 +20,14 @@ class DriverDocumentController extends Controller
     {
         $this->reviewer->approve($this->find($driver, $document), $this->admin($request));
 
-        return back()->with('success', 'Document approved.');
+        return back()->with('success', __('Document approved.'));
     }
 
     public function reject(RejectDriverDocumentRequest $request, int $driver, int $document): RedirectResponse
     {
         $this->reviewer->reject($this->find($driver, $document), $this->admin($request), $request->validated('reason'));
 
-        return back()->with('success', 'Document rejected.');
+        return back()->with('success', __('Document rejected.'));
     }
 
     /**

@@ -7,7 +7,7 @@ export function sharedProps(overrides: Partial<SharedProps> = {}): SharedProps {
         auth: { user: { id: 1, name: 'Test Admin', email: 'admin@taxikosmos.test', role: 'finance', roleLabel: 'Finance' }, permissions: ['payments.view'] },
         flash: { success: null, error: null },
         app: {
-            name: 'TaxiKosmos', locale: 'en', timezone: 'UTC', baseCurrency: 'AMD',
+            name: 'TaxiKosmos', locale: 'en', locales: ['en', 'ru', 'hy'], timezone: 'UTC', baseCurrency: 'AMD',
             currencies: [{ code: 'AMD', symbol: '֏', decimals: 0 }, { code: 'USD', symbol: '$', decimals: 2 }],
         },
         navigation: { badges: { drivers: 4 }, notifications: [] },

@@ -1,3 +1,4 @@
+import { currentLocale, intlLocale } from '@/lib/i18n';
 import type { Currency, Money } from '@/types';
 
 /** Money arrives as integer minor units; this is the only place it becomes a decimal, for display. */
@@ -7,7 +8,7 @@ export function formatMoney(money: Money, currencies: Currency[], options: { com
     const sign = money.amount < 0 ? '- ' : options.signed && money.amount > 0 ? '+ ' : '';
     const body = options.compact
         ? compactNumber(Math.abs(major))
-        : Math.abs(major).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        : Math.abs(major).toLocaleString(intlLocale(), { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
     return `${sign}${money.currency} ${body}`;
 }
@@ -19,6 +20,7 @@ export function toMajorUnits(money: Money, currencies: Currency[]): number {
 }
 
 export function compactNumber(value: number): string {
+    if (currentLocale() !== 'en') return value.toLocaleString(intlLocale(), { notation: 'compact', maximumFractionDigits: 1 });
     if (value >= 1_000_000) return `${trimZero(value / 1_000_000)}M`;
     if (value >= 1_000) return `${trimZero(value / 1_000)}K`;
     return value.toLocaleString('en-US');
@@ -29,16 +31,17 @@ function trimZero(value: number): string {
 }
 
 export function formatNumber(value: number): string {
-    return value.toLocaleString('en-US');
+    return value.toLocaleString(intlLocale());
 }
 
-/** Basis points (480) → "4.8%". */
+/** Basis points (480) → "4.8%" (in Russian and Armenian "4,8 %"). */
 export function formatBasisPoints(bp: number): string {
-    return `${trimZero(bp / 100)}%`;
+    if (currentLocale() === 'en') return `${trimZero(bp / 100)}%`;
+    return (bp / 10_000).toLocaleString(intlLocale(), { style: 'percent', maximumFractionDigits: 2 });
 }
 
 export function formatDate(iso: string, timeZone: string): string {
-    return new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso).toLocaleDateString('en-US', {
+    return new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso).toLocaleDateString(intlLocale(), {
         month: 'short', day: 'numeric', year: 'numeric', timeZone: iso.length === 10 ? 'UTC' : timeZone,
     });
 }
@@ -46,17 +49,19 @@ export function formatDate(iso: string, timeZone: string): string {
 /** "Oct 5 · 18:14" in the admin's timezone. */
 export function formatDateTime(iso: string, timeZone: string): string {
     const date = new Date(iso);
-    const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone });
-    const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone });
+    const day = date.toLocaleDateString(intlLocale(), { month: 'short', day: 'numeric', timeZone });
+    const time = date.toLocaleTimeString(currentLocale() === 'en' ? 'en-GB' : intlLocale(), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone });
     return `${day} · ${time}`;
 }
 
-/** "2m ago", "3h ago", "in 3 days", "Overdue 2 days" style helpers. */
+/** "2m ago", "3h ago", "in 3d" (Intl relative time in the admin's language: "2 мин. назад", "2 ր առաջ"). */
 export function formatRelative(iso: string, now: Date = new Date()): string {
-    const seconds = Math.round((now.getTime() - new Date(iso).getTime()) / 1000);
+    const seconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000);
     const abs = Math.abs(seconds);
-    const unit = abs < 60 ? `${abs}s` : abs < 3600 ? `${Math.floor(abs / 60)}m` : abs < 86400 ? `${Math.floor(abs / 3600)}h` : `${Math.floor(abs / 86400)}d`;
-    return seconds >= 0 ? `${unit} ago` : `in ${unit}`;
+    const [value, unit]: [number, Intl.RelativeTimeFormatUnit] = abs < 60 ? [abs, 'second'] : abs < 3600 ? [Math.floor(abs / 60), 'minute'] : abs < 86400 ? [Math.floor(abs / 3600), 'hour'] : [Math.floor(abs / 86400), 'day'];
+    const style = currentLocale() === 'en' ? 'narrow' : 'short';
+
+    return new Intl.RelativeTimeFormat(intlLocale(), { style, numeric: 'always' }).format(seconds < 0 ? -value : value, unit);
 }
 
 export function daysUntil(iso: string, now: Date = new Date()): number {

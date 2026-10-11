@@ -47,28 +47,28 @@ class ZoneController extends Controller
     {
         $zone = $this->zones->create($this->admin($request), $request->validated());
 
-        return redirect()->route('admin.zones.index', ['zone' => $zone->id])->with('success', 'Zone created.');
+        return redirect()->route('admin.zones.index', ['zone' => $zone->id])->with('success', __('Zone created.'));
     }
 
     public function update(UpdateZoneRequest $request, int $zone): RedirectResponse
     {
         $this->zones->update($this->admin($request), Zone::query()->findOrFail($zone), $request->validated());
 
-        return back()->with('success', 'Zone updated.');
+        return back()->with('success', __('Zone updated.'));
     }
 
     public function deactivate(ZoneStatusRequest $request, int $zone): RedirectResponse
     {
         $this->zones->deactivate($this->admin($request), Zone::query()->findOrFail($zone), $request->validated('reason'));
 
-        return back()->with('success', 'Zone deactivated.');
+        return back()->with('success', __('Zone deactivated.'));
     }
 
     public function activate(ZoneStatusRequest $request, int $zone): RedirectResponse
     {
         $this->zones->activate($this->admin($request), Zone::query()->findOrFail($zone), $request->validated('reason'));
 
-        return back()->with('success', 'Zone activated.');
+        return back()->with('success', __('Zone activated.'));
     }
 
     /**

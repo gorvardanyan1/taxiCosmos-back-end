@@ -30,7 +30,7 @@ class EnforceAdminIdleTimeout
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            $message = 'Your session expired after '.config('taxikosmos.admin.idle_timeout_minutes').' minutes of inactivity. Please sign in again.';
+            $message = __('Your session expired after :minutes minutes of inactivity. Please sign in again.', ['minutes' => config('taxikosmos.admin.idle_timeout_minutes')]);
 
             return $request->expectsJson()
                 ? response()->json(['message' => $message], Response::HTTP_UNAUTHORIZED)

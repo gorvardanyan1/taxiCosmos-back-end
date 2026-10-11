@@ -5,6 +5,7 @@ import EmptyState from '@/Components/EmptyState';
 import { visitQuery } from '@/lib/query';
 import { card, th, td } from '@/lib/ui';
 import type { Paginated } from '@/types';
+import { t, tn } from '@/lib/i18n';
 
 export interface Column<T> {
     key: string;
@@ -59,8 +60,8 @@ export default function PaginatedTable<T>({ paginator, columns, rowKey, onRowCli
                                 {column.sortKey ? (
                                     <button type="button" onClick={() => visitQuery({ sort: nextSort(sort, column.sortKey!) }, { resetPage: true })} className="inline-flex items-center gap-1 uppercase hover:text-indigo-600">
                                         {column.header}
-                                        {sort === column.sortKey && <ChevronUp size={12} aria-label="sorted ascending" />}
-                                        {sort === `-${column.sortKey}` && <ChevronDown size={12} aria-label="sorted descending" />}
+                                        {sort === column.sortKey && <ChevronUp size={12} aria-label={t('sorted ascending')} />}
+                                        {sort === `-${column.sortKey}` && <ChevronDown size={12} aria-label={t('sorted descending')} />}
                                     </button>
                                 ) : column.header}
                             </th>
@@ -71,7 +72,7 @@ export default function PaginatedTable<T>({ paginator, columns, rowKey, onRowCli
                     {paginator.data.length === 0 && (
                         <tr>
                             <td colSpan={columns.length}>
-                                <EmptyState title={empty?.title} hint={empty?.hint ?? 'Try adjusting your filters'} />
+                                <EmptyState title={empty?.title} hint={empty?.hint ?? t('Try adjusting your filters')} />
                             </td>
                         </tr>
                     )}
@@ -92,14 +93,13 @@ export default function PaginatedTable<T>({ paginator, columns, rowKey, onRowCli
             </table>
             <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3.5">
                 <p className="text-xs" style={{ color: '#94a3b8' }}>
-                    Showing{' '}
-                    <span style={{ color: '#0f172a', fontWeight: 600 }}>
-                        {paginator.from ?? 0}–{paginator.to ?? 0}
-                    </span>{' '}
-                    of {paginator.total}
+                    {tn('Showing :range of :total', {
+                        range: <span style={{ color: '#0f172a', fontWeight: 600 }}>{paginator.from ?? 0}–{paginator.to ?? 0}</span>,
+                        total: paginator.total,
+                    })}
                 </p>
                 <div className="flex items-center gap-1">
-                    <button aria-label="Previous page" disabled={!previous} onClick={() => go(previous)} className="rounded-xl p-2 transition-colors hover:bg-slate-50 disabled:opacity-30" style={{ color: '#64748b' }}>
+                    <button aria-label={t('Previous page')} disabled={!previous} onClick={() => go(previous)} className="rounded-xl p-2 transition-colors hover:bg-slate-50 disabled:opacity-30" style={{ color: '#64748b' }}>
                         <ChevronLeft size={14} />
                     </button>
                     {pages.map((link) => (
@@ -118,7 +118,7 @@ export default function PaginatedTable<T>({ paginator, columns, rowKey, onRowCli
                             {link.label}
                         </button>
                     ))}
-                    <button aria-label="Next page" disabled={!next} onClick={() => go(next)} className="rounded-xl p-2 transition-colors hover:bg-slate-50 disabled:opacity-30" style={{ color: '#64748b' }}>
+                    <button aria-label={t('Next page')} disabled={!next} onClick={() => go(next)} className="rounded-xl p-2 transition-colors hover:bg-slate-50 disabled:opacity-30" style={{ color: '#64748b' }}>
                         <ChevronRight size={14} />
                     </button>
                 </div>

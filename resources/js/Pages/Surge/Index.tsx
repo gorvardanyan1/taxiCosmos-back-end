@@ -13,6 +13,7 @@ import { withId } from '@/lib/query';
 import { field, ghost, primary } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { Actions, Filters, NamedOption, Paginated, SurgeRow } from '@/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
     surges: Paginated<SurgeRow>;
@@ -32,53 +33,53 @@ export default function SurgeIndex({ surges, filters, zones, vehicleClasses, max
 
     return (
         <div>
-            <Head title="Surge" />
-            <PageHeader title="Surge" description="Control dynamic pricing by zone and vehicle class" actions={<button onClick={() => setOpen(true)} className={primary}><Plus size={14} />Add surge</button>} />
-            <FilterBar filters={filters} selects={[{ key: 'vehicle_class', allLabel: 'All vehicle classes', options: vehicleClasses.map((c) => ({ value: c, label: label(c) })) }]} />
+            <Head title={t('Surge')} />
+            <PageHeader title={t('Surge')} description={t('Control dynamic pricing by zone and vehicle class')} actions={<button onClick={() => setOpen(true)} className={primary}><Plus size={14} />{t('Add surge')}</button>} />
+            <FilterBar filters={filters} selects={[{ key: 'vehicle_class', allLabel: t('All vehicle classes'), options: vehicleClasses.map((c) => ({ value: c, label: label(c) })) }]} />
             <PaginatedTable
                 paginator={surges}
                 rowKey={(s) => s.id}
-                empty={{ title: 'No surge pricing active' }}
+                empty={{ title: t('No surge pricing active') }}
                 columns={[
-                    { key: 'zone', header: 'Zone', render: (s) => <b>{s.zone}</b> },
-                    { key: 'multiplier', header: 'Multiplier', render: (s) => <span className="rounded-lg bg-violet-50 px-2.5 py-1 font-mono font-bold text-violet-700">×{s.multiplier}</span> },
-                    { key: 'class', header: 'Vehicle class', render: (s) => (s.vehicle_class ? label(s.vehicle_class) : 'All classes') },
-                    { key: 'schedule', header: 'Schedule', render: schedule },
-                    { key: 'reason', header: 'Reason', render: (s) => s.reason },
-                    { key: 'by', header: 'Created by', render: (s) => s.created_by ?? 'System' },
-                    { key: 'end', header: '', render: (s) => <ActionButton url={withId(actions.end, s.id)} className="text-xs font-bold text-red-600">End now</ActionButton> },
+                    { key: 'zone', header: t('Zone'), render: (s) => <b>{s.zone}</b> },
+                    { key: 'multiplier', header: t('Multiplier'), render: (s) => <span className="rounded-lg bg-violet-50 px-2.5 py-1 font-mono font-bold text-violet-700">×{s.multiplier}</span> },
+                    { key: 'class', header: t('Vehicle class'), render: (s) => (s.vehicle_class ? label(s.vehicle_class) : t('All classes')) },
+                    { key: 'schedule', header: t('Schedule'), render: schedule },
+                    { key: 'reason', header: t('Reason'), render: (s) => s.reason },
+                    { key: 'by', header: t('Created by'), render: (s) => s.created_by ?? t('System') },
+                    { key: 'end', header: '', render: (s) => <ActionButton url={withId(actions.end, s.id)} className="text-xs font-bold text-red-600">{t('End now')}</ActionButton> },
                 ]}
             />
             <Modal
                 open={open}
                 onClose={() => setOpen(false)}
-                title="Add surge"
+                title={t('Add surge')}
                 footer={
                     <>
-                        <button className={ghost} onClick={() => setOpen(false)}>Cancel</button>
-                        <button className={primary} onClick={submit} disabled={actions.create === null || !form.data.reason.trim() || form.processing} title={actions.create === null ? UNAVAILABLE_HINT : undefined}>Schedule surge</button>
+                        <button className={ghost} onClick={() => setOpen(false)}>{t('Cancel')}</button>
+                        <button className={primary} onClick={submit} disabled={actions.create === null || !form.data.reason.trim() || form.processing} title={actions.create === null ? t(UNAVAILABLE_HINT) : undefined}>{t('Schedule surge')}</button>
                     </>
                 }
             >
                 <div className="space-y-4">
-                    <FormField label="Zone" error={form.errors.zone_id} htmlFor="surge-zone">
+                    <FormField label={t('Zone')} error={form.errors.zone_id} htmlFor="surge-zone">
                         <select id="surge-zone" value={form.data.zone_id} onChange={(e) => form.setData('zone_id', e.target.value)} className={field}>
                             {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
                         </select>
                     </FormField>
-                    <FormField label="Vehicle class" error={form.errors.vehicle_class} htmlFor="surge-class">
+                    <FormField label={t('Vehicle class')} error={form.errors.vehicle_class} htmlFor="surge-class">
                         <select id="surge-class" value={form.data.vehicle_class} onChange={(e) => form.setData('vehicle_class', e.target.value)} className={field}>
-                            <option value="">All vehicle classes</option>
+                            <option value="">{t('All vehicle classes')}</option>
                             {vehicleClasses.map((c) => <option key={c} value={c}>{label(c)}</option>)}
                         </select>
                     </FormField>
                     <div>
-                        <div className="flex justify-between text-xs font-bold"><span>Multiplier</span><span className="font-mono text-indigo-600">×{form.data.multiplier} / max ×{maxMultiplier}</span></div>
-                        <input aria-label="Multiplier" type="range" min="1" max={maxMultiplier} step="0.1" value={form.data.multiplier} onChange={(e) => form.setData('multiplier', Number(e.target.value).toFixed(2))} className="mt-3 w-full accent-indigo-600" />
+                        <div className="flex justify-between text-xs font-bold"><span>{t('Multiplier')}</span><span className="font-mono text-indigo-600">{t('×:value / max ×:max', { value: form.data.multiplier, max: maxMultiplier })}</span></div>
+                        <input aria-label={t('Multiplier')} type="range" min="1" max={maxMultiplier} step="0.1" value={form.data.multiplier} onChange={(e) => form.setData('multiplier', Number(e.target.value).toFixed(2))} className="mt-3 w-full accent-indigo-600" />
                         {form.errors.multiplier && <p role="alert" className="mt-1.5 text-xs font-semibold text-red-600">{form.errors.multiplier}</p>}
                     </div>
-                    <FormField label="Reason" required error={form.errors.reason} htmlFor="surge-reason">
-                        <textarea id="surge-reason" value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} className={field} placeholder="Reason *" />
+                    <FormField label={t('Reason')} required error={form.errors.reason} htmlFor="surge-reason">
+                        <textarea id="surge-reason" value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} className={field} placeholder={t('Reason *')} />
                     </FormField>
                 </div>
             </Modal>

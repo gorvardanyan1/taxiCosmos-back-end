@@ -1,5 +1,6 @@
 import { visitQuery } from '@/lib/query';
 import { label as humanLabel } from '@/lib/labels';
+import { t } from '@/lib/i18n';
 
 interface Props {
     tabs: string[];
@@ -11,7 +12,7 @@ interface Props {
 
 /** Tabs whose selection lives in the URL (?tab=…), so it survives reloads, deep links and back/forward. */
 export default function UrlTabs({ tabs, active, param = 'tab', labels = {}, variant = 'soft' }: Props) {
-    const text = (tab: string) => labels[tab] ?? humanLabel(tab);
+    const text = (tab: string) => (labels[tab] ? t(labels[tab]) : humanLabel(tab));
 
     return (
         <div role="tablist" className={variant === 'underline' ? 'flex gap-1 overflow-x-auto px-6' : 'flex w-fit gap-1 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-1'}>

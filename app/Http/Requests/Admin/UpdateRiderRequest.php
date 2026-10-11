@@ -54,14 +54,14 @@ class UpdateRiderRequest extends FormRequest
             $normalised = is_string($value) ? E164PhoneNumber::tryNormalize($value) : null;
 
             if ($normalised === null || ! (new PhoneNumber($normalised))->isValid()) {
-                $fail('The phone must be a valid phone number.');
+                $fail(__('The phone must be a valid phone number.'));
 
                 return;
             }
 
             // Soft-deleted accounts keep their phone_hash (the unique index counts them), so they count too.
             if (User::query()->withTrashed()->wherePhone($normalised)->where('id', '!=', $rider)->exists()) {
-                $fail('Another account already uses this phone number.');
+                $fail(__('Another account already uses this phone number.'));
             }
         };
     }

@@ -7,6 +7,7 @@ import { label } from '@/lib/labels';
 import { visitQuery } from '@/lib/query';
 import { card } from '@/lib/ui';
 import type { NamedOption } from '@/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
     zones: NamedOption[];
@@ -23,31 +24,31 @@ const selectClass = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-
 export default function LiveMap({ zones, stats, updated_at, markers, route, focused_driver, filters }: Props) {
     return (
         <div className="h-full">
-            <Head title="Live Map" />
-            <PageHeader title="Live Map" description="Real-time driver availability and active trips" />
+            <Head title={t('Live Map')} />
+            <PageHeader title={t('Live Map')} description={t('Real-time driver availability and active trips')} />
             <div className="relative min-h-[calc(100vh-160px)]">
                 <GridMap markers={markers} route={route} caption={`Updated ${formatRelative(updated_at)}`} />
                 <div className={`absolute left-4 top-4 w-72 ${card} p-4`}>
                     <div className="mb-4 flex items-center justify-between">
-                        <p className="font-display text-sm font-bold text-slate-900">Map controls</p>
+                        <p className="font-display text-sm font-bold text-slate-900">{t('Map controls')}</p>
                         <Radio size={14} className="text-emerald-500" />
                     </div>
                     <div className="space-y-2">
-                        <select aria-label="Zone" value={filters.zone ?? ''} onChange={(e) => visitQuery({ zone: e.target.value })} className={selectClass}>
-                            <option value="">All zones</option>
+                        <select aria-label={t('Zone')} value={filters.zone ?? ''} onChange={(e) => visitQuery({ zone: e.target.value })} className={selectClass}>
+                            <option value="">{t('All zones')}</option>
                             {zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}
                         </select>
-                        <select aria-label="Vehicle class" value={filters.vehicle_class ?? ''} onChange={(e) => visitQuery({ vehicle_class: e.target.value })} className={selectClass}>
-                            <option value="">All vehicle classes</option>
+                        <select aria-label={t('Vehicle class')} value={filters.vehicle_class ?? ''} onChange={(e) => visitQuery({ vehicle_class: e.target.value })} className={selectClass}>
+                            <option value="">{t('All vehicle classes')}</option>
                             {['economy', 'comfort', 'business'].map((value) => <option key={value} value={value}>{label(value)}</option>)}
                         </select>
-                        <select aria-label="Status" value={filters.availability ?? ''} onChange={(e) => visitQuery({ availability: e.target.value })} className={selectClass}>
-                            <option value="">All statuses</option>
+                        <select aria-label={t('Status')} value={filters.availability ?? ''} onChange={(e) => visitQuery({ availability: e.target.value })} className={selectClass}>
+                            <option value="">{t('All statuses')}</option>
                             {['online', 'on_trip', 'offline'].map((value) => <option key={value} value={value}>{label(value)}</option>)}
                         </select>
                     </div>
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                        {([[stats.online, 'Online'], [stats.on_trip, 'On trip'], [stats.waiting, 'Waiting']] as const).map(([value, text]) => (
+                        {([[stats.online, t('Online')], [stats.on_trip, t('On trip')], [stats.waiting, t('Waiting')]] as const).map(([value, text]) => (
                             <div key={text} className="rounded-xl bg-slate-50 p-2"><p className="font-mono text-sm font-bold text-slate-900">{formatNumber(value)}</p><p className="text-[9px] text-slate-400">{text}</p></div>
                         ))}
                     </div>
@@ -59,7 +60,7 @@ export default function LiveMap({ zones, stats, updated_at, markers, route, focu
                             </div>
                             <div className="mt-3 flex items-center justify-between text-[10px] text-slate-500">
                                 <span>★ {focused_driver.rating} · {focused_driver.trip_code}</span>
-                                <Link href={`/admin/drivers/${focused_driver.id}`} className="font-bold text-indigo-600">Open driver</Link>
+                                <Link href={`/admin/drivers/${focused_driver.id}`} className="font-bold text-indigo-600">{t('Open driver')}</Link>
                             </div>
                         </div>
                     )}

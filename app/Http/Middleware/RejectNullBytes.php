@@ -16,7 +16,7 @@ class RejectNullBytes
     public function handle(Request $request, Closure $next): Response
     {
         if ($this->containsNull($request->all()) || $this->containsNull($request->query())) {
-            return response()->json(['message' => 'The request contains invalid characters.'], Response::HTTP_BAD_REQUEST);
+            return response()->json(['message' => __('The request contains invalid characters.')], Response::HTTP_BAD_REQUEST);
         }
 
         return $next($request);

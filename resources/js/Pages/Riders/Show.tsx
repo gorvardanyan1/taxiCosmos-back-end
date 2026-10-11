@@ -9,6 +9,7 @@ import { formatBasisPoints, formatDate, formatDateTime, formatNumber } from '@/l
 import EditRider from './EditRider';
 import { useShared } from '@/lib/useShared';
 import type { Actions, RiderDetail } from '@/types';
+import { t, tn } from '@/lib/i18n';
 
 interface Props {
     rider: RiderDetail;
@@ -32,7 +33,7 @@ export default function RiderShow({ rider, tab, tabs, locales, actions }: Props)
             <Head title={rider.name} />
             <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
                 <div className="mx-auto flex max-w-7xl items-center">
-                    <Link href="/admin/riders" className="mr-4 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500">← Riders</Link>
+                    <Link href="/admin/riders" className="mr-4 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500">{t('← Riders')}</Link>
                     <Avatar name={rider.name} seed={rider.id} size={48} rounded="rounded-2xl" />
                     <div className="ml-3">
                         <h1 className="font-display text-lg font-bold text-slate-900">{rider.name}</h1>
@@ -40,9 +41,9 @@ export default function RiderShow({ rider, tab, tabs, locales, actions }: Props)
                     </div>
                     <div className="ml-4"><StatusBadge status={rider.status} /></div>
                     <div className="ml-auto flex gap-2">
-                        <button onClick={() => setEditing(true)} disabled={actions.edit === null} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 disabled:opacity-40">Edit</button>
+                        <button onClick={() => setEditing(true)} disabled={actions.edit === null} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 disabled:opacity-40">{t('Edit')}</button>
                         {canToggle && (
-                            <button onClick={() => setActing(true)} className={`rounded-xl px-4 py-2 text-sm font-bold ${suspended ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>{suspended ? 'Reactivate' : 'Suspend'}</button>
+                            <button onClick={() => setActing(true)} className={`rounded-xl px-4 py-2 text-sm font-bold ${suspended ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>{suspended ? t('Reactivate') : t('Suspend')}</button>
                         )}
                     </div>
                 </div>
@@ -50,20 +51,20 @@ export default function RiderShow({ rider, tab, tabs, locales, actions }: Props)
             <div className="mx-auto max-w-7xl p-6">
                 {suspended && (
                     <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-                        Suspended{rider.suspension_reason ? `: ${rider.suspension_reason}` : ''}
+                        {t('Suspended')}{rider.suspension_reason ? `: ${rider.suspension_reason}` : ''}
                     </div>
                 )}
                 {rider.status === 'pending_deletion' && rider.deletion_scheduled_for && (
                     <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-                        Account deletion requested — will be anonymised on {formatDate(rider.deletion_scheduled_for, timezone)}
+                        {t('Account deletion requested — will be anonymised on :date', { date: formatDate(rider.deletion_scheduled_for, timezone) })}
                     </div>
                 )}
                 <div className="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
                     {([
-                        ['Total trips', formatNumber(rider.trips_count)],
-                        ['Total spent', money(rider.stats.total_spent)],
-                        ['Cancellation rate', formatBasisPoints(rider.stats.cancellation_rate_bp)],
-                        ['Open tickets', formatNumber(rider.stats.open_tickets)],
+                        [t('Total trips'), formatNumber(rider.trips_count)],
+                        [t('Total spent'), money(rider.stats.total_spent)],
+                        [t('Cancellation rate'), formatBasisPoints(rider.stats.cancellation_rate_bp)],
+                        [t('Open tickets'), formatNumber(rider.stats.open_tickets)],
                     ] as const).map(([title, value]) => (
                         <div key={title} className="rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,.04)]">
                             <p className="text-xs text-slate-400">{title}</p>
@@ -75,18 +76,18 @@ export default function RiderShow({ rider, tab, tabs, locales, actions }: Props)
                     <div className="border-b border-slate-100 p-2"><UrlTabs tabs={tabs} active={tab} /></div>
                     <div className="p-5">
                         {tab === 'payment-methods' ? (
-                            rider.payment_methods.length === 0 ? <EmptyState title="No payment methods" /> : rider.payment_methods.map((method) => (
+                            rider.payment_methods.length === 0 ? <EmptyState title={t('No payment methods')} /> : rider.payment_methods.map((method) => (
                                 <div key={method.id} className="max-w-sm rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 p-5 text-white">
-                                    <p className="text-xs text-slate-400">{method.is_default ? 'Primary payment method' : 'Payment method'}</p>
+                                    <p className="text-xs text-slate-400">{method.is_default ? t('Primary payment method') : t('Payment method')}</p>
                                     <p className="mt-8 font-mono text-lg tracking-widest">{method.brand} •••• {method.last4}</p>
-                                    <p className="mt-5 text-xs text-slate-400">Expires {method.expires}</p>
+                                    <p className="mt-5 text-xs text-slate-400">{t('Expires')} {method.expires}</p>
                                 </div>
                             ))
                         ) : records.length === 0 ? (
                             <EmptyState />
                         ) : (
                             <table className="w-full">
-                                <thead><tr>{['Reference', 'Description', 'Status', 'Amount / Rating', 'Date'].map((h) => <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase text-slate-400">{h}</th>)}</tr></thead>
+                                <thead><tr>{[t('Reference'), t('Description'), t('Status'), t('Amount / Rating'), t('Date')].map((h) => <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase text-slate-400">{h}</th>)}</tr></thead>
                                 <tbody>
                                     {records.map((record) => (
                                         <tr key={`${record.reference}-${record.occurred_at}`} className="border-t border-slate-50">
@@ -107,12 +108,12 @@ export default function RiderShow({ rider, tab, tabs, locales, actions }: Props)
             <ReasonModal
                 open={acting}
                 onClose={() => setActing(false)}
-                title={`${suspended ? 'Reactivate' : 'Suspend'} ${rider.name}`}
+                title={`${suspended ? t('Reactivate') : t('Suspend')} ${rider.name}`}
                 description={suspended
-                    ? <>This lets <strong style={{ color: '#0f172a' }}>{rider.name}</strong> book trips again.</>
-                    : <>This will immediately prevent <strong style={{ color: '#0f172a' }}>{rider.name}</strong> from booking trips and sign them out of the app.</>}
-                confirmLabel={suspended ? 'Confirm Reactivation' : 'Confirm Suspension'}
-                placeholder={suspended ? 'Why is this rider being reactivated…' : 'Describe why this rider is being suspended…'}
+                    ? tn('This lets :name book trips again.', { name: <strong style={{ color: '#0f172a' }}>{rider.name}</strong> })
+                    : tn('This will immediately prevent :name from booking trips and sign them out of the app.', { name: <strong style={{ color: '#0f172a' }}>{rider.name}</strong> })}
+                confirmLabel={suspended ? t('Confirm Reactivation') : t('Confirm Suspension')}
+                placeholder={suspended ? t('Why is this rider being reactivated…') : t('Describe why this rider is being suspended…')}
                 tone={suspended ? 'primary' : 'danger'}
                 url={suspended ? actions.reactivate : actions.suspend}
             />

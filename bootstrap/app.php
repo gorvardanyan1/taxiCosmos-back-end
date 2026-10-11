@@ -6,10 +6,13 @@ use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\EnsureMobileClient;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RejectNullBytes;
+use App\Http\Middleware\SetLocale;
+use App\Support\Locales;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Inertia\Inertia;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
@@ -28,9 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(prepend: [RejectNullBytes::class], append: [
+            SetLocale::class,
             HandleInertiaRequests::class,
         ]);
-        $middleware->api(prepend: [RejectNullBytes::class]);
+        $middleware->api(prepend: [SetLocale::class, RejectNullBytes::class]);
         $middleware->alias([
             'admin' => EnsureAdminAccess::class,
             'mobile' => EnsureMobileClient::class,
@@ -63,12 +67,19 @@ return Application::configure(basePath: dirname(__DIR__))
                 return $response;
             }
 
+            // A URL that matched no route never went through the web middleware (so no session or
+            // signed-in admin yet): the error page uses the browser's language.
+            if (! $request->hasSession()) {
+                App::setLocale(Locales::fromHeader($request) ?? Locales::default());
+            }
+
             if ($status === 419) {
                 return back()->with('error', 'Your session expired. Please try again.');
             }
 
             if (! config('app.debug') && in_array($status, [403, 404, 429, 500, 503], true)) {
-                return Inertia::render('Errors/Show', ['status' => $status])
+                // `locale` is for pages that never got the shared props (a URL that matched no route).
+                return Inertia::render('Errors/Show', ['status' => $status, 'locale' => App::getLocale()])
                     ->toResponse($request)
                     ->setStatusCode($status);
             }

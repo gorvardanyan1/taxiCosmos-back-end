@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Navigation } from 'lucide-react';
 import type { ReactNode } from 'react';
+import LanguageSwitcher from '@/Components/LanguageSwitcher';
 
 /** Template AuthGallery shell: dark grid background with a centred card. */
 export default function AuthLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
@@ -17,6 +18,7 @@ export default function AuthLayout({ title, subtitle, children }: { title: strin
                     <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
                 </div>
                 {children}
+                <LanguageSwitcher />
             </div>
         </div>
     );

@@ -69,21 +69,21 @@ class RiderController extends Controller
         $user = User::query()->where('is_rider', true)->findOrFail($rider);
         $changed = $this->riders->update($this->admin($request), $user, $request->safe()->except('reason'), $request->validated('reason'));
 
-        return back()->with('success', $changed ? 'Rider updated.' : 'Nothing to change.');
+        return back()->with('success', $changed ? __('Rider updated.') : __('Nothing to change.'));
     }
 
     public function suspend(RiderStatusRequest $request, int $rider): RedirectResponse
     {
         $this->riders->suspend($this->admin($request), User::query()->where('is_rider', true)->findOrFail($rider), $request->validated('reason'));
 
-        return back()->with('success', 'Rider suspended.');
+        return back()->with('success', __('Rider suspended.'));
     }
 
     public function reactivate(RiderStatusRequest $request, int $rider): RedirectResponse
     {
         $this->riders->reactivate($this->admin($request), User::query()->where('is_rider', true)->findOrFail($rider), $request->validated('reason'));
 
-        return back()->with('success', 'Rider reactivated.');
+        return back()->with('success', __('Rider reactivated.'));
     }
 
     private function timezone(Request $request): string

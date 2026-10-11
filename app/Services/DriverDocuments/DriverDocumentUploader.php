@@ -77,7 +77,7 @@ final class DriverDocumentUploader
                     ? ['nullable', Rule::in([$vehicle?->driver_id === $driver->getKey() ? $vehicle->getKey() : null])]
                     : ['prohibited'],
             ],
-            ['vehicle_id.in' => 'The vehicle does not belong to this driver.', 'vehicle_id.prohibited' => 'This document type does not belong to a vehicle.'],
+            ['vehicle_id.in' => __('The vehicle does not belong to this driver.'), 'vehicle_id.prohibited' => __('This document type does not belong to a vehicle.')],
         );
 
         $validator->validate();

@@ -11,6 +11,6 @@ class DeletedRecordException extends DomainException
 {
     public static function for(string $what): self
     {
-        return new self("Cannot use a deleted {$what}.");
+        return new self(__('Cannot use a deleted :what.', ['what' => $what]));
     }
 }

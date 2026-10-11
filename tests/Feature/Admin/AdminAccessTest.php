@@ -32,7 +32,7 @@ class AdminAccessTest extends AdminTestCase
             $this->assertContains('auth', $middleware, "{$route->uri()} must require login.");
             $this->assertContains('admin', $middleware, "{$route->uri()} must require admin access.");
 
-            $selfService = in_array($route->uri(), ['admin/account', 'admin/settings'], true);
+            $selfService = in_array($route->uri(), ['admin/account', 'admin/account/locale', 'admin/settings'], true);
             $hasPermission = collect($middleware)->contains(fn ($m) => str_starts_with($m, 'permission:'));
             $this->assertTrue($selfService || $hasPermission, "{$route->uri()} has no named permission.");
         }

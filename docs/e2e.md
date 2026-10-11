@@ -18,6 +18,7 @@ spec in `cypress/e2e/<task-id>-<name>.cy.ts` (see `.claude/commands/task.md`, se
 | Queue | redis | sync |
 | Mail / SMS | log | log, to `storage/logs/e2e.log` |
 | OTP | random | fixed `123456` for `+37491770001…39` |
+| Language | per admin / browser | same; admin fixtures default to English (`locale` option) |
 | Debug pages | on | off (the template error pages render) |
 
 Copy `APP_KEY` and `BLIND_INDEX_KEY` from your `.env`.

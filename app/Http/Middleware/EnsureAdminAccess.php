@@ -32,6 +32,6 @@ class EnsureAdminAccess
             abort(Response::HTTP_FORBIDDEN);
         }
 
-        return redirect()->route('login')->with('status', 'Your admin access is no longer active. Contact a super admin if you think this is a mistake.');
+        return redirect()->route('login')->with('status', __('Your admin access is no longer active. Contact a super admin if you think this is a mistake.'));
     }
 }

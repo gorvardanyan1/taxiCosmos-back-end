@@ -64,7 +64,7 @@ final class E2eFixtures
     }
 
     /**
-     * An admin who can sign in with PASSWORD. {email, role, name?, phone?, timezone?}
+     * An admin who can sign in with PASSWORD. {email, role, name?, phone?, timezone?, locale?}
      */
     private function admin(array $a): array
     {
@@ -75,9 +75,10 @@ final class E2eFixtures
             'email' => $a['email'],
             'password' => self::PASSWORD,
             'timezone' => $a['timezone'] ?? 'Asia/Yerevan',
+            'locale' => $a['locale'] ?? 'en',
         ]);
 
-        return ['id' => $user->id, 'email' => $user->email, 'name' => $user->name, 'role' => $role->value, 'password' => self::PASSWORD];
+        return ['id' => $user->id, 'email' => $user->email, 'name' => $user->name, 'role' => $role->value, 'password' => self::PASSWORD, 'locale' => $user->locale];
     }
 
     /**
@@ -107,7 +108,7 @@ final class E2eFixtures
     }
 
     /**
-     * Many riders at once: "{prefix} 01" … with phones +3749188xxxx. {count, prefix, registered_at?}
+     * Many riders at once: "{prefix} 01" … with phones +3749188xxxx. {count, prefix, registered_at?, phone_offset?} Call twice only with different prefixes and phone offsets.
      *
      * @return list<array<string, mixed>>
      */
@@ -115,7 +116,7 @@ final class E2eFixtures
     {
         $riders = [];
         for ($i = 1; $i <= (int) $a['count']; $i++) {
-            $user = User::factory()->rider()->withPhone(sprintf('+3749188%04d', $i))->create(array_filter([
+            $user = User::factory()->rider()->withPhone(sprintf('+3749188%04d', ((int) ($a['phone_offset'] ?? 0)) + $i))->create(array_filter([
                 'name' => sprintf('%s %02d', $a['prefix'], $i),
                 'email' => sprintf('%s.%02d@riders.test', Str::slug($a['prefix']), $i),
                 'created_at' => $a['registered_at'] ?? null,

@@ -9,6 +9,7 @@ import { filterKey, visitQuery } from '@/lib/query';
 import { card, filterInput, ghost } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { ActivityEntry, Actions, Filters, Paginated } from '@/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
     entries: Paginated<ActivityEntry>;
@@ -32,40 +33,40 @@ export default function ActivityLogIndex({ entries, filters, targetTypes, actors
 
     return (
         <div>
-            <Head title="Activity Log" />
-            <PageHeader title="Activity Log" description="Immutable audit trail for administrator actions" actions={<a href={actions.export ?? undefined} download aria-disabled={actions.export === null} className={ghost}><Download size={14} />Export CSV</a>} />
+            <Head title={t('Activity Log')} />
+            <PageHeader title={t('Activity Log')} description={t('Immutable audit trail for administrator actions')} actions={<a href={actions.export ?? undefined} download aria-disabled={actions.export === null} className={ghost}><Download size={14} />{t('Export CSV')}</a>} />
             <FilterBar
                 filters={filters}
-                searchPlaceholder="Search action, actor, target or reason…"
+                searchPlaceholder={t('Search action, actor, target or reason…')}
                 selects={[
-                    { key: 'actor', allLabel: 'All actors', options: actors.map((a) => ({ value: String(a.id), label: a.name ?? `Admin #${a.id}` })) },
-                    { key: 'action', allLabel: 'All actions', options: actionNames.map((name) => ({ value: name, label: name })) },
-                    { key: 'target_type', allLabel: 'All target types', options: targetTypes.map((t) => ({ value: t, label: label(t) })) },
+                    { key: 'actor', allLabel: t('All actors'), options: actors.map((a) => ({ value: String(a.id), label: a.name ?? t('Admin #:id', { id: a.id }) })) },
+                    { key: 'action', allLabel: t('All actions'), options: actionNames.map((name) => ({ value: name, label: name })) },
+                    { key: 'target_type', allLabel: t('All target types'), options: targetTypes.map((type) => ({ value: type, label: label(type) })) },
                 ]}
             >
-                <input type="number" min={1} aria-label="Target ID" placeholder="Target ID" defaultValue={filters.target_id ?? ''} onBlur={(e) => e.target.value !== (filters.target_id ?? '') && setFilter('target_id', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setFilter('target_id', e.currentTarget.value)} className={`${filterInput} w-28`} />
-                <input type="date" aria-label="From date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value)} className={`${filterInput} w-40`} />
-                <input type="date" aria-label="To date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value)} className={`${filterInput} w-40`} />
+                <input type="number" min={1} aria-label={t('Target ID')} placeholder={t('Target ID')} defaultValue={filters.target_id ?? ''} onBlur={(e) => e.target.value !== (filters.target_id ?? '') && setFilter('target_id', e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setFilter('target_id', e.currentTarget.value)} className={`${filterInput} w-28`} />
+                <input type="date" aria-label={t('From date')} value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value)} className={`${filterInput} w-40`} />
+                <input type="date" aria-label={t('To date')} value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value)} className={`${filterInput} w-40`} />
             </FilterBar>
             <PaginatedTable
                 paginator={entries}
                 rowKey={(e) => e.id}
                 onRowClick={(e) => visitQuery({ entry: e.id === expandedId ? null : e.id })}
-                empty={{ title: 'No activity recorded' }}
+                empty={{ title: t('No activity recorded') }}
                 columns={[
-                    { key: 'time', header: 'Time', render: (e) => formatDateTime(e.occurred_at, timezone) },
-                    { key: 'actor', header: 'Actor', render: (e) => (e.actor.role ? `${e.actor.name} · ${label(e.actor.role)}` : e.actor.name) },
-                    { key: 'action', header: 'Action', render: (e) => <span className="font-mono text-indigo-600">{e.action}</span> },
-                    { key: 'target', header: 'Target', render: (e) => e.target },
-                    { key: 'reason', header: 'Reason', render: (e) => e.reason ?? '—' },
+                    { key: 'time', header: t('Time'), render: (e) => formatDateTime(e.occurred_at, timezone) },
+                    { key: 'actor', header: t('Actor'), render: (e) => (e.actor.role ? `${e.actor.name} · ${label(e.actor.role)}` : e.actor.name) },
+                    { key: 'action', header: t('Action'), render: (e) => <span className="font-mono text-indigo-600">{e.action}</span> },
+                    { key: 'target', header: t('Target'), render: (e) => e.target },
+                    { key: 'reason', header: t('Reason'), render: (e) => e.reason ?? '—' },
                     { key: 'ip', header: 'IP', render: (e) => e.ip },
                 ]}
             />
             {expanded && (
                 <div className={`${card} mt-5`}>
-                    <div className="m-5 grid gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 p-5 md:grid-cols-2" aria-label={`Changes for ${expanded.action}`}>
-                        <div><p className="text-xs font-bold uppercase text-slate-400">Before</p><pre className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-900 p-4 font-mono text-xs text-slate-300">{toLines(expanded.before)}</pre></div>
-                        <div><p className="text-xs font-bold uppercase text-slate-400">After</p><pre className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-900 p-4 font-mono text-xs text-emerald-300">{toLines(expanded.after)}</pre></div>
+                    <div className="m-5 grid gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 p-5 md:grid-cols-2" aria-label={t('Changes for :action', { action: expanded.action })}>
+                        <div><p className="text-xs font-bold uppercase text-slate-400">{t('Before')}</p><pre className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-900 p-4 font-mono text-xs text-slate-300">{toLines(expanded.before)}</pre></div>
+                        <div><p className="text-xs font-bold uppercase text-slate-400">{t('After')}</p><pre className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-900 p-4 font-mono text-xs text-emerald-300">{toLines(expanded.after)}</pre></div>
                     </div>
                 </div>
             )}

@@ -1,5 +1,6 @@
 import { CheckCircle2, X, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
+import { t } from '@/lib/i18n';
 
 export interface ToastData {
     id: number;
@@ -28,7 +29,7 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
         >
             {isSuccess ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
             <span className="flex-1">{toast.message}</span>
-            <button onClick={() => onRemove(toast.id)} aria-label="Dismiss" className="opacity-70 transition-opacity hover:opacity-100">
+            <button onClick={() => onRemove(toast.id)} aria-label={t('Dismiss')} className="opacity-70 transition-opacity hover:opacity-100">
                 <X size={14} />
             </button>
         </div>

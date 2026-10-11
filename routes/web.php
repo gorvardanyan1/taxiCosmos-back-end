@@ -96,4 +96,5 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
 
     // Self-service: admin access only, no permission (docs/permissions.md).
     Route::get('/account', Admin\AccountController::class)->name('account');
+    Route::patch('/account/locale', Admin\AccountLocaleController::class)->name('account.locale');
 });

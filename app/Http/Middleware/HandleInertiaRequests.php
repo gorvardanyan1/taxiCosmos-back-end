@@ -6,6 +6,7 @@ use App\Enums\AdminPermission;
 use App\Enums\AdminRole;
 use App\Models\User;
 use App\Support\AdminFixtures;
+use App\Support\Locales;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -54,6 +55,7 @@ class HandleInertiaRequests extends Middleware
             'app' => fn () => [
                 'name' => config('app.name'),
                 'locale' => app()->getLocale(),
+                'locales' => Locales::supported(),
                 'timezone' => $admin?->timezone ?? config('taxikosmos.display_timezone'),
                 'currencies' => config('taxikosmos.currencies'),
                 'baseCurrency' => config('taxikosmos.base_currency'),
