@@ -42,6 +42,7 @@ final class PiiColumns
         return [
             'users.phone_hash',
             'driver_profiles.license_number_hash',
+            'otp_codes.phone_hash',
         ];
     }
 

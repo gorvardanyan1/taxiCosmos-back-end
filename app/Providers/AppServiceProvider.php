@@ -2,11 +2,18 @@
 
 namespace App\Providers;
 
+use App\Contracts\SmsSender;
 use App\Models\User;
+use App\Services\Sms\LogSmsSender;
 use App\Support\BlindIndex;
+use App\Support\E164PhoneNumber;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(BlindIndex::class, fn () => BlindIndex::fromConfig());
+
+        $this->app->bind(SmsSender::class, fn () => match (config('sms.driver')) {
+            'log' => new LogSmsSender,
+            default => throw new RuntimeException('Unknown SMS_DRIVER "'.config('sms.driver').'".'),
+        });
     }
 
     /**
@@ -28,8 +40,40 @@ class AppServiceProvider extends ServiceProvider
         // known breaches (haveibeenpwned k-anonymity API).
         Password::defaults(fn () => Password::min(12)->mixedCase()->numbers()->symbols()->uncompromised());
 
+        $this->mobileAuthRateLimits();
+
         Gate::before(function ($user) {
             return $user instanceof User && $user->isSuperAdmin() ? true : null;
         });
+    }
+
+    /**
+     * Mobile sign-in throttles. Asking for codes and guessing codes are limited separately, so one
+     * cannot be used up by (or hide) the other. The key uses the normalised phone, so "091…" and
+     * "+374 91…" share a budget. Documented in docs/rate-limits.md.
+     */
+    private function mobileAuthRateLimits(): void
+    {
+        $phone = function (Request $request): string {
+            $raw = (string) $request->input('phone');
+
+            return E164PhoneNumber::tryNormalize($raw) ?? 'raw:'.sha1($raw);
+        };
+
+        RateLimiter::for('otp-request', fn (Request $request) => [
+            Limit::perMinute(1)->by('otp-request:'.$phone($request).'|'.$request->ip()),
+            Limit::perHour(5)->by('otp-request-phone:'.$phone($request)),
+            Limit::perHour(30)->by('otp-request-ip:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('otp-verify', fn (Request $request) => [
+            Limit::perMinute(10)->by('otp-verify:'.$phone($request).'|'.$request->ip()),
+            Limit::perHour(30)->by('otp-verify-phone:'.$phone($request)),
+            Limit::perMinute(30)->by('otp-verify-ip:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('social-login', fn (Request $request) => Limit::perMinute(20)->by('social-login:'.$request->ip()));
+
+        RateLimiter::for('auth-refresh', fn (Request $request) => Limit::perMinute(30)->by('auth-refresh:'.$request->ip()));
     }
 }
