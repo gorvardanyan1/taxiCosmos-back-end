@@ -60,7 +60,8 @@ return [
 
         'single' => [
             'driver' => 'single',
-            'path' => storage_path('logs/laravel.log'),
+            // LOG_FILE lets the e2e environment write to its own file (storage/logs/e2e.log).
+            'path' => storage_path('logs/'.env('LOG_FILE', 'laravel.log')),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
         ],

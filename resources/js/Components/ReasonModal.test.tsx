@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/core';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ReasonModal from '@/Components/ReasonModal';
 
@@ -39,5 +39,23 @@ describe('ReasonModal', () => {
         expect(url).toBe('/admin/riders/80/suspend');
         expect(options).toMatchObject({ method: 'post', data: { reason: 'Fraud' } });
         expect(screen.getByRole('alert')).toHaveTextContent('The reason must be at least 10 characters.');
+    });
+
+    it('sends one request for a double-click, and allows another once the first has finished', () => {
+        let finish: (() => void) | undefined;
+        const visit = vi.spyOn(router, 'visit').mockImplementation((_url, options) => {
+            finish = () => options?.onFinish?.({} as never);
+        });
+        render(<ReasonModal {...props} url="/admin/riders/80/suspend" />);
+
+        fireEvent.change(screen.getByLabelText(/Reason/), { target: { value: 'Repeated no-shows' } });
+        const confirm = screen.getByRole('button', { name: 'Confirm Suspension' });
+        fireEvent.click(confirm);
+        fireEvent.click(confirm);
+        expect(visit).toHaveBeenCalledTimes(1);
+
+        act(() => finish?.());
+        fireEvent.click(confirm);
+        expect(visit).toHaveBeenCalledTimes(2);
     });
 });

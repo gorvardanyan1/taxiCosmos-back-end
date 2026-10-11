@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import FormField from '@/Components/FormField';
 import Modal from '@/Components/Modal';
 import { field } from '@/lib/ui';
+import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import type { RiderDetail } from '@/types';
 
 interface Props {
@@ -34,6 +35,7 @@ const initial = (rider: RiderDetail): FormData => ({
  */
 export default function EditRider({ open, onClose, rider, locales, url }: Props) {
     const form = useForm<FormData>(initial(rider));
+    const once = useSubmitOnce();
 
     useEffect(() => {
         if (!open) return;
@@ -50,7 +52,7 @@ export default function EditRider({ open, onClose, rider, locales, url }: Props)
             ...Object.fromEntries(changed.map((key) => [key, key === 'email' || key === 'locale' ? (data[key] === '' ? null : data[key]) : data[key]])),
             reason: data.reason,
         }));
-        form.patch(url, { preserveScroll: true, onSuccess: onClose });
+        once((done) => form.patch(url, { preserveScroll: true, onSuccess: onClose, onFinish: done }));
     };
 
     return (

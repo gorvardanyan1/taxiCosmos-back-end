@@ -91,13 +91,13 @@ final class OtpService
     }
 
     /**
-     * Test phones get the fixed code only outside production-like environments.
+     * Test phones get the fixed code only in the local, testing and e2e (Cypress) environments.
      */
     private function isTestPhone(string $phone): bool
     {
         $fixed = (string) config('taxikosmos.mobile_auth.otp.test_code');
 
-        if ($fixed === '' || ! app()->environment(['local', 'testing'])) {
+        if ($fixed === '' || ! app()->environment(['local', 'testing', 'e2e'])) {
             return false;
         }
 
