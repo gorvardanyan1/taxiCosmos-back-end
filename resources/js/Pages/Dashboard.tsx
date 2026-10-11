@@ -9,6 +9,7 @@ import { visitQuery } from '@/lib/query';
 import { shadowCard } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { Money, NamedOption } from '@/types';
+import { t, tc, tk } from '@/lib/i18n';
 
 type MetricKey = 'trips_today' | 'active_trips' | 'online_drivers' | 'revenue_today' | 'cancellation_rate' | 'pending_verifications';
 
@@ -25,18 +26,18 @@ interface Props {
 }
 
 const metricStyle: Record<MetricKey, { title: string; icon: ReactNode; gradient: string; glow: string }> = {
-    trips_today: { title: 'Trips Today', icon: <TrendingUp size={18} />, gradient: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', glow: 'rgba(99,102,241,0.3)' },
-    active_trips: { title: 'Active Trips', icon: <Car size={18} />, gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', glow: 'rgba(99,102,241,0.3)' },
-    online_drivers: { title: 'Online Drivers', icon: <Users size={18} />, gradient: 'linear-gradient(135deg, #0891b2 0%, #0284c7 100%)', glow: 'rgba(8,145,178,0.3)' },
-    revenue_today: { title: "Today's Revenue", icon: <DollarSign size={18} />, gradient: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)', glow: 'rgba(5,150,105,0.3)' },
-    cancellation_rate: { title: 'Cancellation Rate', icon: <Clock size={18} />, gradient: 'linear-gradient(135deg, #d97706 0%, #dc2626 100%)', glow: 'rgba(217,119,6,0.3)' },
-    pending_verifications: { title: 'Pending Verifications', icon: <Clock size={18} />, gradient: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)', glow: 'rgba(225,29,72,0.3)' },
+    trips_today: { title: tk('Trips Today'), icon: <TrendingUp size={18} />, gradient: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', glow: 'rgba(99,102,241,0.3)' },
+    active_trips: { title: tk('Active Trips'), icon: <Car size={18} />, gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', glow: 'rgba(99,102,241,0.3)' },
+    online_drivers: { title: tk('Online Drivers'), icon: <Users size={18} />, gradient: 'linear-gradient(135deg, #0891b2 0%, #0284c7 100%)', glow: 'rgba(8,145,178,0.3)' },
+    revenue_today: { title: tk('Today\'s Revenue'), icon: <DollarSign size={18} />, gradient: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)', glow: 'rgba(5,150,105,0.3)' },
+    cancellation_rate: { title: tk('Cancellation Rate'), icon: <Clock size={18} />, gradient: 'linear-gradient(135deg, #d97706 0%, #dc2626 100%)', glow: 'rgba(217,119,6,0.3)' },
+    pending_verifications: { title: tk('Pending Verifications'), icon: <Clock size={18} />, gradient: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)', glow: 'rgba(225,29,72,0.3)' },
 };
 
 const alertStyle = [
-    { key: 'stuck_trips', label: 'Stuck trips', href: '/admin/trips?filter[status]=in_progress', bg: '#fffbeb', color: '#b45309' },
-    { key: 'failed_payments', label: 'Failed payments', href: '/admin/transactions?filter[status]=failed', bg: '#fef2f2', color: '#dc2626' },
-    { key: 'urgent_tickets', label: 'Urgent tickets', href: '/admin/support-tickets?filter[priority]=urgent', bg: '#f5f3ff', color: '#7c3aed' },
+    { key: 'stuck_trips', label: tk('Stuck trips'), href: '/admin/trips?filter[status]=in_progress', bg: '#fffbeb', color: '#b45309' },
+    { key: 'failed_payments', label: tk('Failed payments'), href: '/admin/transactions?filter[status]=failed', bg: '#fef2f2', color: '#dc2626' },
+    { key: 'urgent_tickets', label: tk('Urgent tickets'), href: '/admin/support-tickets?filter[priority]=urgent', bg: '#f5f3ff', color: '#7c3aed' },
 ] as const;
 
 const statusColors: Record<string, string> = { completed: '#6366f1', in_progress: '#22c55e', cancelled: '#f87171', requested: '#fbbf24' };
@@ -50,13 +51,13 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
 
     return (
         <div>
-            <Head title="Dashboard" />
+            <Head title={t('Dashboard')} />
             <PageHeader
-                title="Dashboard"
-                description={`Real-time overview of your platform — ${formatDate(as_of, timezone)}`}
+                title={t('Dashboard')}
+                description={t('Real-time overview of your platform — :date', { date: formatDate(as_of, timezone) })}
                 actions={
-                    <select aria-label="Zone" value={filters.zone ?? ''} onChange={(e) => visitQuery({ zone: e.target.value })} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
-                        <option value="">All zones</option>
+                    <select aria-label={t('Zone')} value={filters.zone ?? ''} onChange={(e) => visitQuery({ zone: e.target.value })} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
+                        <option value="">{t('All zones')}</option>
                         {zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}
                     </select>
                 }
@@ -76,7 +77,7 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                                 </span>
                             </div>
                             <p className="relative z-10 mb-1 text-2xl font-bold leading-none text-white" style={{ fontFamily: 'var(--font-display)' }}>{display(metric)}</p>
-                            <p className="relative z-10 text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{style.title}</p>
+                            <p className="relative z-10 text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{t(style.title)}</p>
                             <p className="relative z-10 mt-0.5 text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{metric.change}</p>
                         </div>
                     );
@@ -87,10 +88,10 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                 {alertStyle.map((alert) => (
                     <div key={alert.key} className="flex items-center rounded-2xl px-4 py-3" style={{ background: alert.bg, border: `1px solid ${alert.color}18` }}>
                         <div>
-                            <p className="text-xs font-bold" style={{ color: alert.color }}>{alert.label}</p>
+                            <p className="text-xs font-bold" style={{ color: alert.color }}>{t(alert.label)}</p>
                             <p className="mt-1 text-xl font-bold" style={{ color: alert.color, fontFamily: 'var(--font-mono)' }}>{alerts[alert.key]}</p>
                         </div>
-                        <Link href={alert.href} className="ml-auto text-xs font-bold" style={{ color: alert.color }}>View →</Link>
+                        <Link href={alert.href} className="ml-auto text-xs font-bold" style={{ color: alert.color }}>{t('View →')}</Link>
                     </div>
                 ))}
             </div>
@@ -99,8 +100,8 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                 <div className="rounded-2xl p-5 lg:col-span-2" style={shadowCard}>
                     <div className="mb-5 flex items-center justify-between">
                         <div>
-                            <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>Revenue Trend</h2>
-                            <p className="mt-0.5 text-xs" style={{ color: '#94a3b8' }}>Last 30 days — daily gross</p>
+                            <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('Revenue Trend')}</h2>
+                            <p className="mt-0.5 text-xs" style={{ color: '#94a3b8' }}>{t('Last 30 days — daily gross')}</p>
                         </div>
                         <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold" style={{ background: '#f0fdf4', color: '#15803d' }}>
                             <ArrowUpRight size={12} />+{formatBasisPoints(revenue_trend.change_bp)}
@@ -133,8 +134,8 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                 </div>
 
                 <div className="rounded-2xl p-5" style={shadowCard}>
-                    <h2 className="mb-1 text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>Trips by Status</h2>
-                    <p className="mb-3 text-xs" style={{ color: '#94a3b8' }}>All time totals</p>
+                    <h2 className="mb-1 text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('Trips by Status')}</h2>
+                    <p className="mb-3 text-xs" style={{ color: '#94a3b8' }}>{t('All time totals')}</p>
                     <ResponsiveContainer width="100%" height={160}>
                         <PieChart>
                             <Pie data={trip_status.map((s) => ({ name: label(s.status), value: s.count, status: s.status }))} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={72} paddingAngle={3} strokeWidth={0}>
@@ -159,12 +160,12 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                 <div className="overflow-hidden rounded-2xl lg:col-span-2" style={shadowCard}>
                     <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #f8fafc' }}>
                         <div>
-                            <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>Live Trip Map</h2>
-                            <p className="mt-0.5 text-xs" style={{ color: '#94a3b8' }}>Real-time vehicle locations</p>
+                            <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('Live Trip Map')}</h2>
+                            <p className="mt-0.5 text-xs" style={{ color: '#94a3b8' }}>{t('Real-time vehicle locations')}</p>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <span className="h-2 w-2 rounded-full bg-green-400" style={{ boxShadow: '0 0 0 3px rgba(34,197,94,0.2)' }} />
-                            <span className="text-xs font-semibold" style={{ color: '#16a34a' }}>{formatNumber(map.active_count)} active</span>
+                            <span className="text-xs font-semibold" style={{ color: '#16a34a' }}>{tc(':count active|:count active', map.active_count)}</span>
                         </div>
                     </div>
                     <div className="relative" style={{ height: 240, background: 'linear-gradient(160deg, #eef2ff 0%, #e0e7ff 50%, #ede9fe 100%)' }}>
@@ -177,14 +178,14 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                             return <div key={i} className="absolute" style={{ top: `${pin.y}%`, left: `${pin.x}%`, transform: 'translate(-50%, -50%)', width: 10, height: 10, background: enRoute ? '#6366f1' : '#22c55e', borderRadius: '50%', border: '2px solid white', boxShadow: `0 0 0 3px ${enRoute ? 'rgba(99,102,241,0.25)' : 'rgba(34,197,94,0.25)'}` }} />;
                         })}
                         <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 rounded-xl px-3 py-2.5 text-xs" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}>
-                            <div className="flex items-center gap-2" style={{ color: '#4f46e5' }}><span className="h-2 w-2 rounded-full bg-indigo-500" /> En route</div>
-                            <div className="flex items-center gap-2" style={{ color: '#16a34a' }}><span className="h-2 w-2 rounded-full bg-green-500" /> In trip</div>
+                            <div className="flex items-center gap-2" style={{ color: '#4f46e5' }}><span className="h-2 w-2 rounded-full bg-indigo-500" /> {t('En route')}</div>
+                            <div className="flex items-center gap-2" style={{ color: '#16a34a' }}><span className="h-2 w-2 rounded-full bg-green-500" /> {t('In trip')}</div>
                         </div>
                     </div>
                 </div>
 
                 <div className="rounded-2xl p-5" style={shadowCard}>
-                    <h2 className="mb-4 text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>Recent Activity</h2>
+                    <h2 className="mb-4 text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('Recent Activity')}</h2>
                     <div className="flex flex-col gap-3">
                         {activity.map((item) => (
                             <div key={item.id} className="flex items-start gap-3">

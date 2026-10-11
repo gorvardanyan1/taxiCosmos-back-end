@@ -45,7 +45,7 @@ final class AuditLogQuery
                         ->orWhere('description', 'like', addcslashes($name, '\\%_').'.%'));
                 }),
                 AllowedFilter::callback('target_type', function (Builder $query, $value) {
-                    $type = AuditTargetType::tryFrom(FilterInput::single($value, 'target_type')) ?? abort(400, 'Unknown target type.');
+                    $type = AuditTargetType::tryFrom(FilterInput::single($value, 'target_type')) ?? abort(400, __('Unknown target type.'));
                     $query->where('subject_type', $type->modelClass());
                 }),
                 AllowedFilter::callback('target_id', fn (Builder $query, $value) => $query->where('subject_id', FilterInput::integer($value, 'target_id'))),

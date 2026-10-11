@@ -56,9 +56,12 @@ Cypress.Commands.add('loginAs', (email: string, password: string = PASSWORD) => 
     cy.session(
         ['admin', email],
         () => {
-            cy.visit('/login');
-            cy.findByLabelText('Email').type(email);
-            cy.findByLabelText('Password').type(password, { log: false });
+            cy.visit('/login?lang=en');
+            // The page boots in two steps (language file, then React): type only once the form is really there.
+            cy.findByRole('button', { name: 'Sign in' }).should('be.visible').and('be.enabled');
+            cy.get('html').should('have.attr', 'lang', 'en');
+            cy.findByLabelText('Email').should('be.visible').type(email);
+            cy.findByLabelText('Password').should('be.visible').type(password, { log: false });
             cy.findByRole('button', { name: 'Sign in' }).click();
             cy.location('pathname').should('eq', '/admin');
         },

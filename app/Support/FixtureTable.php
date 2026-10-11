@@ -78,14 +78,14 @@ final class FixtureTable
     public static function filters(Request $request, array $filterable = []): array
     {
         $raw = $request->query('filter', []);
-        abort_unless(is_array($raw), Response::HTTP_BAD_REQUEST, 'Invalid filter query.');
+        abort_unless(is_array($raw), Response::HTTP_BAD_REQUEST, __('Invalid filter query.'));
 
         $allowed = ['search', ...$filterable];
         $unknown = array_diff(array_keys($raw), $allowed);
-        abort_if($unknown !== [], Response::HTTP_BAD_REQUEST, 'Requested filter(s) `'.implode(', ', $unknown).'` are not allowed.');
+        abort_if($unknown !== [], Response::HTTP_BAD_REQUEST, __('Requested filter(s) `:filters` are not allowed.', ['filters' => implode(', ', $unknown)]));
 
         return collect($raw)
-            ->map(fn ($value) => is_scalar($value) ? mb_substr(trim((string) $value), 0, 100) : abort(Response::HTTP_BAD_REQUEST, 'Invalid filter value.'))
+            ->map(fn ($value) => is_scalar($value) ? mb_substr(trim((string) $value), 0, 100) : abort(Response::HTTP_BAD_REQUEST, __('Invalid filter value.')))
             ->filter(fn (string $value) => $value !== '')
             ->all();
     }
@@ -101,7 +101,7 @@ final class FixtureTable
             return null;
         }
 
-        abort_unless(is_string($sort) && in_array(ltrim($sort, '-'), $sortable, true), Response::HTTP_BAD_REQUEST, 'Requested sort is not allowed.');
+        abort_unless(is_string($sort) && in_array(ltrim($sort, '-'), $sortable, true), Response::HTTP_BAD_REQUEST, __('Requested sort is not allowed.'));
 
         return $sort;
     }

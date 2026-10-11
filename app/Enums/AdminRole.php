@@ -18,11 +18,11 @@ enum AdminRole: string
     public function label(): string
     {
         return match ($this) {
-            self::SuperAdmin => 'Super Admin',
-            self::Admin => 'Admin',
-            self::Support => 'Support',
-            self::Finance => 'Finance',
-            self::Dispatcher => 'Dispatcher',
+            self::SuperAdmin => __('Super Admin'),
+            self::Admin => __('Admin'),
+            self::Support => __('Support'),
+            self::Finance => __('Finance'),
+            self::Dispatcher => __('Dispatcher'),
         };
     }
 

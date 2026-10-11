@@ -2,6 +2,7 @@ import { Search, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { filterKey, visitQuery } from '@/lib/query';
 import type { Filters } from '@/types';
+import { t } from '@/lib/i18n';
 
 export interface SelectFilter {
     key: string;
@@ -23,7 +24,7 @@ const inputStyle = { background: '#f8fafc', border: '1px solid #e2e8f0', color: 
  * Search box + select filters bound to filter[<key>] in the URL. Typing waits for a pause
  * (or Enter) before visiting; selects visit immediately. Every change resets to page 1.
  */
-export default function FilterBar({ filters, searchPlaceholder = 'Search records…', selects = [], resultLabel, children }: Props) {
+export default function FilterBar({ filters, searchPlaceholder = t('Search records…'), selects = [], resultLabel, children }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     // The search this box last sent (or last took from the URL).
     const sent = useRef(filters.search ?? '');
@@ -57,7 +58,7 @@ export default function FilterBar({ filters, searchPlaceholder = 'Search records
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
                 <input
                     type="search"
-                    aria-label="Search"
+                    aria-label={t('Search')}
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     onKeyDown={(event) => event.key === 'Enter' && submit(search)}
@@ -86,7 +87,7 @@ export default function FilterBar({ filters, searchPlaceholder = 'Search records
             {children}
             {active && (
                 <button onClick={clear} className="rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-slate-100" style={{ color: '#6366f1' }}>
-                    Clear filters
+                    {t('Clear filters')}
                 </button>
             )}
             {resultLabel && <div className="ml-auto text-xs" style={{ color: '#94a3b8' }}>{resultLabel}</div>}

@@ -11,6 +11,7 @@ import { shadowCard } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { Actions, FareRule, Money, Zone } from '@/types';
 import ZoneForm from './ZoneForm';
+import { t, tc } from '@/lib/i18n';
 
 interface Props {
     zones: Zone[];
@@ -58,12 +59,12 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
 
     return (
         <div>
-            <Head title="Zones & Fares" />
-            <PageHeader title="Zones & Fares" description="Configure service zones and pricing rules" actions={<button onClick={() => setFormMode('create')} disabled={actions.createZone === null} className="rounded-xl px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-40" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontFamily: 'var(--font-display)' }}>+ Add Zone</button>} />
+            <Head title={t('Zones & Fares')} />
+            <PageHeader title={t('Zones & Fares')} description={t('Configure service zones and pricing rules')} actions={<button onClick={() => setFormMode('create')} disabled={actions.createZone === null} className="rounded-xl px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-40" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontFamily: 'var(--font-display)' }}>{t('+ Add Zone')}</button>} />
             {zones.length === 0 && (
                 <div className="rounded-2xl bg-white p-12 text-center" style={shadowCard}>
-                    <p className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>No zones yet</p>
-                    <p className="mt-1 text-xs" style={{ color: '#94a3b8' }}>Add the service area riders can book in. Fares, surge and reports hang off zones.</p>
+                    <p className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('No zones yet')}</p>
+                    <p className="mt-1 text-xs" style={{ color: '#94a3b8' }}>{t('Add the service area riders can book in. Fares, surge and reports hang off zones.')}</p>
                 </div>
             )}
             {zones.length > 0 && (
@@ -77,7 +78,7 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                                 <button key={z.id} aria-pressed={selected} onClick={() => visitQuery({ zone: z.id })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all" style={{ borderBottom: '1px solid #f8fafc', background: selected ? '#fafcff' : 'transparent', borderLeft: selected ? `3px solid ${zColor}` : '3px solid transparent' }}>
                                     <div className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: zColor }} />
                                     <span className="flex-1 text-sm font-semibold" style={{ color: selected ? '#0f172a' : '#64748b', fontFamily: 'var(--font-display)' }}>{z.name}<span className="ml-2 font-mono text-[10px] font-medium" style={{ color: '#94a3b8' }}>{z.code}</span></span>
-                                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: z.status === 'active' ? '#f0fdf4' : '#f8fafc', color: z.status === 'active' ? '#16a34a' : '#94a3b8', fontFamily: 'var(--font-display)' }}>{z.status}</span>
+                                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: z.status === 'active' ? '#f0fdf4' : '#f8fafc', color: z.status === 'active' ? '#16a34a' : '#94a3b8', fontFamily: 'var(--font-display)' }}>{label(z.status)}</span>
                                 </button>
                             );
                         })}
@@ -86,41 +87,41 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                         <div className="relative h-full" style={{ background: 'linear-gradient(160deg, #eef2ff 0%, #e0e7ff 60%, #ede9fe 100%)' }}>
                             {[25, 50, 75].map((p) => <div key={`h${p}`} className="absolute inset-x-0" style={{ top: `${p}%`, borderTop: '1px solid rgba(99,102,241,0.08)' }} />)}
                             {[25, 50, 75].map((p) => <div key={`v${p}`} className="absolute inset-y-0" style={{ left: `${p}%`, borderLeft: '1px solid rgba(99,102,241,0.08)' }} />)}
-                            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 330" preserveAspectRatio="xMidYMid meet" role="img" aria-label={zone ? `${zone.name} service area` : 'No zone selected'}>
+                            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 300 330" preserveAspectRatio="xMidYMid meet" role="img" aria-label={zone ? t(':name service area', { name: zone.name }) : t('No zone selected')}>
                                 {rings.map((points, i) => <polygon key={i} points={points} fill={`${color}22`} stroke={color} strokeWidth="3" strokeDasharray="6 4" />)}
                             </svg>
                             <div className="absolute left-3 top-3 flex gap-1 rounded-xl bg-white p-1 shadow-lg">
                                 <ActionButton url={actions.drawPolygon} className="rounded-lg bg-indigo-50 p-2 text-indigo-600"><Map size={13} /></ActionButton>
-                                <button aria-label="Edit zone" onClick={() => setFormMode('edit')} disabled={!zone || actions.updateZone === null} title={actions.updateZone === null ? UNAVAILABLE_HINT : 'Edit zone'} className="rounded-lg p-2 text-slate-500 disabled:opacity-40"><Edit2 size={13} /></button>
+                                <button aria-label={t('Edit zone')} onClick={() => setFormMode('edit')} disabled={!zone || actions.updateZone === null} title={actions.updateZone === null ? t(UNAVAILABLE_HINT) : t('Edit zone')} className="rounded-lg p-2 text-slate-500 disabled:opacity-40"><Edit2 size={13} /></button>
                                 {zone?.status === 'inactive' ? (
-                                    <ActionButton url={withId(actions.activateZone, zone.id)} confirm={`Reactivate ${zone.name}? Pickups inside it are accepted again.`} className="rounded-lg p-2 text-emerald-600"><Power size={13} aria-label="Reactivate zone" /></ActionButton>
+                                    <ActionButton url={withId(actions.activateZone, zone.id)} confirm={t('Reactivate :name? Pickups inside it are accepted again.', { name: zone.name })} className="rounded-lg p-2 text-emerald-600"><Power size={13} aria-label={t('Reactivate zone')} /></ActionButton>
                                 ) : (
-                                    <ActionButton url={withId(actions.deactivateZone, zone?.id)} confirm={`Deactivate ${zone?.name}? Pickups inside it are refused until it is reactivated.`} className="rounded-lg p-2 text-red-500"><X size={13} aria-label="Deactivate zone" /></ActionButton>
+                                    <ActionButton url={withId(actions.deactivateZone, zone?.id)} confirm={t('Deactivate :name? Pickups inside it are refused until it is reactivated.', { name: zone?.name })} className="rounded-lg p-2 text-red-500"><X size={13} aria-label={t('Deactivate zone')} /></ActionButton>
                                 )}
                             </div>
-                            {zone && !zone.polygon_valid && <div className="absolute bottom-10 left-3 right-3 rounded-xl bg-red-50 p-2 text-center text-xs font-bold text-red-600">Polygon intersects itself</div>}
+                            {zone && !zone.polygon_valid && <div className="absolute bottom-10 left-3 right-3 rounded-xl bg-red-50 p-2 text-center text-xs font-bold text-red-600">{t('Polygon intersects itself')}</div>}
                             <div className="absolute bottom-2 left-0 right-0 flex justify-center">
                                 <div className="rounded-lg px-2.5 py-1 text-[10px] font-semibold" style={{ background: 'rgba(255,255,255,0.9)', color, fontFamily: 'var(--font-display)' }}>{zone?.name}</div>
                             </div>
                         </div>
                     </div>
-                    {zone && <p className="px-1 text-[11px]" style={{ color: '#94a3b8' }}>{zone.timezone} · {zone.currency} · priority {zone.priority} · {zone.points} points</p>}
+                    {zone && <p className="px-1 text-[11px]" style={{ color: '#94a3b8' }}>{zone.timezone} · {zone.currency} · {t('priority :priority', { priority: zone.priority })} · {tc(':count point|:count points', zone.points)}</p>}
                 </div>
 
                 <div className="overflow-hidden rounded-2xl lg:col-span-3" style={shadowCard}>
                     <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f8fafc' }}>
                         <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-                        <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>Fare Rules — {zone?.name}</h2>
-                        <span className="ml-auto text-xs" style={{ color: '#94a3b8' }}>{fareRules.length} vehicle classes</span>
+                        <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('Fare Rules — :zone', { zone: zone?.name ?? '' })}</h2>
+                        <span className="ml-auto text-xs" style={{ color: '#94a3b8' }}>{tc(':count vehicle class|:count vehicle classes', fareRules.length)}</span>
                     </div>
                     <table className="w-full">
                         <thead>
                             <tr style={{ borderBottom: '1px solid #f8fafc' }}>
-                                {['Class', 'Base Fare', 'Per km', 'Per min', 'Min Fare', 'Currency', ''].map((h) => <th key={h} className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{h}</th>)}
+                                {[t('Class'), t('Base Fare'), t('Per km'), t('Per min'), t('Min Fare'), t('Currency'), ''].map((h) => <th key={h} className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{h}</th>)}
                             </tr>
                         </thead>
                         <tbody>
-                            {fareRules.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-sm" style={{ color: '#94a3b8' }}>No fare rules for this zone.</td></tr>}
+                            {fareRules.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-sm" style={{ color: '#94a3b8' }}>{t('No fare rules for this zone.')}</td></tr>}
                             {fareRules.map((rule) => {
                                 const isEditing = editing === rule.vehicle_class;
                                 const vc = classColors[rule.vehicle_class] ?? { bg: '#f8fafc', color: '#64748b' };
@@ -143,11 +144,11 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                                         <td className="px-5 py-4">
                                             {isEditing ? (
                                                 <div className="flex gap-1">
-                                                    <button aria-label="Save" onClick={() => save(rule)} disabled={actions.updateFareRule === null || form.processing} title={actions.updateFareRule === null ? UNAVAILABLE_HINT : undefined} className="rounded-lg p-1.5 hover:opacity-80 disabled:opacity-40" style={{ background: '#f0fdf4', color: '#16a34a' }}><Check size={13} /></button>
-                                                    <button aria-label="Cancel" onClick={() => setEditing(null)} className="rounded-lg p-1.5 hover:opacity-80" style={{ background: '#f8fafc', color: '#94a3b8' }}><X size={13} /></button>
+                                                    <button aria-label={t('Save')} onClick={() => save(rule)} disabled={actions.updateFareRule === null || form.processing} title={actions.updateFareRule === null ? t(UNAVAILABLE_HINT) : undefined} className="rounded-lg p-1.5 hover:opacity-80 disabled:opacity-40" style={{ background: '#f0fdf4', color: '#16a34a' }}><Check size={13} /></button>
+                                                    <button aria-label={t('Cancel')} onClick={() => setEditing(null)} className="rounded-lg p-1.5 hover:opacity-80" style={{ background: '#f8fafc', color: '#94a3b8' }}><X size={13} /></button>
                                                 </div>
                                             ) : (
-                                                <button aria-label={`Edit ${label(rule.vehicle_class)}`} onClick={() => startEdit(rule)} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100" style={{ color: '#94a3b8' }}><Edit2 size={13} /></button>
+                                                <button aria-label={t('Edit :class', { class: label(rule.vehicle_class) })} onClick={() => startEdit(rule)} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100" style={{ color: '#94a3b8' }}><Edit2 size={13} /></button>
                                             )}
                                         </td>
                                     </tr>

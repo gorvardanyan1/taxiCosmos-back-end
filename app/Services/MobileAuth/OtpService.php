@@ -37,7 +37,8 @@ final class OtpService
         });
 
         try {
-            $this->sms->send($phone, "Your TaxiKosmos code is {$code}. It expires in ".config('taxikosmos.mobile_auth.otp.ttl_minutes').' minutes.');
+            // In the language of the request (the app sends Accept-Language).
+            $this->sms->send($phone, trans_choice('Your TaxiKosmos code is :code. It expires in :count minute.|Your TaxiKosmos code is :code. It expires in :count minutes.', (int) config('taxikosmos.mobile_auth.otp.ttl_minutes'), ['code' => $code]));
         } catch (SmsDeliveryException) {
             $otp->forceFill(['consumed_at' => now()])->save();
 

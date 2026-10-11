@@ -1,4 +1,5 @@
 import { label as humanLabel } from '@/lib/labels';
+import { t, tk } from '@/lib/i18n';
 
 type Tone = { dot: string; bg: string; color: string };
 
@@ -18,7 +19,7 @@ const tones: Record<string, Tone> = {
     review: violet,
 };
 
-const labels: Record<string, string> = { review: 'Under review', in_progress: 'In progress' };
+const labels: Record<string, string> = { review: tk('Under review'), in_progress: tk('In progress') };
 
 export default function StatusBadge({ status, label }: { status: string; label?: string }) {
     const tone = tones[status] ?? grey;
@@ -28,7 +29,7 @@ export default function StatusBadge({ status, label }: { status: string; label?:
             style={{ background: tone.bg, color: tone.color, fontFamily: 'var(--font-display)' }}
         >
             <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: tone.dot, boxShadow: `0 0 0 2px ${tone.dot}33` }} />
-            {label ?? labels[status] ?? humanLabel(status)}
+            {label ?? (labels[status] ? t(labels[status]) : humanLabel(status))}
         </span>
     );
 }

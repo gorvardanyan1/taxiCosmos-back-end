@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Zone;
 use App\Realtime\RealtimeEventType;
 use App\Realtime\StreamClient;
+use App\Services\Audit\AuditLogger;
 use App\Services\MobileAuth\MobileSessionService;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
@@ -47,6 +48,7 @@ final class E2eFixtures
             'admin' => $this->admin($a),
             'rider' => $this->rider($a),
             'riders' => $this->riders($a),
+            'system_audit_entry' => $this->systemAuditEntry($a),
             'driver_with_documents' => $this->driverWithDocuments($a),
             'signed_document_url' => $this->signedDocumentUrl($a),
             'zone' => $this->zone($a),
@@ -64,7 +66,7 @@ final class E2eFixtures
     }
 
     /**
-     * An admin who can sign in with PASSWORD. {email, role, name?, phone?, timezone?}
+     * An admin who can sign in with PASSWORD. {email, role, name?, phone?, timezone?, locale?}
      */
     private function admin(array $a): array
     {
@@ -75,13 +77,14 @@ final class E2eFixtures
             'email' => $a['email'],
             'password' => self::PASSWORD,
             'timezone' => $a['timezone'] ?? 'Asia/Yerevan',
+            'locale' => $a['locale'] ?? 'en',
         ]);
 
-        return ['id' => $user->id, 'email' => $user->email, 'name' => $user->name, 'role' => $role->value, 'password' => self::PASSWORD];
+        return ['id' => $user->id, 'email' => $user->email, 'name' => $user->name, 'role' => $role->value, 'password' => self::PASSWORD, 'locale' => $user->locale];
     }
 
     /**
-     * A rider account. {name, email?, phone?, locale?, status?, driver?, deleted?}
+     * A rider account. {name, email?, phone?, locale?, status?, driver?, deleted?, unnamed?}
      */
     private function rider(array $a): array
     {
@@ -99,6 +102,10 @@ final class E2eFixtures
             $user->forceFill(['status' => UserStatus::from($a['status']), 'suspension_reason' => $a['status'] === 'suspended' ? 'Set up by e2e' : null])->save();
         }
 
+        if ($a['unnamed'] ?? false) {
+            $user->forceFill(['name' => null])->save();
+        }
+
         if ($a['deleted'] ?? false) {
             $user->delete();
         }
@@ -107,7 +114,17 @@ final class E2eFixtures
     }
 
     /**
-     * Many riders at once: "{prefix} 01" … with phones +3749188xxxx. {count, prefix, registered_at?}
+     * An audit entry made by the system, with no admin behind it. {action, rider_id}
+     */
+    private function systemAuditEntry(array $a): array
+    {
+        $entry = app(AuditLogger::class)->record(null, $a['action'], isset($a['rider_id']) ? User::query()->findOrFail($a['rider_id']) : null);
+
+        return ['id' => $entry->id];
+    }
+
+    /**
+     * Many riders at once: "{prefix} 01" … with phones +3749188xxxx. {count, prefix, registered_at?, phone_offset?} Call twice only with different prefixes and phone offsets.
      *
      * @return list<array<string, mixed>>
      */
@@ -115,7 +132,7 @@ final class E2eFixtures
     {
         $riders = [];
         for ($i = 1; $i <= (int) $a['count']; $i++) {
-            $user = User::factory()->rider()->withPhone(sprintf('+3749188%04d', $i))->create(array_filter([
+            $user = User::factory()->rider()->withPhone(sprintf('+3749188%04d', ((int) ($a['phone_offset'] ?? 0)) + $i))->create(array_filter([
                 'name' => sprintf('%s %02d', $a['prefix'], $i),
                 'email' => sprintf('%s.%02d@riders.test', Str::slug($a['prefix']), $i),
                 'created_at' => $a['registered_at'] ?? null,

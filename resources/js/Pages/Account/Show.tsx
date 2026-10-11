@@ -8,7 +8,9 @@ import UrlTabs from '@/Components/UrlTabs';
 import { formatRelative } from '@/lib/format';
 import { label } from '@/lib/labels';
 import { card, field, ghost, primary } from '@/lib/ui';
+import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import type { Actions } from '@/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
     tab: string;
@@ -17,11 +19,17 @@ interface Props {
     two_factor_enabled: boolean;
     sessions: { id: string; device: string; ip: string; last_active_at: string; is_current: boolean }[];
     notification_preferences: { event: string; in_app: boolean; email: boolean }[];
-    actions: Actions<'updateProfile' | 'updatePassword' | 'regenerateRecoveryCodes' | 'logoutOtherSessions' | 'updateNotifications'>;
+    /** The admin panel languages, each with its own name. */
+    locales: { code: string; name: string }[];
+    actions: Actions<'updateProfile' | 'updatePassword' | 'regenerateRecoveryCodes' | 'logoutOtherSessions' | 'updateNotifications' | 'updateLocale'>;
 }
 
-export default function AccountShow({ tab, tabs, profile, two_factor_enabled, sessions, notification_preferences, actions }: Props) {
+export default function AccountShow({ tab, tabs, profile, two_factor_enabled, sessions, notification_preferences, locales, actions }: Props) {
     const profileForm = useForm(profile);
+    const languageForm = useForm({ locale: profile.locale });
+    const once = useSubmitOnce();
+    // The server answers with a full reload (Inertia::location), so the new dictionary loads.
+    const saveLanguage = () => actions.updateLocale && once((done) => languageForm.patch(actions.updateLocale!, { onFinish: done }));
     const passwordForm = useForm({ current_password: '', password: '', password_confirmation: '' });
     const notifications = useForm({ preferences: notification_preferences });
 
@@ -30,47 +38,60 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, se
 
     return (
         <div>
-            <Head title="My Account" />
-            <PageHeader title="My Account" description="Manage your profile, security, and notification preferences" />
+            <Head title={t('My Account')} />
+            <PageHeader title={t('My Account')} description={t('Manage your profile, security, and notification preferences')} />
             <div className="mb-6"><UrlTabs tabs={tabs} active={tab} variant="pill" /></div>
 
             {tab === 'profile' && (
+                <>
+                <div className={`${card} mb-5 max-w-3xl p-6`}>
+                    <h3 className="font-display font-bold">{t('Language')}</h3>
+                    <p className="mt-1 text-xs text-slate-400">{t('The language of the admin panel, its messages and the emails we send you.')}</p>
+                    <div className="mt-4 flex flex-wrap items-end gap-3">
+                        <FormField label={t('Admin panel language')} error={languageForm.errors.locale} htmlFor="locale">
+                            <select id="locale" className={`${field} w-56`} value={languageForm.data.locale} onChange={(e) => languageForm.setData('locale', e.target.value)}>
+                                {locales.map((locale) => <option key={locale.code} value={locale.code} lang={locale.code}>{locale.name}</option>)}
+                            </select>
+                        </FormField>
+                        <button onClick={saveLanguage} disabled={actions.updateLocale === null || languageForm.processing || languageForm.data.locale === profile.locale} className={primary}>{t('Save language')}</button>
+                    </div>
+                </div>
                 <div className={`${card} max-w-3xl p-6`}>
                     <div className="grid gap-5 md:grid-cols-2">
-                        <FormField label="Full name" error={profileForm.errors.name} htmlFor="name"><input id="name" className={field} value={profileForm.data.name} onChange={(e) => profileForm.setData('name', e.target.value)} /></FormField>
-                        <FormField label="Email address" error={profileForm.errors.email} htmlFor="email"><input id="email" type="email" className={field} value={profileForm.data.email} onChange={(e) => profileForm.setData('email', e.target.value)} /></FormField>
-                        <FormField label="Language" error={profileForm.errors.locale} htmlFor="locale"><input id="locale" className={field} value={profileForm.data.locale} onChange={(e) => profileForm.setData('locale', e.target.value)} /></FormField>
-                        <FormField label="Timezone" error={profileForm.errors.timezone} htmlFor="timezone"><input id="timezone" className={field} value={profileForm.data.timezone} onChange={(e) => profileForm.setData('timezone', e.target.value)} /></FormField>
+                        <FormField label={t('Full name')} error={profileForm.errors.name} htmlFor="name"><input id="name" className={field} value={profileForm.data.name} onChange={(e) => profileForm.setData('name', e.target.value)} /></FormField>
+                        <FormField label={t('Email address')} error={profileForm.errors.email} htmlFor="email"><input id="email" type="email" className={field} value={profileForm.data.email} onChange={(e) => profileForm.setData('email', e.target.value)} /></FormField>
+                        <FormField label={t('Timezone')} error={profileForm.errors.timezone} htmlFor="timezone"><input id="timezone" className={field} value={profileForm.data.timezone} onChange={(e) => profileForm.setData('timezone', e.target.value)} /></FormField>
                     </div>
-                    <button onClick={() => actions.updateProfile && profileForm.patch(actions.updateProfile)} disabled={actions.updateProfile === null || profileForm.processing} title={actions.updateProfile === null ? UNAVAILABLE_HINT : undefined} className={`${primary} mt-6`}>Save changes</button>
+                    <button onClick={() => actions.updateProfile && profileForm.patch(actions.updateProfile)} disabled={actions.updateProfile === null || profileForm.processing} title={actions.updateProfile === null ? t(UNAVAILABLE_HINT) : undefined} className={`${primary} mt-6`}>{t('Save changes')}</button>
                 </div>
+                </>
             )}
 
             {tab === 'security' && (
                 <div className="grid gap-5 lg:grid-cols-2">
                     <div className={`${card} p-6`}>
-                        <h3 className="font-display font-bold">Change password</h3>
+                        <h3 className="font-display font-bold">{t('Change password')}</h3>
                         {(['current_password', 'password', 'password_confirmation'] as const).map((key) => (
                             <div key={key} className="mt-4">
-                                <input type="password" aria-label={label(key)} placeholder={{ current_password: 'Current password', password: 'New password', password_confirmation: 'Confirm password' }[key]} className={field} value={passwordForm.data[key]} onChange={(e) => passwordForm.setData(key, e.target.value)} />
+                                <input type="password" aria-label={label(key)} placeholder={{ current_password: t('Current password'), password: t('New password'), password_confirmation: t('Confirm password') }[key]} className={field} value={passwordForm.data[key]} onChange={(e) => passwordForm.setData(key, e.target.value)} />
                                 {passwordForm.errors[key] && <p role="alert" className="mt-1.5 text-xs font-semibold text-red-600">{passwordForm.errors[key]}</p>}
                             </div>
                         ))}
-                        <button onClick={() => actions.updatePassword && passwordForm.put(actions.updatePassword, { onSuccess: () => passwordForm.reset() })} disabled={actions.updatePassword === null || passwordForm.processing} title={actions.updatePassword === null ? UNAVAILABLE_HINT : undefined} className={`${primary} mt-4`}>Update password</button>
+                        <button onClick={() => actions.updatePassword && passwordForm.put(actions.updatePassword, { onSuccess: () => passwordForm.reset() })} disabled={actions.updatePassword === null || passwordForm.processing} title={actions.updatePassword === null ? t(UNAVAILABLE_HINT) : undefined} className={`${primary} mt-4`}>{t('Update password')}</button>
                     </div>
                     <div className={`${card} p-6`}>
                         <div className="flex items-start">
                             <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><KeyRound size={18} /></span>
-                            <div className="ml-3"><h3 className="font-display font-bold">Two-factor authentication</h3><StatusBadge status={two_factor_enabled ? 'active' : 'inactive'} label={two_factor_enabled ? 'Enabled' : 'Disabled'} /></div>
+                            <div className="ml-3"><h3 className="font-display font-bold">{t('Two-factor authentication')}</h3><StatusBadge status={two_factor_enabled ? 'active' : 'inactive'} label={two_factor_enabled ? t('Enabled') : t('Disabled')} /></div>
                         </div>
-                        <ActionButton url={actions.regenerateRecoveryCodes} className={`${ghost} mt-5`}>Regenerate recovery codes</ActionButton>
-                        <h4 className="mt-7 text-xs font-bold uppercase text-slate-400">Active sessions</h4>
+                        <ActionButton url={actions.regenerateRecoveryCodes} className={`${ghost} mt-5`}>{t('Regenerate recovery codes')}</ActionButton>
+                        <h4 className="mt-7 text-xs font-bold uppercase text-slate-400">{t('Active sessions')}</h4>
                         {sessions.map((s) => (
                             <div key={s.id} className="mt-3 flex items-center border-t border-slate-100 pt-3 text-xs">
-                                <div><b>{s.device} · {s.ip}</b><p className="text-slate-400">{s.is_current ? 'Current session' : formatRelative(s.last_active_at)}</p></div>
+                                <div><b>{s.device} · {s.ip}</b><p className="text-slate-400">{s.is_current ? t('Current session') : formatRelative(s.last_active_at)}</p></div>
                             </div>
                         ))}
-                        <ActionButton url={actions.logoutOtherSessions} className="mt-4 text-xs font-bold text-red-600">Log out other sessions</ActionButton>
+                        <ActionButton url={actions.logoutOtherSessions} className="mt-4 text-xs font-bold text-red-600">{t('Log out other sessions')}</ActionButton>
                     </div>
                 </div>
             )}
@@ -79,16 +100,16 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, se
                 <div className={`${card} max-w-4xl overflow-hidden`}>
                     {notifications.data.preferences.map((p) => (
                         <div key={p.event} className="flex items-center border-b border-slate-100 px-5 py-4">
-                            <div className="flex-1"><p className="text-sm font-bold text-slate-800">{label(p.event)}</p><p className="text-xs text-slate-400">Notify me when this event needs attention.</p></div>
+                            <div className="flex-1"><p className="text-sm font-bold text-slate-800">{label(p.event)}</p><p className="text-xs text-slate-400">{t('Notify me when this event needs attention.')}</p></div>
                             {(['in_app', 'email'] as const).map((channel) => (
                                 <label key={channel} className="ml-6 flex items-center gap-2 text-xs text-slate-500">
-                                    <input type="checkbox" checked={p[channel]} onChange={() => toggle(p.event, channel)} className="accent-indigo-600" />{channel === 'in_app' ? 'In-app' : 'Email'}
+                                    <input type="checkbox" checked={p[channel]} onChange={() => toggle(p.event, channel)} className="accent-indigo-600" />{channel === 'in_app' ? t('In-app') : t('Email')}
                                 </label>
                             ))}
                         </div>
                     ))}
                     <div className="flex justify-end px-5 py-4">
-                        <button onClick={() => actions.updateNotifications && notifications.put(actions.updateNotifications)} disabled={actions.updateNotifications === null || notifications.processing} title={actions.updateNotifications === null ? UNAVAILABLE_HINT : undefined} className={primary}>Save Preferences</button>
+                        <button onClick={() => actions.updateNotifications && notifications.put(actions.updateNotifications)} disabled={actions.updateNotifications === null || notifications.processing} title={actions.updateNotifications === null ? t(UNAVAILABLE_HINT) : undefined} className={primary}>{t('Save Preferences')}</button>
                     </div>
                 </div>
             )}

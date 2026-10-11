@@ -17,12 +17,12 @@ final class FilterInput
 
     public static function single(mixed $value, string $filter): string
     {
-        return is_array($value) ? abort(400, "The {$filter} filter takes a single value.") : (string) $value;
+        return is_array($value) ? abort(400, __('The :filter filter takes a single value.', ['filter' => $filter])) : (string) $value;
     }
 
     public static function integer(mixed $value, string $filter): int
     {
-        return filter_var(self::single($value, $filter), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: abort(400, "Invalid {$filter} filter.");
+        return filter_var(self::single($value, $filter), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: abort(400, __('Invalid :filter filter.', ['filter' => $filter]));
     }
 
     /**
@@ -34,6 +34,6 @@ final class FilterInput
         $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? CarbonImmutable::createFromFormat('!Y-m-d', $value, $timezone) : false;
         $valid = $date !== false && $date->format('Y-m-d') === $value && $date->year >= self::MIN_YEAR && $date->year <= self::MAX_YEAR;
 
-        return $valid ? $date : abort(400, 'Dates must look like 2026-10-05 (years '.self::MIN_YEAR.'-'.self::MAX_YEAR.').');
+        return $valid ? $date : abort(400, __('Dates must look like 2026-10-05 (years :from-:to).', ['from' => self::MIN_YEAR, 'to' => self::MAX_YEAR]));
     }
 }

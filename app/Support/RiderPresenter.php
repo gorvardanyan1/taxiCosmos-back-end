@@ -21,7 +21,7 @@ final class RiderPresenter
         return [
             'id' => $rider->id,
             'code' => RiderQuery::code($rider->id),
-            'name' => $rider->name ?? 'Unnamed rider',
+            'name' => $rider->name ?? __('Unnamed rider'),
             'phone' => $rider->phone ?? '—',
             'email' => $rider->email ?? '—',
             'status' => $rider->status->value,
@@ -64,12 +64,14 @@ final class RiderPresenter
             ->latest('id')->limit(50)->get()
             ->map(function (ActivityLogEntry $entry) {
                 $properties = $entry->properties?->all() ?? [];
-                $by = $properties['actor_name'] ?? 'System';
+                $by = $properties['actor_name'] ?? __('System');
                 $reason = $properties['reason'] ?? null;
 
                 return [
                     'reference' => 'ACT-'.$entry->id,
-                    'description' => "{$entry->description} by {$by}".($reason ? ": {$reason}" : ''),
+                    'description' => $reason
+                        ? __(':action by :actor: :reason', ['action' => $entry->description, 'actor' => $by, 'reason' => $reason])
+                        : __(':action by :actor', ['action' => $entry->description, 'actor' => $by]),
                     'status' => 'completed',
                     'value' => '—',
                     'occurred_at' => $entry->created_at->toIso8601String(),

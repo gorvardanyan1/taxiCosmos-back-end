@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Support\AdminFixtures;
+use App\Support\Locales;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,13 +24,15 @@ class AccountController extends Controller
             'profile' => [
                 'name' => $user->name,
                 'email' => $user->email,
-                'locale' => $user->locale ?? config('app.locale'),
+                'locale' => Locales::forUser($user) ?? app()->getLocale(),
                 'timezone' => $user->timezone ?? config('taxikosmos.display_timezone'),
             ],
             ...$fixtures->get('account'),
+            'locales' => array_map(fn (string $code) => ['code' => $code, 'name' => Locales::NAMES[$code] ?? $code], Locales::supported()),
             'actions' => [
                 'updateProfile' => null, 'updatePassword' => null, 'regenerateRecoveryCodes' => null,
                 'logoutOtherSessions' => null, 'updateNotifications' => null,
+                'updateLocale' => route('admin.account.locale', absolute: false),
             ],
         ]);
     }

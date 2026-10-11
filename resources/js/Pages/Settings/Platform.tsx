@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { UNAVAILABLE_HINT } from '@/Components/ActionButton';
 import SettingsTabs from '@/Components/SettingsTabs';
 import type { Actions } from '@/types';
+import { t } from '@/lib/i18n';
 
 interface Setting {
     key: string;
@@ -14,7 +15,7 @@ export default function SettingsPlatform({ settings, actions }: { settings: Sett
 
     return (
         <SettingsTabs active="platform">
-            <Head title="Settings · Platform" />
+            <Head title={t('Settings · Platform')} />
             <div className="grid gap-5 lg:grid-cols-2">
                 {settings.map((s) => (
                     <label key={s.key} className="rounded-2xl bg-white p-5 text-xs font-bold text-slate-600 shadow-[0_1px_3px_rgba(0,0,0,.04)]">
@@ -23,7 +24,7 @@ export default function SettingsPlatform({ settings, actions }: { settings: Sett
                         {form.errors[s.key] && <p role="alert" className="mt-1.5 text-xs font-semibold text-red-600">{form.errors[s.key]}</p>}
                     </label>
                 ))}
-                <button onClick={() => actions.save && form.patch(actions.save)} disabled={actions.save === null || form.processing} title={actions.save === null ? UNAVAILABLE_HINT : undefined} className="w-fit rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">Save platform settings</button>
+                <button onClick={() => actions.save && form.patch(actions.save)} disabled={actions.save === null || form.processing} title={actions.save === null ? t(UNAVAILABLE_HINT) : undefined} className="w-fit rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40">{t('Save platform settings')}</button>
             </div>
         </SettingsTabs>
     );

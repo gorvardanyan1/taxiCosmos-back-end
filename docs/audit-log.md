@@ -47,6 +47,7 @@ are handled too. Failed sign-ins store the email that was typed, never the passw
 | `activity_log.exported` | `ActivityLogController::export` (filters used) |
 | `zone.created`, `zone.updated`, `zone.deactivated`, `zone.activated` | `ZoneService` (see [zones.md](zones.md)) |
 | `rider.updated`, `rider.suspended`, `rider.reactivated` | `RiderService` (see [riders.md](riders.md)); a reason is required |
+| `account.locale_changed` | `AccountLocaleController` (My Account → Language; old and new language, no reason) |
 
 Refunds, manual payments, fare adjustments, suspensions, role and settings changes, 2FA reset and PII reveal
 are logged by their own tasks through the same service.

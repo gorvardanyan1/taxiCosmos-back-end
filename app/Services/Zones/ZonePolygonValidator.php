@@ -37,7 +37,7 @@ final class ZonePolygonValidator
         if (is_string($value)) {
             $decoded = json_decode($value, true);
 
-            return json_last_error() === JSON_ERROR_NONE ? $decoded : $this->fail('The polygon is not valid JSON.');
+            return json_last_error() === JSON_ERROR_NONE ? $decoded : $this->fail(__('The polygon is not valid JSON.'));
         }
 
         return $value;
@@ -49,7 +49,7 @@ final class ZonePolygonValidator
     private function structure(mixed $geo): array
     {
         if (! is_array($geo)) {
-            $this->fail('The polygon must be a GeoJSON object.');
+            $this->fail(__('The polygon must be a GeoJSON object.'));
         }
 
         if (($geo['type'] ?? null) === 'Feature' && is_array($geo['geometry'] ?? null)) {
@@ -60,13 +60,13 @@ final class ZonePolygonValidator
         $coordinates = $geo['coordinates'] ?? null;
 
         if (! in_array($type, ['Polygon', 'MultiPolygon'], true) || ! is_array($coordinates) || $coordinates === []) {
-            $this->fail('The polygon must be a GeoJSON Polygon or MultiPolygon with coordinates.');
+            $this->fail(__('The polygon must be a GeoJSON Polygon or MultiPolygon with coordinates.'));
         }
 
         $points = 0;
         $normalise = function (mixed $polygon) use (&$points): array {
             if (! is_array($polygon) || $polygon === []) {
-                $this->fail('Every polygon needs at least one ring of coordinates.');
+                $this->fail(__('Every polygon needs at least one ring of coordinates.'));
             }
 
             return array_map(function ($ring) use (&$points) {
@@ -80,7 +80,7 @@ final class ZonePolygonValidator
         $normalised = $type === 'Polygon' ? $normalise($coordinates) : array_map($normalise, array_values($coordinates));
 
         if ($points > (int) config('taxikosmos.zones.max_vertices')) {
-            $this->fail('The polygon has too many points (at most '.config('taxikosmos.zones.max_vertices').').');
+            $this->fail(__('The polygon has too many points (at most :max).', ['max' => config('taxikosmos.zones.max_vertices')]));
         }
 
         return ['type' => $type, 'coordinates' => $normalised];
@@ -95,30 +95,30 @@ final class ZonePolygonValidator
     private function ring(mixed $ring): array
     {
         if (! is_array($ring) || ! array_is_list($ring)) {
-            $this->fail('A ring must be a list of [longitude, latitude] positions.');
+            $this->fail(__('A ring must be a list of [longitude, latitude] positions.'));
         }
 
         foreach ($ring as $position) {
             if (! is_array($position) || count($position) < 2 || ! is_numeric($position[0] ?? null) || ! is_numeric($position[1] ?? null)) {
-                $this->fail('Every position must be [longitude, latitude] numbers.');
+                $this->fail(__('Every position must be [longitude, latitude] numbers.'));
             }
 
             if (abs((float) $position[0]) > 180 || abs((float) $position[1]) > 90) {
-                $this->fail('A position is outside the world: longitude must be within ±180 and latitude within ±90.');
+                $this->fail(__('A position is outside the world: longitude must be within ±180 and latitude within ±90.'));
             }
         }
 
         $distinct = count(array_unique(array_map(fn ($p) => ((float) $p[0]).','.((float) $p[1]), $ring)));
 
         if (count($ring) < 4 || $distinct < 3) {
-            $this->fail('A polygon needs at least 3 distinct points (a ring of at least 4 positions that ends where it starts).');
+            $this->fail(__('A polygon needs at least 3 distinct points (a ring of at least 4 positions that ends where it starts).'));
         }
 
         $first = $ring[0];
         $last = $ring[count($ring) - 1];
 
         if ((float) $first[0] !== (float) $last[0] || (float) $first[1] !== (float) $last[1]) {
-            $this->fail('A ring must be closed: the last position must equal the first.');
+            $this->fail(__('A ring must be closed: the last position must equal the first.'));
         }
 
         return array_map(fn ($p) => [(float) $p[0], (float) $p[1]], $ring);
@@ -136,13 +136,13 @@ final class ZonePolygonValidator
                 [json_encode($geometry)],
             ));
         } catch (QueryException) {
-            $this->fail('The polygon is not valid GeoJSON.');
+            $this->fail(__('The polygon is not valid GeoJSON.'));
         }
 
         if (! $row->valid) {
             $this->fail(str_starts_with($row->reason, 'Self-intersection') || str_contains($row->reason, 'Ring Self-intersection')
-                ? 'Polygon intersects itself.'
-                : 'The polygon is not valid: '.$row->reason.'.');
+                ? __('Polygon intersects itself.')
+                : __('The polygon is not valid: :reason.', ['reason' => $row->reason]));
         }
     }
 

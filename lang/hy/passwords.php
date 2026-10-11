@@ -1,0 +1,10 @@
+<?php
+
+// Translated from laravel-lang/lang (MIT, Laravel Lang Team); app-specific entries added by TaxiKosmos.
+return [
+    'reset' => 'Ձեր գաղտնաբառը վերականգնվել է',
+    'sent' => 'Ձեր գաղտնաբառի վերականգնման հղումն ուղարկվել է ձեր Էլ․ հասցեին',
+    'throttled' => 'Խնդրում ենք սպասել նախքան կրկին փորձելը։',
+    'token' => 'Գաղտնաբառի վերականգնման կոդը սխալ է։',
+    'user' => 'Տվյալ Էլ․ հասցեով օգտատեր չի գտնվել։',
+];

@@ -43,6 +43,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/settings/{gateways,currencies,platform,maps}` | `settings.manage` |
 | `GET /admin/activity-logs`, `/admin/activity-logs/export` (CSV) | `activity_log.view` |
 | `GET /admin/account` | admin access only (self-service) |
+| `PATCH /admin/account/locale` (choose the panel language) | admin access only (self-service; changes only the signed-in admin) |
 
 ## Source of truth
 

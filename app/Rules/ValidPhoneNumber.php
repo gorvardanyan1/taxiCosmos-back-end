@@ -17,7 +17,7 @@ class ValidPhoneNumber implements ValidationRule
         $normalised = is_string($value) ? E164PhoneNumber::tryNormalize($value) : null;
 
         if ($normalised === null || ! (new PhoneNumber($normalised))->isValid()) {
-            $fail('The :attribute must be a valid phone number.');
+            $fail(__('The :attribute must be a valid phone number.'));
         }
     }
 }

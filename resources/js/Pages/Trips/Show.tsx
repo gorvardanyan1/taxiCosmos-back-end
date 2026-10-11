@@ -7,6 +7,7 @@ import StatusBadge from '@/Components/StatusBadge';
 import { formatDateTime } from '@/lib/format';
 import { useShared } from '@/lib/useShared';
 import type { Actions, TripRow } from '@/types';
+import { t, tk, tn } from '@/lib/i18n';
 
 interface Props {
     trip: TripRow;
@@ -14,10 +15,10 @@ interface Props {
 }
 
 const timeline = [
-    { label: 'Requested', desc: 'Rider placed the booking' },
-    { label: 'Matched', desc: 'Driver accepted the trip' },
-    { label: 'In Progress', desc: 'Driver en route / ride ongoing' },
-    { label: 'Completed', desc: 'Trip concluded successfully' },
+    { label: tk('Requested'), desc: tk('Rider placed the booking') },
+    { label: tk('Matched'), desc: tk('Driver accepted the trip') },
+    { label: tk('In Progress'), desc: tk('Driver en route / ride ongoing') },
+    { label: tk('Completed'), desc: tk('Trip concluded successfully') },
 ];
 
 /** How many timeline steps are done for a status (full 7-status timeline from Mongo: P7-T1). */
@@ -32,7 +33,7 @@ export default function TripShow({ trip, actions }: Props) {
     return (
         <div className="mx-auto max-w-3xl">
             <Head title={trip.code} />
-            <div className="mb-4"><Link href="/admin/trips" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500">← Trips</Link></div>
+            <div className="mb-4"><Link href="/admin/trips" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500">{t('← Trips')}</Link></div>
             <div className="overflow-hidden rounded-2xl" style={{ background: '#f0f2f8' }}>
                 <div className="flex items-center gap-3 px-6 py-5" style={{ background: 'white', borderBottom: '1px solid #f1f5f9' }}>
                     <div>
@@ -47,14 +48,14 @@ export default function TripShow({ trip, actions }: Props) {
                         {[25, 50, 75].map((p) => <div key={`v${p}`} className="absolute inset-y-0" style={{ left: `${p}%`, borderLeft: '1px solid rgba(99,102,241,0.08)' }} />)}
                         <div className="absolute bottom-6 left-8 h-3 w-3 rounded-full border-2 border-white" style={{ background: '#6366f1', boxShadow: '0 0 0 4px rgba(99,102,241,0.2)' }} />
                         <div className="absolute right-10 top-5 h-3 w-3 rounded-full border-2 border-white" style={{ background: '#22c55e', boxShadow: '0 0 0 4px rgba(34,197,94,0.2)' }} />
-                        <div className="absolute bottom-2 left-2 rounded-lg px-2 py-1 text-[10px]" style={{ background: 'rgba(255,255,255,0.8)', color: '#6366f1' }}>Route preview</div>
+                        <div className="absolute bottom-2 left-2 rounded-lg px-2 py-1 text-[10px]" style={{ background: 'rgba(255,255,255,0.8)', color: '#6366f1' }}>{t('Route preview')}</div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2.5">
                         {([
-                            ['Rider', trip.rider], ['Driver', trip.driver ?? '—'],
-                            ['Pickup', trip.pickup_address], ['Dropoff', trip.dropoff_address],
-                            ['Fare', trip.fare ? money(trip.fare) : '—'], ['Date & Time', formatDateTime(trip.requested_at, timezone)],
+                            [t('Rider'), trip.rider], [t('Driver'), trip.driver ?? '—'],
+                            [t('Pickup'), trip.pickup_address], [t('Dropoff'), trip.dropoff_address],
+                            [t('Fare'), trip.fare ? money(trip.fare) : '—'], [t('Date & Time'), formatDateTime(trip.requested_at, timezone)],
                         ] as const).map(([title, value]) => (
                             <div key={title} className="rounded-xl p-3" style={tile}>
                                 <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{title}</p>
@@ -64,7 +65,7 @@ export default function TripShow({ trip, actions }: Props) {
                     </div>
 
                     <div className="rounded-2xl p-4" style={tile}>
-                        <p className="mb-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>Status Timeline</p>
+                        <p className="mb-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{t('Status Timeline')}</p>
                         {timeline.map((step, i) => {
                             const isDone = i < done;
                             const isCurrent = i === done - 1;
@@ -76,10 +77,10 @@ export default function TripShow({ trip, actions }: Props) {
                                     </div>
                                     <div className="pb-2">
                                         <p className="text-sm font-semibold" style={{ color: isDone ? '#0f172a' : '#cbd5e1', fontFamily: 'var(--font-display)' }}>
-                                            {step.label}
-                                            {isCurrent && trip.status !== 'cancelled' && <span className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: '#eef2ff', color: '#6366f1' }}>Current</span>}
+                                            {t(step.label)}
+                                            {isCurrent && trip.status !== 'cancelled' && <span className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: '#eef2ff', color: '#6366f1' }}>{t('Current')}</span>}
                                         </p>
-                                        <p className="text-xs" style={{ color: isDone ? '#94a3b8' : '#e2e8f0' }}>{step.desc}</p>
+                                        <p className="text-xs" style={{ color: isDone ? '#94a3b8' : '#e2e8f0' }}>{t(step.desc)}</p>
                                     </div>
                                 </div>
                             );
@@ -87,11 +88,11 @@ export default function TripShow({ trip, actions }: Props) {
                     </div>
 
                     <div className="rounded-2xl p-4" style={tile}>
-                        <p className="mb-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>Admin Actions</p>
+                        <p className="mb-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{t('Admin Actions')}</p>
                         <div className="flex flex-wrap gap-2">
-                            <button onClick={() => setCancelling(true)} className="rounded-xl px-3 py-2 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#fef2f2', color: '#dc2626', fontFamily: 'var(--font-display)' }}>Force Cancel</button>
-                            <ActionButton url={actions.adjustFare} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#fffbeb', color: '#b45309', fontFamily: 'var(--font-display)' }}>Adjust Fare</ActionButton>
-                            <ActionButton url={actions.reassignDriver} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#eef2ff', color: '#4f46e5', fontFamily: 'var(--font-display)' }}>Reassign Driver</ActionButton>
+                            <button onClick={() => setCancelling(true)} className="rounded-xl px-3 py-2 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#fef2f2', color: '#dc2626', fontFamily: 'var(--font-display)' }}>{t('Force Cancel')}</button>
+                            <ActionButton url={actions.adjustFare} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#fffbeb', color: '#b45309', fontFamily: 'var(--font-display)' }}>{t('Adjust Fare')}</ActionButton>
+                            <ActionButton url={actions.reassignDriver} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#eef2ff', color: '#4f46e5', fontFamily: 'var(--font-display)' }}>{t('Reassign Driver')}</ActionButton>
                         </div>
                     </div>
                 </div>
@@ -99,10 +100,10 @@ export default function TripShow({ trip, actions }: Props) {
             <ReasonModal
                 open={cancelling}
                 onClose={() => setCancelling(false)}
-                title="Force Cancel Trip"
-                description={<>Cancel <strong style={{ color: '#0f172a' }}>{trip.code}</strong> immediately?</>}
-                confirmLabel="Confirm"
-                placeholder="Reason…"
+                title={t('Force Cancel Trip')}
+                description={tn('Cancel :trip immediately?', { trip: <strong style={{ color: '#0f172a' }}>{trip.code}</strong> })}
+                confirmLabel={t('Confirm')}
+                placeholder={t('Reason…')}
                 url={actions.forceCancel}
             />
         </div>

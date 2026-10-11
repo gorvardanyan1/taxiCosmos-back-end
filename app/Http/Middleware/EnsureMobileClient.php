@@ -20,11 +20,11 @@ class EnsureMobileClient
         $token = $user?->currentAccessToken();
 
         if (! $user instanceof User || ! $token instanceof PersonalAccessToken) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+            return response()->json(['message' => __('Unauthenticated.')], 401);
         }
 
         if ($user->is_admin || ! $user->isActive()) {
-            return response()->json(['message' => 'This account cannot use the apps.'], 403);
+            return response()->json(['message' => __('This account cannot use the apps.')], 403);
         }
 
         return $next($request);

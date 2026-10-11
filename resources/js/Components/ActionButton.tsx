@@ -1,8 +1,9 @@
 import { router } from '@inertiajs/react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useSubmitOnce } from '@/lib/useSubmitOnce';
+import { t, tk } from '@/lib/i18n';
 
-export const UNAVAILABLE_HINT = 'Not available yet — this action is built in a later task.';
+export const UNAVAILABLE_HINT = tk('Not available yet — this action is built in a later task.');
 
 /**
  * A button for a server action. `url` is null until the owning domain task adds the
@@ -25,7 +26,7 @@ export default function ActionButton({
         <button
             type="button"
             disabled={url === null}
-            title={url === null ? UNAVAILABLE_HINT : undefined}
+            title={url === null ? t(UNAVAILABLE_HINT) : undefined}
             className={`${className} disabled:cursor-not-allowed disabled:opacity-40`}
             style={style}
             onClick={(event) => {

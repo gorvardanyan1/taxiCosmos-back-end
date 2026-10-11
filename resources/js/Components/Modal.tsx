@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { t } from '@/lib/i18n';
 
 interface ModalProps {
     open: boolean;
@@ -23,7 +24,7 @@ export default function Modal({ open, onClose, title, children, footer, danger }
                     <h3 className="text-base font-bold" style={{ color: danger ? '#dc2626' : '#0f172a', fontFamily: 'var(--font-display)' }}>
                         {title}
                     </h3>
-                    <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 transition-colors hover:bg-slate-100" style={{ color: '#94a3b8' }}>
+                    <button onClick={onClose} aria-label={t('Close')} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100" style={{ color: '#94a3b8' }}>
                         <X size={15} />
                     </button>
                 </div>

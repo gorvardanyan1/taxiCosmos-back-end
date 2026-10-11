@@ -1,6 +1,7 @@
-export default function Skeleton({ rows = 5 }: { rows?: number }) {
+
+import { t } from '@/lib/i18n';export default function Skeleton({ rows = 5 }: { rows?: number }) {
     return (
-        <div aria-busy="true" aria-label="Loading">
+        <div aria-busy="true" aria-label={t('Loading')}>
             {Array.from({ length: rows }).map((_, i) => (
                 <div key={i} className="mb-3 flex animate-pulse gap-3">
                     <div className="size-9 rounded-xl bg-slate-100" />

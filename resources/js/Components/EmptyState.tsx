@@ -1,6 +1,7 @@
 import { FileText } from 'lucide-react';
+import { t } from '@/lib/i18n';
 
-export default function EmptyState({ title = 'No records yet', hint = 'New records will appear here.' }: { title?: string; hint?: string }) {
+export default function EmptyState({ title = t('No records yet'), hint = t('New records will appear here.') }: { title?: string; hint?: string }) {
     return (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: '#f8fafc' }}>

@@ -4,6 +4,7 @@ import Modal from '@/Components/Modal';
 import { UNAVAILABLE_HINT } from '@/Components/ActionButton';
 import { field } from '@/lib/ui';
 import { useSubmitOnce } from '@/lib/useSubmitOnce';
+import { t } from '@/lib/i18n';
 
 interface Props {
     open: boolean;
@@ -39,11 +40,11 @@ export default function ReasonModal({ open, onClose, title, description, confirm
             danger={tone === 'danger'}
             footer={
                 <>
-                    <button onClick={close} className="rounded-xl px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-100" style={{ color: '#64748b', fontFamily: 'var(--font-display)' }}>Cancel</button>
+                    <button onClick={close} className="rounded-xl px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-100" style={{ color: '#64748b', fontFamily: 'var(--font-display)' }}>{t('Cancel')}</button>
                     <button
                         onClick={submit}
                         disabled={url === null || !form.data.reason.trim() || form.processing}
-                        title={url === null ? UNAVAILABLE_HINT : undefined}
+                        title={url === null ? t(UNAVAILABLE_HINT) : undefined}
                         className="rounded-xl px-4 py-2 text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-40"
                         style={{ background: tone === 'danger' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontFamily: 'var(--font-display)' }}
                     >
@@ -53,7 +54,7 @@ export default function ReasonModal({ open, onClose, title, description, confirm
             }
         >
             <div className="mb-4 text-sm" style={{ color: '#64748b' }}>{description}</div>
-            <FormField label="Reason" required error={form.errors.reason} htmlFor="reason">
+            <FormField label={t('Reason')} required error={form.errors.reason} htmlFor="reason">
                 <textarea id="reason" value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} rows={3} placeholder={placeholder} className={`${field} resize-none`} />
             </FormField>
         </Modal>

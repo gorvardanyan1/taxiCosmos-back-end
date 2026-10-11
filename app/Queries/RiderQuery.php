@@ -45,7 +45,7 @@ final class RiderQuery
         return QueryBuilder::for(User::query()->where('is_rider', true), $request)
             ->allowedFilters(...[
                 AllowedFilter::callback('search', fn (Builder $query, $value) => self::search($query, is_array($value) ? implode(',', $value) : (string) $value)),
-                AllowedFilter::callback('status', fn (Builder $query, $value) => $query->where('status', (UserStatus::tryFrom(FilterInput::single($value, 'status')) ?? abort(400, 'Unknown status.'))->value)),
+                AllowedFilter::callback('status', fn (Builder $query, $value) => $query->where('status', (UserStatus::tryFrom(FilterInput::single($value, 'status')) ?? abort(400, __('Unknown status.')))->value)),
                 AllowedFilter::callback('registered_from', fn (Builder $query, $value) => $query->where('created_at', '>=', FilterInput::day($value, $timezone)->startOfDay()->utc())),
                 AllowedFilter::callback('registered_to', fn (Builder $query, $value) => $query->where('created_at', '<=', FilterInput::day($value, $timezone)->endOfDay()->utc())),
             ])
