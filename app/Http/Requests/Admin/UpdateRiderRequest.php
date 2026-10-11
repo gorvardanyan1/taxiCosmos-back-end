@@ -59,7 +59,8 @@ class UpdateRiderRequest extends FormRequest
                 return;
             }
 
-            if (User::query()->wherePhone($normalised)->where('id', '!=', $rider)->exists()) {
+            // Soft-deleted accounts keep their phone_hash (the unique index counts them), so they count too.
+            if (User::query()->withTrashed()->wherePhone($normalised)->where('id', '!=', $rider)->exists()) {
                 $fail('Another account already uses this phone number.');
             }
         };

@@ -148,6 +148,20 @@ class RiderUpdateTest extends AdminTestCase
         ];
     }
 
+    public function test_a_phone_or_email_held_by_a_deleted_account_is_refused_not_a_server_error(): void
+    {
+        $gone = User::factory()->rider()->create(['email' => 'gone@example.com']);
+        $gone->forceFill(['phone' => '+37499112233'])->save();
+        $gone->delete();
+
+        $this->edit(['phone' => '+374 99-112-233'])->assertSessionHasErrors(['phone' => 'Another account already uses this phone number.']);
+        $this->edit(['email' => 'gone@example.com'])->assertSessionHasErrors('email');
+
+        $fresh = $this->rider->fresh();
+        $this->assertSame(['+37491210443', 'priya@example.com'], [$fresh->phone, $fresh->email]);
+        $this->assertSame(0, ActivityLogEntry::where('description', 'rider.updated')->count());
+    }
+
     public function test_a_rider_can_keep_their_own_email_and_phone_while_changing_something_else(): void
     {
         $this->edit(['name' => 'Same Contact', 'email' => 'PRIYA@example.com', 'phone' => '+374 91 210 443'])->assertSessionHasNoErrors();
