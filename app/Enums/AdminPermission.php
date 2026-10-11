@@ -12,6 +12,7 @@ enum AdminPermission: string
     case DashboardView = 'dashboard.view';
 
     case RidersView = 'riders.view';
+    case RidersEdit = 'riders.edit';
     case RidersSuspend = 'riders.suspend';
 
     case DriversView = 'drivers.view';

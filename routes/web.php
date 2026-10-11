@@ -36,6 +36,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
         Route::get('/riders/{rider}', [Admin\RiderController::class, 'show'])->name('riders.show');
     });
 
+    Route::patch('/riders/{rider}', [Admin\RiderController::class, 'update'])->middleware('permission:riders.edit')->name('riders.update');
+    Route::middleware('permission:riders.suspend')->group(function () {
+        Route::post('/riders/{rider}/suspend', [Admin\RiderController::class, 'suspend'])->name('riders.suspend');
+        Route::post('/riders/{rider}/reactivate', [Admin\RiderController::class, 'reactivate'])->name('riders.reactivate');
+    });
+
     Route::middleware('permission:drivers.view')->group(function () {
         Route::get('/drivers', [Admin\DriverController::class, 'index'])->name('drivers.index');
         Route::get('/drivers/{driver}', [Admin\DriverController::class, 'show'])->name('drivers.show');

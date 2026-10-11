@@ -33,7 +33,7 @@ class RolesAndPermissionsSeederTest extends TestCase
         $this->assertSame($expected, $seeded);
 
         foreach ([
-            'riders.view', 'riders.suspend', 'drivers.verify', 'trips.force_cancel', 'trips.adjust_fare',
+            'riders.view', 'riders.edit', 'riders.suspend', 'drivers.verify', 'trips.force_cancel', 'trips.adjust_fare',
             'payments.view', 'payments.refund', 'payments.manual', 'payouts.approve', 'zones.manage',
             'fares.manage', 'settings.manage', 'admins.manage', 'activity_log.view', 'live_map.view',
             'reports.view', 'support.manage', 'chargebacks.manage',

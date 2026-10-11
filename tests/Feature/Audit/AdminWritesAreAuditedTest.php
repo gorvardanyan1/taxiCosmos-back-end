@@ -38,6 +38,9 @@ class AdminWritesAreAuditedTest extends AuditTestCase
 
                 return $this->actingAs($admin)->post("/admin/drivers/{$doc->driver_id}/documents/{$doc->id}/reject", ['reason' => 'Unreadable']);
             }],
+            'admin.riders.update' => ['rider.updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/riders/'.User::factory()->rider()->create()->id, ['name' => 'Renamed '.uniqid(), 'reason' => 'Guard test'])],
+            'admin.riders.suspend' => ['rider.suspended', fn (User $admin) => $this->actingAs($admin)->post('/admin/riders/'.User::factory()->rider()->create()->id.'/suspend', ['reason' => 'Guard test'])],
+            'admin.riders.reactivate' => ['rider.reactivated', fn (User $admin) => $this->actingAs($admin)->post('/admin/riders/'.User::factory()->rider()->suspended()->create()->id.'/reactivate', ['reason' => 'Guard test'])],
             'admin.zones.store' => ['zone.created', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones', [
                 'name' => 'Guard zone', 'code' => strtoupper('GUARD-'.uniqid()), 'timezone' => 'Asia/Yerevan', 'currency' => 'AMD', 'polygon' => ZoneFactory::squareGeoJson(40.18, 44.51),
             ])],

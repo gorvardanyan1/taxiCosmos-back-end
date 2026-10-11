@@ -40,6 +40,7 @@ enum AdminRole: string
             self::Support => [
                 AdminPermission::DashboardView,
                 AdminPermission::RidersView,
+                AdminPermission::RidersEdit,
                 AdminPermission::RidersSuspend,
                 AdminPermission::DriversView,
                 AdminPermission::DriversSuspend,

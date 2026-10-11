@@ -50,6 +50,6 @@ final class AuditRedactor
     public static function isSensitive(string $key): bool
     {
         return preg_match(PiiColumns::sensitiveNamePattern(), $key) === 1
-            || preg_match('/(password|passcode|token|otp|pin_code|recovery|remember)/i', $key) === 1;
+            || preg_match('/(password|passcode|token|otp|pin_code|recovery|remember|email)/i', $key) === 1;
     }
 }

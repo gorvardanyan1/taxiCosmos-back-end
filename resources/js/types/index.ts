@@ -91,6 +91,11 @@ export interface DetailRecord {
 }
 
 export interface RiderDetail extends RiderRow {
+    /** Unformatted values for the edit form (the row shows "—" for missing ones). */
+    raw: { name: string | null; email: string | null; phone: string | null; locale: string | null };
+    locale: string | null;
+    suspension_reason: string | null;
+    last_login_at: string | null;
     stats: { total_spent: Money; cancellation_rate_bp: number; open_tickets: number };
     deletion_scheduled_for: string | null;
     payment_methods: { id: number; brand: string; last4: string; expires: string; is_default: boolean }[];

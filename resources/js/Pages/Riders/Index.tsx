@@ -9,9 +9,10 @@ import PaginatedTable from '@/Components/PaginatedTable';
 import ReasonModal from '@/Components/ReasonModal';
 import StatusBadge from '@/Components/StatusBadge';
 import { formatDate, formatNumber } from '@/lib/format';
+import { filterInput } from '@/lib/ui';
 import { label } from '@/lib/labels';
-import { withId } from '@/lib/query';
-import { ghost, primary } from '@/lib/ui';
+import { filterKey, visitQuery, withId } from '@/lib/query';
+import { ghost } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { Actions, Filters, Paginated, RiderRow } from '@/types';
 
@@ -21,13 +22,17 @@ interface Props {
     sort: string | null;
     statuses: string[];
     totalRegistered: number;
-    actions: Actions<'export' | 'invite' | 'suspend'>;
+    /** `suspend` / `reactivate` are URL templates with an {id} placeholder. */
+    actions: Actions<'export' | 'suspend' | 'reactivate'>;
 }
 
-export default function RidersIndex({ riders, filters, statuses, totalRegistered, actions }: Props) {
+const setFilter = (key: string, value: string) => visitQuery({ [filterKey(key)]: value }, { resetPage: true });
+
+export default function RidersIndex({ riders, filters, sort, statuses, totalRegistered, actions }: Props) {
     const { timezone } = useShared();
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
-    const [suspending, setSuspending] = useState<RiderRow | null>(null);
+    const [acting, setActing] = useState<RiderRow | null>(null);
+    const reactivating = acting?.status === 'suspended';
 
     return (
         <div>
@@ -38,7 +43,6 @@ export default function RidersIndex({ riders, filters, statuses, totalRegistered
                 actions={
                     <>
                         <ActionButton url={actions.export} className={ghost}><Download size={14} /> Export</ActionButton>
-                        <ActionButton url={actions.invite} className={primary}>+ Invite Rider</ActionButton>
                     </>
                 }
             />
@@ -48,15 +52,23 @@ export default function RidersIndex({ riders, filters, statuses, totalRegistered
                 searchPlaceholder="Search by name, phone, or email…"
                 selects={[{ key: 'status', allLabel: 'All Statuses', options: statuses.map((s) => ({ value: s, label: label(s) })) }]}
                 resultLabel={`${riders.total} result${riders.total === 1 ? '' : 's'}`}
-            />
+            >
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+                    Registered
+                    <input type="date" aria-label="Registered from" value={filters.registered_from ?? ''} onChange={(e) => setFilter('registered_from', e.target.value)} className={`${filterInput} w-40`} />
+                    –
+                    <input type="date" aria-label="Registered to" value={filters.registered_to ?? ''} onChange={(e) => setFilter('registered_to', e.target.value)} className={`${filterInput} w-40`} />
+                </label>
+            </FilterBar>
 
             <PaginatedTable
                 paginator={riders}
+                sort={sort}
                 rowKey={(rider) => rider.id}
                 empty={{ title: 'No riders found' }}
                 columns={[
                     {
-                        key: 'rider', header: 'Rider', render: (rider) => (
+                        key: 'rider', header: 'Rider', sortKey: 'name', render: (rider) => (
                             <div className="flex items-center gap-3">
                                 <Avatar name={rider.name} seed={rider.id} />
                                 <div>
@@ -75,8 +87,8 @@ export default function RidersIndex({ riders, filters, statuses, totalRegistered
                         ),
                     },
                     { key: 'status', header: 'Status', render: (rider) => <StatusBadge status={rider.status} /> },
-                    { key: 'trips', header: 'Trips', align: 'right', render: (rider) => <span className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-mono)' }}>{formatNumber(rider.trips_count)}</span> },
-                    { key: 'registered', header: 'Registered', render: (rider) => <span className="text-xs" style={{ color: '#64748b' }}>{formatDate(rider.registered_at, timezone)}</span> },
+                    { key: 'trips', header: 'Trips', align: 'right', sortKey: 'trips_count', render: (rider) => <span className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-mono)' }}>{formatNumber(rider.trips_count)}</span> },
+                    { key: 'registered', header: 'Registered', sortKey: 'registered_at', render: (rider) => <span className="text-xs" style={{ color: '#64748b' }}>{formatDate(rider.registered_at, timezone)}</span> },
                     {
                         key: 'menu', header: '', render: (rider) => (
                             <div className="relative flex justify-end">
@@ -90,9 +102,11 @@ export default function RidersIndex({ riders, filters, statuses, totalRegistered
                                             <button onClick={() => router.visit(`/admin/riders/${rider.id}`)} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-slate-50" style={{ color: '#374151', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
                                                 <Eye size={13} /> View Profile
                                             </button>
-                                            <button onClick={() => { setSuspending(rider); setMenuOpen(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-red-50" style={{ color: '#ef4444', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
-                                                <UserX size={13} /> {rider.status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                                            </button>
+                                            {(rider.status === 'active' || rider.status === 'suspended') && (
+                                                <button onClick={() => { setActing(rider); setMenuOpen(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-red-50" style={{ color: rider.status === 'suspended' ? '#4f46e5' : '#ef4444', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
+                                                    <UserX size={13} /> {rider.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                                                </button>
+                                            )}
                                         </div>
                                     </>
                                 )}
@@ -103,13 +117,16 @@ export default function RidersIndex({ riders, filters, statuses, totalRegistered
             />
 
             <ReasonModal
-                open={suspending !== null}
-                onClose={() => setSuspending(null)}
-                title={`Suspend ${suspending?.name ?? ''}`}
-                description={<>This will immediately prevent <strong style={{ color: '#0f172a' }}>{suspending?.name}</strong> from booking trips.</>}
-                confirmLabel="Confirm Suspension"
-                placeholder="Describe why this rider is being suspended…"
-                url={withId(actions.suspend, suspending?.id)}
+                open={acting !== null}
+                onClose={() => setActing(null)}
+                title={`${reactivating ? 'Reactivate' : 'Suspend'} ${acting?.name ?? ''}`}
+                description={reactivating
+                    ? <>This lets <strong style={{ color: '#0f172a' }}>{acting?.name}</strong> book trips again.</>
+                    : <>This will immediately prevent <strong style={{ color: '#0f172a' }}>{acting?.name}</strong> from booking trips and sign them out of the app.</>}
+                confirmLabel={reactivating ? 'Confirm Reactivation' : 'Confirm Suspension'}
+                placeholder={reactivating ? 'Why is this rider being reactivated…' : 'Describe why this rider is being suspended…'}
+                tone={reactivating ? 'primary' : 'danger'}
+                url={withId(reactivating ? actions.reactivate : actions.suspend, acting?.id)}
             />
         </div>
     );

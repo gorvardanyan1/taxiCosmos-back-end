@@ -1,7 +1,8 @@
 import { router } from '@inertiajs/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import PaginatedTable from '@/Components/PaginatedTable';
+import PaginatedTable, { nextSort } from '@/Components/PaginatedTable';
+import { setLocation } from '@/test/inertia';
 import type { Paginated } from '@/types';
 
 type Row = { id: number; name: string };
@@ -68,5 +69,22 @@ describe('PaginatedTable', () => {
 
         fireEvent.click(screen.getByText('Sun Li'));
         expect(onRowClick).toHaveBeenCalledWith({ id: 12, name: 'Sun Li' });
+    });
+
+    it('cycles a column sort: ascending, descending, off', () => {
+        expect(nextSort(null, 'name')).toBe('name');
+        expect(nextSort('name', 'name')).toBe('-name');
+        expect(nextSort('-name', 'name')).toBeNull();
+        expect(nextSort('-other', 'name')).toBe('name');
+    });
+
+    it('marks the sorted column for assistive technology and only sortable headers are buttons', () => {
+        setLocation('/admin/riders?sort=-name');
+        render(<PaginatedTable paginator={paginator()} rowKey={(r) => r.id} sort="-name" columns={[{ key: 'name', header: 'Name', sortKey: 'name', render: (r: Row) => r.name }, { key: 'plain', header: 'Plain', render: (r: Row) => r.id }]} />);
+
+        expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute('aria-sort', 'descending');
+        expect(screen.getByRole('button', { name: /Name/ })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Plain' })).toBeNull();
+        expect(screen.getByRole('columnheader', { name: 'Plain' })).not.toHaveAttribute('aria-sort');
     });
 });
