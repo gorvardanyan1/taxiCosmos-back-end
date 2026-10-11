@@ -41,7 +41,7 @@ Codes go out through the `SmsSender` interface; `SMS_DRIVER=log` (default) only 
 case in `AppServiceProvider` when it is.
 
 For mobile E2E tests, `OTP_TEST_CODE` + `OTP_TEST_PHONES` give listed numbers a fixed code. It is
-honoured only when `APP_ENV` is `local` or `testing`, whatever the config says.
+honoured only when `APP_ENV` is `local`, `testing` or `e2e` (Cypress), whatever the config says.
 
 ## Tokens
 

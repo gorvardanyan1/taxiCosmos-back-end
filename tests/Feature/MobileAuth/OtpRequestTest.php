@@ -6,6 +6,7 @@ use App\Models\OtpCode;
 use App\Models\User;
 use App\Support\BlindIndex;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\MobileAuthHelpers;
 use Tests\TestCase;
 
@@ -157,10 +158,28 @@ class OtpRequestTest extends TestCase
         $this->assertGreaterThan(1, count(array_unique($codes)));
     }
 
-    public function test_the_fixed_code_is_never_honoured_in_production(): void
+    public function test_the_fixed_code_also_works_in_the_e2e_environment(): void
     {
         config(['taxikosmos.mobile_auth.otp.test_code' => '123456', 'taxikosmos.mobile_auth.otp.test_phones' => [self::PHONE]]);
-        $this->app['env'] = 'production';
+        $this->app['env'] = 'e2e';
+
+        $this->assertSame('123456', $this->requestCode(self::PHONE));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function nonTestEnvironments(): iterable
+    {
+        yield 'production' => ['production'];
+        yield 'staging' => ['staging'];
+    }
+
+    #[DataProvider('nonTestEnvironments')]
+    public function test_the_fixed_code_is_never_honoured_outside_local_testing_and_e2e(string $environment): void
+    {
+        config(['taxikosmos.mobile_auth.otp.test_code' => '123456', 'taxikosmos.mobile_auth.otp.test_phones' => [self::PHONE]]);
+        $this->app['env'] = $environment;
 
         $codes = [];
         foreach (range(1, 8) as $i) {

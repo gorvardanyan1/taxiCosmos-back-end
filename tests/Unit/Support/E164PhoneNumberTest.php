@@ -38,6 +38,15 @@ class E164PhoneNumberTest extends TestCase
         $this->assertSame('+995322123456', E164PhoneNumber::normalize('00995322123456'));
     }
 
+    public function test_00_means_international_even_where_the_region_dials_out_differently(): void
+    {
+        // The US dials out with 011, so the phone library alone would read "00…" as a national number.
+        config(['taxikosmos.phone.default_region' => 'US']);
+
+        $this->assertSame('+37491440221', E164PhoneNumber::normalize('0037491440221'));
+        $this->assertSame('+995322123456', E164PhoneNumber::normalize('00995322123456'));
+    }
+
     public function test_a_number_without_a_country_code_is_read_in_the_configured_region(): void
     {
         config(['taxikosmos.phone.default_region' => 'GE']);

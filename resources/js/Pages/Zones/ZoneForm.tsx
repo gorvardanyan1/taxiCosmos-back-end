@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import FormField from '@/Components/FormField';
 import Modal from '@/Components/Modal';
 import { field } from '@/lib/ui';
+import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import type { GeoJsonPolygon } from '@/lib/geo';
 import type { Zone } from '@/types';
 
@@ -35,6 +36,7 @@ const empty = (currencies: string[]): FormData => ({ name: '', code: '', timezon
  */
 export default function ZoneForm({ open, onClose, zone, polygon, timezones, currencies, url }: Props) {
     const form = useForm<FormData>(empty(currencies));
+    const once = useSubmitOnce();
     const editing = zone !== null;
 
     useEffect(() => {
@@ -51,8 +53,10 @@ export default function ZoneForm({ open, onClose, zone, polygon, timezones, curr
             const { code, ...rest } = data;
             return { ...(editing ? rest : { ...rest, code }), priority: Number(rest.priority) };
         });
-        const options = { preserveScroll: true, onSuccess: onClose };
-        editing ? form.patch(url, options) : form.post(url, options);
+        once((done) => {
+            const options = { preserveScroll: true, onSuccess: onClose, onFinish: done };
+            editing ? form.patch(url, options) : form.post(url, options);
+        });
     };
 
     return (

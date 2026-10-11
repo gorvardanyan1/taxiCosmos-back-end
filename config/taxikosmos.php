@@ -63,7 +63,7 @@ return [
             'max_attempts' => (int) env('OTP_MAX_ATTEMPTS', 5),
 
             // Fixed code for listed phone numbers so mobile E2E tests can sign in. Honoured only
-            // when the app runs in the local or testing environment, whatever is configured.
+            // when the app runs in the local, testing or e2e environment, whatever is configured.
             'test_code' => env('OTP_TEST_CODE'),
             'test_phones' => array_values(array_filter(array_map('trim', explode(',', (string) env('OTP_TEST_PHONES', ''))))),
         ],

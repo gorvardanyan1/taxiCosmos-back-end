@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import type { CSSProperties, ReactNode } from 'react';
+import { useSubmitOnce } from '@/lib/useSubmitOnce';
 
 export const UNAVAILABLE_HINT = 'Not available yet — this action is built in a later task.';
 
@@ -18,6 +19,8 @@ export default function ActionButton({
     data?: Record<string, string | number | boolean>;
     confirm?: string;
 }) {
+    const once = useSubmitOnce();
+
     return (
         <button
             type="button"
@@ -28,7 +31,7 @@ export default function ActionButton({
             onClick={(event) => {
                 event.stopPropagation();
                 if (url === null || (confirm && !window.confirm(confirm))) return;
-                router.visit(url, { method, data, preserveScroll: true });
+                once((done) => router.visit(url, { method, data, preserveScroll: true, onFinish: done }));
             }}
         >
             {children}

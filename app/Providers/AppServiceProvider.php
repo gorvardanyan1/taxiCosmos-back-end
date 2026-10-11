@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use RuntimeException;
+use Tests\E2e\E2eGuard;
+use Tests\E2e\E2eMakeCommand;
+use Tests\E2e\E2eResetCommand;
+use Tests\E2e\E2eSqlCommand;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(fn () => Password::min(12)->mixedCase()->numbers()->symbols()->uncompromised());
 
         $this->mobileAuthRateLimits();
+        $this->registerE2eTooling();
 
         Gate::before(function ($user) {
             return $user instanceof User && $user->isSuperAdmin() ? true : null;
@@ -75,5 +80,22 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('social-login', fn (Request $request) => Limit::perMinute(20)->by('social-login:'.$request->ip()));
 
         RateLimiter::for('auth-refresh', fn (Request $request) => Limit::perMinute(30)->by('auth-refresh:'.$request->ip()));
+    }
+
+    /**
+     * The Cypress helpers (tests/E2e) are dev-only code: registered only in the e2e and testing
+     * environments, and each command checks the environment and database again before acting.
+     */
+    private function registerE2eTooling(): void
+    {
+        if (! $this->app->runningInConsole() || ! $this->app->environment(['e2e', 'testing']) || ! class_exists(E2eGuard::class)) {
+            return;
+        }
+
+        $this->commands([
+            E2eResetCommand::class,
+            E2eMakeCommand::class,
+            E2eSqlCommand::class,
+        ]);
     }
 }

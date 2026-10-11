@@ -3,6 +3,7 @@ import FormField from '@/Components/FormField';
 import Modal from '@/Components/Modal';
 import { UNAVAILABLE_HINT } from '@/Components/ActionButton';
 import { field } from '@/lib/ui';
+import { useSubmitOnce } from '@/lib/useSubmitOnce';
 
 interface Props {
     open: boolean;
@@ -22,12 +23,13 @@ interface Props {
  */
 export default function ReasonModal({ open, onClose, title, description, confirmLabel, placeholder, url, tone = 'danger' }: Props) {
     const form = useForm({ reason: '' });
+    const once = useSubmitOnce();
     const close = () => {
         form.reset();
         form.clearErrors();
         onClose();
     };
-    const submit = () => url && form.post(url, { preserveScroll: true, onSuccess: close });
+    const submit = () => url && once((done) => form.post(url, { preserveScroll: true, onSuccess: close, onFinish: done }));
 
     return (
         <Modal
