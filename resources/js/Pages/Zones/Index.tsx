@@ -1,15 +1,17 @@
-import { Head, useForm } from '@inertiajs/react';
-import { Check, Edit2, Map, Power, X } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { Edit2, History, Map, Plus, Power, X } from 'lucide-react';
 import { useState } from 'react';
 import ActionButton, { UNAVAILABLE_HINT } from '@/Components/ActionButton';
 import PageHeader from '@/Components/PageHeader';
-import { parseMoneyInput } from '@/lib/format';
+import Modal from '@/Components/Modal';
+import { formatDateTime } from '@/lib/format';
 import { polygonToSvgPoints, type GeoJsonPolygon } from '@/lib/geo';
 import { label } from '@/lib/labels';
 import { visitQuery, withId } from '@/lib/query';
 import { shadowCard } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
-import type { Actions, FareRule, Money, Zone } from '@/types';
+import type { Actions, FareHistory, FareRule, VehicleClass, Zone } from '@/types';
+import FareRuleForm from './FareRuleForm';
 import ZoneForm from './ZoneForm';
 import { t, tc } from '@/lib/i18n';
 
@@ -18,10 +20,14 @@ interface Props {
     selectedZoneId: number | null;
     /** The selected zone's shape (the list carries no geometry). */
     selectedPolygon: GeoJsonPolygon | null;
+    /** The prices in force for the selected zone, one row per vehicle class. */
     fareRules: FareRule[];
+    /** Every version of one class (when ?history=<class> is in the URL). */
+    fareHistory: FareHistory | null;
+    vehicleClasses: VehicleClass[];
     timezones: string[];
     currencies: string[];
-    actions: Actions<'createZone' | 'updateZone' | 'deactivateZone' | 'activateZone' | 'updateFareRule' | 'drawPolygon'>;
+    actions: Actions<'createZone' | 'updateZone' | 'deactivateZone' | 'activateZone' | 'saveFareRule' | 'drawPolygon'>;
 }
 
 const zoneColors = ['#6366f1', '#0891b2', '#059669', '#d97706', '#e11d48', '#7c3aed'];
@@ -30,32 +36,20 @@ const classColors: Record<string, { bg: string; color: string }> = {
     comfort: { bg: '#fdf4ff', color: '#9333ea' },
     business: { bg: '#fff7ed', color: '#c2410c' },
 };
-const moneyFields = ['base_fare', 'per_km', 'per_minute', 'minimum_fare'] as const;
-type MoneyField = (typeof moneyFields)[number];
 
-export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, fareRules, timezones, currencies: zoneCurrencies, actions }: Props) {
-    const { money, currencies } = useShared();
+export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, fareRules, fareHistory, vehicleClasses, timezones, currencies: zoneCurrencies, actions }: Props) {
+    const { money, timezone } = useShared();
     const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
-    const [editing, setEditing] = useState<string | null>(null);
-    const form = useForm<Record<MoneyField, string>>({ base_fare: '', per_km: '', per_minute: '', minimum_fare: '' });
+    /** The fare form: a new version of this rule, or (null rule) the first rule of a class. */
+    const [fareForm, setFareForm] = useState<{ rule: FareRule | null } | null>(null);
     const zoneIndex = zones.findIndex((z) => z.id === selectedZoneId);
     const zone = zones[zoneIndex];
     const rings = polygonToSvgPoints(selectedPolygon, 300, 330);
     const color = zone?.status === 'active' ? zoneColors[zoneIndex % zoneColors.length] : '#94a3b8';
-    const decimalsOf = (m: Money) => currencies.find((c) => c.code === m.currency)?.decimals ?? 2;
-    const major = (m: Money) => String(m.amount / 10 ** decimalsOf(m));
-
-    const startEdit = (rule: FareRule) => {
-        setEditing(rule.vehicle_class);
-        form.setData({ base_fare: major(rule.base_fare), per_km: major(rule.per_km), per_minute: major(rule.per_minute), minimum_fare: major(rule.minimum_fare) });
-    };
-    const save = (rule: FareRule) => {
-        if (!actions.updateFareRule) return;
-        const parsed = Object.fromEntries(moneyFields.map((f) => [f, parseMoneyInput(form.data[f], decimalsOf(rule[f]))]));
-        if (Object.values(parsed).some((v) => v === null)) return;
-        form.transform(() => ({ zone_id: rule.zone_id, vehicle_class: rule.vehicle_class, currency: rule.base_fare.currency, ...parsed }));
-        form.patch(actions.updateFareRule, { preserveScroll: true, onSuccess: () => setEditing(null) });
-    };
+    const freeClasses = vehicleClasses.filter((c) => !fareRules.some((rule) => rule.vehicle_class === c));
+    const saveUrl = withId(actions.saveFareRule, zone?.id);
+    /** "Open" means this version is the one in force now. */
+    const until = (rule: FareRule) => (rule.effective_to === null ? t('Current') : formatDateTime(rule.effective_to, timezone));
 
     return (
         <div>
@@ -113,49 +107,40 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                         <div className="h-2 w-2 rounded-full" style={{ background: color }} />
                         <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('Fare Rules — :zone', { zone: zone?.name ?? '' })}</h2>
                         <span className="ml-auto text-xs" style={{ color: '#94a3b8' }}>{tc(':count vehicle class|:count vehicle classes', fareRules.length)}</span>
+                        <button onClick={() => setFareForm({ rule: null })} disabled={saveUrl === null || freeClasses.length === 0} title={saveUrl === null ? t(UNAVAILABLE_HINT) : freeClasses.length === 0 ? t('Every vehicle class has a fare rule.') : undefined} className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 disabled:opacity-40"><Plus size={12} />{t('Add fare rule')}</button>
                     </div>
-                    <table className="w-full">
+                    <div className="overflow-x-auto">
+                    <table className="w-full" style={{ minWidth: 760 }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid #f8fafc' }}>
-                                {[t('Class'), t('Base Fare'), t('Per km'), t('Per min'), t('Min Fare'), t('Currency'), ''].map((h) => <th key={h} className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{h}</th>)}
+                                {[t('Class'), t('Base Fare'), t('Per km'), t('Per min'), t('Min Fare'), t('Currency'), t('Effective from'), t('Effective to'), ''].map((h, i) => <th key={i} className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{h}</th>)}
                             </tr>
                         </thead>
                         <tbody>
-                            {fareRules.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-sm" style={{ color: '#94a3b8' }}>{t('No fare rules for this zone.')}</td></tr>}
+                            {fareRules.length === 0 && <tr><td colSpan={9} className="py-12 text-center text-sm" style={{ color: '#94a3b8' }}>{t('No fare rules for this zone.')}</td></tr>}
                             {fareRules.map((rule) => {
-                                const isEditing = editing === rule.vehicle_class;
                                 const vc = classColors[rule.vehicle_class] ?? { bg: '#f8fafc', color: '#64748b' };
                                 return (
-                                    <tr key={rule.vehicle_class} style={{ borderBottom: '1px solid #f8fafc' }}>
-                                        <td className="px-5 py-4"><span className="rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: vc.bg, color: vc.color, fontFamily: 'var(--font-display)' }}>{label(rule.vehicle_class)}</span></td>
-                                        {moneyFields.map((f) => (
-                                            <td key={f} className="px-5 py-4">
-                                                {isEditing ? (
-                                                    <div>
-                                                        <input aria-label={label(f)} inputMode="decimal" value={form.data[f]} onChange={(e) => form.setData(f, e.target.value)} className="w-24 rounded-lg px-2 py-1.5 text-sm" style={{ border: `1px solid ${color}`, color: '#0f172a', outline: 'none', fontFamily: 'var(--font-mono)' }} />
-                                                        {form.errors[f] && <p role="alert" className="mt-1 text-[10px] font-semibold text-red-600">{form.errors[f]}</p>}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-mono)' }}>{money(rule[f])}</span>
-                                                )}
-                                            </td>
+                                    <tr key={rule.id} style={{ borderBottom: '1px solid #f8fafc' }}>
+                                        <td className="px-4 py-4"><span className="rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: vc.bg, color: vc.color, fontFamily: 'var(--font-display)' }}>{label(rule.vehicle_class)}</span></td>
+                                        {([rule.base_fare, rule.per_km, rule.per_minute, rule.min_fare] as const).map((amount, i) => (
+                                            <td key={i} className="px-4 py-4"><span className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-mono)' }}>{money(amount)}</span></td>
                                         ))}
-                                        <td className="px-5 py-4"><span className="text-xs font-medium" style={{ color: '#64748b' }}>{rule.base_fare.currency}</span></td>
-                                        <td className="px-5 py-4">
-                                            {isEditing ? (
-                                                <div className="flex gap-1">
-                                                    <button aria-label={t('Save')} onClick={() => save(rule)} disabled={actions.updateFareRule === null || form.processing} title={actions.updateFareRule === null ? t(UNAVAILABLE_HINT) : undefined} className="rounded-lg p-1.5 hover:opacity-80 disabled:opacity-40" style={{ background: '#f0fdf4', color: '#16a34a' }}><Check size={13} /></button>
-                                                    <button aria-label={t('Cancel')} onClick={() => setEditing(null)} className="rounded-lg p-1.5 hover:opacity-80" style={{ background: '#f8fafc', color: '#94a3b8' }}><X size={13} /></button>
-                                                </div>
-                                            ) : (
-                                                <button aria-label={t('Edit :class', { class: label(rule.vehicle_class) })} onClick={() => startEdit(rule)} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100" style={{ color: '#94a3b8' }}><Edit2 size={13} /></button>
-                                            )}
+                                        <td className="px-4 py-4"><span className="text-xs font-medium" style={{ color: '#64748b' }}>{rule.base_fare.currency}</span></td>
+                                        <td className="px-4 py-4 text-xs" style={{ color: '#64748b' }}>{formatDateTime(rule.effective_from, timezone)}</td>
+                                        <td className="px-4 py-4 text-xs" style={{ color: '#64748b' }}>{until(rule)}</td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex gap-1">
+                                                <button aria-label={t('New version of :class', { class: label(rule.vehicle_class) })} onClick={() => setFareForm({ rule })} disabled={saveUrl === null} title={saveUrl === null ? t(UNAVAILABLE_HINT) : t('New version of :class', { class: label(rule.vehicle_class) })} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100 disabled:opacity-40" style={{ color: '#94a3b8' }}><Edit2 size={13} /></button>
+                                                <button aria-label={t('History of :class', { class: label(rule.vehicle_class) })} onClick={() => visitQuery({ history: rule.vehicle_class })} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100" style={{ color: '#94a3b8' }}><History size={13} /></button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );
                             })}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
             )}
@@ -168,6 +153,39 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                 currencies={zoneCurrencies}
                 url={formMode === 'edit' ? withId(actions.updateZone, zone?.id) : actions.createZone}
             />
+            <FareRuleForm
+                open={fareForm !== null}
+                onClose={() => setFareForm(null)}
+                rule={fareForm?.rule ?? null}
+                freeClasses={freeClasses}
+                zoneCurrency={zone?.currency ?? 'AMD'}
+                url={saveUrl}
+            />
+            <Modal open={fareHistory !== null} wide onClose={() => visitQuery({ history: null })} title={t('History of :class', { class: label(fareHistory?.vehicle_class) })}>
+                <p className="mb-3 text-xs" style={{ color: '#64748b' }}>{t('Every price list this class has had in :zone. Past versions never change.', { zone: zone?.name ?? '' })}</p>
+                <div className="max-h-[55vh] overflow-auto">
+                    <table className="w-full text-left text-xs">
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid #f1f5f9', color: '#94a3b8' }}>
+                                {[t('Effective from'), t('Effective to'), t('Base Fare'), t('Per km'), t('Per min'), t('Min Fare'), t('Saved by')].map((h) => <th key={h} className="px-2 py-2 font-bold uppercase tracking-wider">{h}</th>)}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {fareHistory?.versions.map((version) => (
+                                <tr key={version.id} style={{ borderBottom: '1px solid #f8fafc' }}>
+                                    <td className="px-2 py-2.5">{formatDateTime(version.effective_from, timezone)}</td>
+                                    <td className="px-2 py-2.5">{until(version)}</td>
+                                    <td className="px-2 py-2.5 font-mono font-bold">{money(version.base_fare)}</td>
+                                    <td className="px-2 py-2.5 font-mono">{money(version.per_km)}</td>
+                                    <td className="px-2 py-2.5 font-mono">{money(version.per_minute)}</td>
+                                    <td className="px-2 py-2.5 font-mono">{money(version.min_fare)}</td>
+                                    <td className="px-2 py-2.5">{version.created_by ?? '—'}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </Modal>
         </div>
     );
 }

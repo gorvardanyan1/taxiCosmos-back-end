@@ -9,14 +9,16 @@ interface ModalProps {
     children: ReactNode;
     footer?: ReactNode;
     danger?: boolean;
+    /** Wider dialog for forms and tables with many columns. */
+    wide?: boolean;
 }
 
-export default function Modal({ open, onClose, title, children, footer, danger }: ModalProps) {
+export default function Modal({ open, onClose, title, children, footer, danger, wide }: ModalProps) {
     if (!open) return null;
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-label={title}>
             <div className="absolute inset-0" style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
-            <div className="relative z-10 mx-4 w-full overflow-hidden rounded-2xl" style={{ maxWidth: 440, background: 'white', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}>
+            <div className="relative z-10 mx-4 w-full overflow-hidden rounded-2xl" style={{ maxWidth: wide ? 720 : 440, background: 'white', boxShadow: '0 25px 60px rgba(0,0,0,0.2)' }}>
                 <div
                     className="flex items-center justify-between px-6 py-4"
                     style={{ borderBottom: '1px solid #f1f5f9', background: danger ? 'linear-gradient(135deg, #fff1f2 0%, #fff5f5 100%)' : 'white' }}

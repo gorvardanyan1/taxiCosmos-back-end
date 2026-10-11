@@ -36,5 +36,6 @@ who/when, completed without its final money).
 Money is integer minor units in `fare_currency`. `fare_rule_id` / `commission_rule_id` / `surge_multiplier` /
 `fare_breakdown` and the amounts are copies taken when the trip was priced. Once a trip is completed,
 cancelled or no_driver_found they cannot be edited (`Trip::PRICING_COLUMNS`), so later rule edits never change
-history. The `fare_rule_id`, `commission_rule_id` and `payment_method_id` columns carry no foreign key yet:
-the tables arrive with P5-T2, P6-T4 and P6-T1, which add them.
+history. `fare_rule_id` is a foreign key to `fare_rules` (P5-T2; rules are never edited or deleted, see
+[fares.md](fares.md)), and `fare_breakdown` is `FareBreakdown::toArray()`. The `commission_rule_id` and
+`payment_method_id` columns carry no foreign key yet: their tables arrive with P11-T1 and P6-T1, which add them.

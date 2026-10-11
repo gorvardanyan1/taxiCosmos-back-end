@@ -9,6 +9,8 @@ use App\Enums\UserStatus;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
+use App\Models\FareFee;
+use App\Models\FareRule;
 use App\Models\User;
 use App\Models\Zone;
 use App\Realtime\RealtimeEventType;
@@ -52,6 +54,9 @@ final class E2eFixtures
             'driver_with_documents' => $this->driverWithDocuments($a),
             'signed_document_url' => $this->signedDocumentUrl($a),
             'zone' => $this->zone($a),
+            'fare_rule' => $this->fareRule($a),
+            'fare_fee' => $this->fareFee($a),
+            'expire_fare_quote' => $this->expireFareQuote($a),
             'password_reset_link' => $this->passwordResetLink($a),
             'age_password_reset' => $this->agePasswordReset($a),
             'age_admin_session' => $this->ageAdminSession($a),
@@ -199,6 +204,38 @@ final class E2eFixtures
         ]);
 
         return ['id' => $zone->id, 'name' => $zone->name, 'code' => $zone->code];
+    }
+
+    /**
+     * One version of a class's prices, in force since a day ago (the factory defaults: base 500, 150/km, 20/min, minimum 800).
+     * {zone_code, vehicle_class?, ...any FareRule column}
+     */
+    private function fareRule(array $a): array
+    {
+        $zone = Zone::query()->where('code', $a['zone_code'])->firstOrFail();
+        $rule = FareRule::factory()->forZone($zone)->create(array_diff_key($a, ['zone_code' => 1]));
+
+        return ['id' => $rule->id, 'zone_id' => $zone->id];
+    }
+
+    /**
+     * A fixed fee for a drawn area around a point. {lat, lng, half?, name?, amount?, applies_to?}
+     */
+    private function fareFee(array $a): array
+    {
+        $fee = FareFee::factory()->area($a['lat'], $a['lng'], $a['half'] ?? 0.005)->create(array_filter([
+            'name' => $a['name'] ?? null, 'amount' => $a['amount'] ?? null, 'applies_to' => $a['applies_to'] ?? null,
+        ], fn ($value) => $value !== null));
+
+        return ['id' => $fee->id];
+    }
+
+    /**
+     * Make a rider's quote expired, as if ten minutes had passed. {quote_id}
+     */
+    private function expireFareQuote(array $a): array
+    {
+        return ['expired' => DB::table('fare_quotes')->where('id', $a['quote_id'])->update(['expires_at' => now()->subSecond()])];
     }
 
     /**

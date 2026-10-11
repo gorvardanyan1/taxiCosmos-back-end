@@ -38,6 +38,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/driver-balances` | `driver_balances.view` |
 | `GET /admin/reports` | `reports.view` |
 | `GET /admin/zones`, `POST /admin/zones`, `PATCH /admin/zones/{id}`, `POST /admin/zones/{id}/deactivate`, `.../activate` | `zones.manage` |
+| `POST /admin/zones/{id}/fare-rules` (add a fare rule version; the Zones page shows prices and history with `zones.manage`, saving needs this too) | `fares.manage` |
 | `GET /admin/surge`, `/admin/commission-rules` | `fares.manage` |
 | `GET /admin/settings/users` | `admins.manage` |
 | `GET /admin/settings/{gateways,currencies,platform,maps}` | `settings.manage` |

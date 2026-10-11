@@ -4,6 +4,7 @@ namespace App\Enums;
 
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
+use App\Models\FareRule;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\Zone;
@@ -17,6 +18,7 @@ enum AuditTargetType: string
 {
     case Driver = 'driver';
     case DriverDocument = 'driver_document';
+    case FareRule = 'fare_rule';
     case Vehicle = 'vehicle';
     case User = 'user';
     case Zone = 'zone';
@@ -29,6 +31,7 @@ enum AuditTargetType: string
         return match ($this) {
             self::Driver => DriverProfile::class,
             self::DriverDocument => DriverDocument::class,
+            self::FareRule => FareRule::class,
             self::Vehicle => Vehicle::class,
             self::User => User::class,
             self::Zone => Zone::class,
@@ -69,6 +72,7 @@ enum AuditTargetType: string
             $model instanceof Vehicle => sprintf('Vehicle #%d', $model->getKey()),
             $model instanceof User => sprintf('User #%d', $model->getKey()),
             $model instanceof Zone => sprintf('Zone %s', $model->code),
+            $model instanceof FareRule => sprintf('Fare rule #%d / %s', $model->getKey(), $model->vehicle_class->value),
             default => class_basename($model).' #'.$model->getKey(),
         };
     }

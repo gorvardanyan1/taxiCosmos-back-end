@@ -77,6 +77,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
         Route::post('/zones/{zone}/deactivate', [Admin\ZoneController::class, 'deactivate'])->name('zones.deactivate');
         Route::post('/zones/{zone}/activate', [Admin\ZoneController::class, 'activate'])->name('zones.activate');
     });
+    Route::post('/zones/{zone}/fare-rules', [Admin\FareRuleController::class, 'store'])->middleware('permission:fares.manage')->whereNumber('zone')->name('fare-rules.store');
     Route::get('/surge', Admin\SurgeController::class)->middleware('permission:fares.manage')->name('surge.index');
     Route::get('/commission-rules', Admin\CommissionRuleController::class)->middleware('permission:fares.manage')->name('commission-rules.index');
 
