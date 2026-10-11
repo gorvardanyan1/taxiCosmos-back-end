@@ -62,6 +62,14 @@ describe('the scanner itself catches what it should', () => {
         expect(scan("return <p>{money(5)}</p>;")).toEqual([]);
     });
 
+    it('flags a server enum value printed as it is instead of through label()', () => {
+        expect(scan('return <span>{zone.status}</span>;').map((f) => f.rule)).toEqual(['raw-enum']);
+        expect(scan('return <p>{ticket.priority}</p>;').map((f) => f.rule)).toEqual(['raw-enum']);
+        expect(scan('return <span>{label(zone.status)}</span>;')).toEqual([]);
+        expect(scan('return <StatusBadge status={zone.status} />;')).toEqual([]);
+        expect(scan('return <span className={zone.status === "active" ? "a" : "b"}>{t("x")}</span>;')).toEqual([]);
+    });
+
     it('refuses t() at module level, where it would freeze English before the dictionary loads', () => {
         const findings = scanText('Probe.ts', "import { t } from '@/lib/i18n';\nexport const TITLE = t('Riders');");
 

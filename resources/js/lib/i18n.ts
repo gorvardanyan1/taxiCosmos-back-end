@@ -1,4 +1,5 @@
 import { Fragment, createElement, type ReactNode } from 'react';
+import { ARMENIAN_NUMBER_LOCALE, hasIntlData } from '@/lib/intlFallback';
 
 /**
  * Admin UI translations (P13-T11). The dictionaries are Laravel's JSON translation files
@@ -55,6 +56,12 @@ export const currentLocale = (): Locale => locale;
 /** The BCP 47 tag for Intl formatting (dates, numbers, plural rules). */
 export const intlLocale = (): string => INTL_LOCALES[locale];
 
+/** True for Armenian in a browser without Armenian Intl data (Chrome): the formatters in intlFallback.ts apply. */
+export const usesArmenianFallback = (): boolean => locale === 'hy' && !hasIntlData(INTL_LOCALES.hy);
+
+/** The Intl locale for numbers: the language's own, or the one with the same separators where the browser lacks it. */
+export const numberLocale = (): string => (usesArmenianFallback() ? ARMENIAN_NUMBER_LOCALE : intlLocale());
+
 type Replacements = Record<string, string | number | null | undefined>;
 
 function replace(text: string, replacements: Replacements = {}): string {
@@ -71,7 +78,7 @@ export function tc(key: string, count: number, replacements: Replacements = {}):
     const index = PLURAL_ORDER[locale].indexOf(category);
     const form = forms[Math.min(index === -1 ? forms.length - 1 : index, forms.length - 1)];
 
-    return replace(form, { count: count.toLocaleString(intlLocale()), ...replacements });
+    return replace(form, { count: count.toLocaleString(numberLocale()), ...replacements });
 }
 
 /**

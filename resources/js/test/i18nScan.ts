@@ -22,6 +22,9 @@ const VISIBLE_KEYS = new Set([
     'text', 'tooltip', 'emptyLabel', 'caption', 'heading', 'confirmLabel', 'searchPlaceholder',
 ]);
 
+/** Properties that hold a server enum value (status, type, …): shown through label(), never as they are. */
+const RAW_ENUM_PROPERTIES = new Set(['status', 'type', 'priority', 'direction', 'gateway', 'method', 'vehicle_class', 'role', 'kind', 'category', 'verification_status']);
+
 /** Translation calls: their first argument is a key, never hardcoded text. */
 export const TRANSLATION_FUNCTIONS = new Set(['t', 'tc', 'tk', 'tn']);
 
@@ -170,6 +173,10 @@ export function scanText(name: string, text: string): Finding[] {
                 collectRendered(init.expression, report('jsx-attribute'));
             }
         } else if (ts.isJsxExpression(node) && node.parent && (ts.isJsxElement(node.parent) || ts.isJsxFragment(node.parent)) && node.expression) {
+            // A server enum value printed as it is ({zone.status} → "active") is English in every language.
+            if (ts.isPropertyAccessExpression(node.expression) && RAW_ENUM_PROPERTIES.has(node.expression.name.text)) {
+                report('raw-enum')(node.expression, node.expression.getText());
+            }
             collectRendered(node.expression, report('jsx-child'));
         } else if (ts.isPropertyAssignment(node) && VISIBLE_KEYS.has(node.name.getText().replace(/['"]/g, ''))) {
             collectRendered(node.initializer, report('visible-property'));

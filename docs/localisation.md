@@ -60,3 +60,11 @@ Add its code to `config/taxikosmos.php` → `locales`, a name to `App\Support\Lo
 Names typed by people (riders, drivers, zones, addresses), codes and ids, currency codes, brand
 names (Stripe, Google, Apple, Facebook) and the audit log's stored text. Enum values the server may
 add later fall back to their readable English words until they get an entry in `lib/labels.ts`.
+
+## Armenian dates and numbers in Chrome
+
+Chrome (and Electron) ship no Armenian locale data, so `Intl` quietly answers `hy-AM` requests in English.
+`resources/js/lib/intlFallback.ts` writes Armenian dates, relative times, compact numbers and separators itself,
+and `format.ts` / `tc()` use it when `Intl.DateTimeFormat.supportedLocalesOf(['hy-AM'])` is empty.
+`intlFallback.test.ts` compares it with a full-ICU `hy-AM` formatter, so it cannot drift.
+Server enum values (`active`, `inactive`, …) are always printed through `label()`; the i18n guard flags a raw one.

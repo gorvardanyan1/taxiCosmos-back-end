@@ -23,7 +23,8 @@ describe('Zones page', () => {
         expect(screen.getByRole('button', { name: /Downtown Core/ })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByRole('button', { name: /Harbor/ })).toHaveAttribute('aria-pressed', 'false');
         expect(screen.getByText('HARBOR')).toBeInTheDocument();
-        expect(screen.getByText('inactive')).toBeInTheDocument();
+        expect(screen.getByText('Inactive')).toBeInTheDocument();
+        expect(screen.getByText('Active')).toBeInTheDocument();
         expect(screen.getByText('Asia/Yerevan · AMD · priority 5 · 5 points')).toBeInTheDocument();
     });
 

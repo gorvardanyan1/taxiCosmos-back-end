@@ -32,6 +32,7 @@ describe('P13-T11 · Localisation (en / ru / hy)', () => {
     beforeEach(() => {
         Cypress.session.clearAllSavedSessions();
         cy.clearAllCookies();
+        cy.make('clear_rate_limits'); // this spec signs in many times from one address
     });
 
     // Criterion: an admin can switch language in My Account.
@@ -321,6 +322,45 @@ describe('P13-T11 · Localisation (en / ru / hy)', () => {
             cy.contains(`${total + 3} գրանցված հաշիվ`).should('be.visible');
             cy.contains(`Ցուցադրվում է 1–10՝ ${total + 3}-ից`).scrollIntoView().should('be.visible');
         });
+    });
+
+    // Review blocker: a zone's status chip printed the raw server value ("active") in every language.
+    ['ru', 'hy'].forEach((lang) => {
+        const t = lang === 'ru'
+            ? { admin: 'cy-i18n-ru@taxikosmos.test', add: '+ Добавить зону', dialog: 'Добавить зону', name: 'Имя', code: 'Код', polygon: /^Многоугольник/, create: 'Создать зону', toast: 'Зона создана.', active: 'Активен', inactive: 'Неактивен' }
+            : { admin: 'cy-i18n-hy@taxikosmos.test', add: '+ Ավելացնել գոտի', dialog: 'Ավելացնել գոտի', name: 'Անուն', code: 'Կոդ', polygon: /^Բազմանկյուն/, create: 'Ստեղծել գոտի', toast: 'Գոտին ստեղծվեց։', active: 'Ակտիվ', inactive: 'Ոչ ակտիվ' };
+        const shape = JSON.stringify({ type: 'Polygon', coordinates: [[[44.4, 40.1], [44.6, 40.1], [44.6, 40.3], [44.4, 40.3], [44.4, 40.1]]] });
+
+        it(`shows zone statuses and the "zone created" toast in ${lang}, never the raw server value`, () => {
+            cy.make('zone', { name: `Off ${lang}`, code: `OFF-${lang.toUpperCase()}`, active: false });
+            cy.loginAs(t.admin);
+            cy.visit('/admin/zones');
+
+            cy.contains('button[aria-pressed]', `Off ${lang}`).should('contain', t.inactive).and('not.contain', 'inactive');
+            cy.intercept('POST', '/admin/zones').as('create');
+            cy.findByRole('button', { name: t.add }).click();
+            cy.findByRole('dialog', { name: t.dialog }).within(() => {
+                cy.findByLabelText(new RegExp(`^${t.name}`)).type(`New ${lang}`);
+                cy.findByLabelText(new RegExp(`^${t.code}`)).type(`new-${lang}`);
+                cy.findByLabelText(t.polygon).type(shape, { delay: 0, parseSpecialCharSequences: false });
+                cy.findByRole('button', { name: t.create }).click();
+            });
+
+            cy.wait('@create').its('response.statusCode').should('eq', 302);
+            cy.findAllByRole('status').last().should('have.text', t.toast);
+            cy.contains('button[aria-pressed]', `New ${lang}`).should('contain', t.active).and('not.contain', 'active');
+        });
+    });
+
+    // Review blocker: Chrome has no Armenian locale data, so dates silently came out in English.
+    it('writes Armenian dates and relative times in the browser itself, not in English', () => {
+        cy.loginAs('cy-i18n-hy@taxikosmos.test');
+        cy.visit('/admin/riders');
+
+        // Whatever Intl data this browser has, the page must not print an English month.
+        cy.get('tbody tr').first().invoke('text').should('match', /\d{1,2} (հնվ|փտվ|մրտ|ապր|մյս|հնս|հլս|օգս|սեպ|հոկ|նոյ|դեկ), 20\d\d թ\./);
+        cy.get('tbody tr').first().invoke('text').should('not.match', /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/);
+        cy.document().its('documentElement.lang').should('eq', 'hy');
     });
 
     // The mobile API speaks the app's language.

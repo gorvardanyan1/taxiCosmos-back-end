@@ -78,7 +78,7 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                                 <button key={z.id} aria-pressed={selected} onClick={() => visitQuery({ zone: z.id })} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all" style={{ borderBottom: '1px solid #f8fafc', background: selected ? '#fafcff' : 'transparent', borderLeft: selected ? `3px solid ${zColor}` : '3px solid transparent' }}>
                                     <div className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: zColor }} />
                                     <span className="flex-1 text-sm font-semibold" style={{ color: selected ? '#0f172a' : '#64748b', fontFamily: 'var(--font-display)' }}>{z.name}<span className="ml-2 font-mono text-[10px] font-medium" style={{ color: '#94a3b8' }}>{z.code}</span></span>
-                                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: z.status === 'active' ? '#f0fdf4' : '#f8fafc', color: z.status === 'active' ? '#16a34a' : '#94a3b8', fontFamily: 'var(--font-display)' }}>{z.status}</span>
+                                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: z.status === 'active' ? '#f0fdf4' : '#f8fafc', color: z.status === 'active' ? '#16a34a' : '#94a3b8', fontFamily: 'var(--font-display)' }}>{label(z.status)}</span>
                                 </button>
                             );
                         })}

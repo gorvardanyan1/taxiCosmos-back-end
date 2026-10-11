@@ -1,4 +1,5 @@
-import { currentLocale, intlLocale } from '@/lib/i18n';
+import { currentLocale, intlLocale, numberLocale, usesArmenianFallback } from '@/lib/i18n';
+import { armenianCompact, armenianDate, armenianRelative } from '@/lib/intlFallback';
 import type { Currency, Money } from '@/types';
 
 /** Money arrives as integer minor units; this is the only place it becomes a decimal, for display. */
@@ -8,7 +9,7 @@ export function formatMoney(money: Money, currencies: Currency[], options: { com
     const sign = money.amount < 0 ? '- ' : options.signed && money.amount > 0 ? '+ ' : '';
     const body = options.compact
         ? compactNumber(Math.abs(major))
-        : Math.abs(major).toLocaleString(intlLocale(), { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        : Math.abs(major).toLocaleString(numberLocale(), { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
     return `${sign}${money.currency} ${body}`;
 }
@@ -20,6 +21,7 @@ export function toMajorUnits(money: Money, currencies: Currency[]): number {
 }
 
 export function compactNumber(value: number): string {
+    if (usesArmenianFallback()) return armenianCompact(value);
     if (currentLocale() !== 'en') return value.toLocaleString(intlLocale(), { notation: 'compact', maximumFractionDigits: 1 });
     if (value >= 1_000_000) return `${trimZero(value / 1_000_000)}M`;
     if (value >= 1_000) return `${trimZero(value / 1_000)}K`;
@@ -31,32 +33,36 @@ function trimZero(value: number): string {
 }
 
 export function formatNumber(value: number): string {
-    return value.toLocaleString(intlLocale());
+    return value.toLocaleString(numberLocale());
 }
 
 /** Basis points (480) → "4.8%" (in Russian and Armenian "4,8 %"). */
 export function formatBasisPoints(bp: number): string {
     if (currentLocale() === 'en') return `${trimZero(bp / 100)}%`;
+    if (usesArmenianFallback()) return `${(bp / 100).toLocaleString(numberLocale(), { maximumFractionDigits: 2 })}%`;
     return (bp / 10_000).toLocaleString(intlLocale(), { style: 'percent', maximumFractionDigits: 2 });
 }
 
 export function formatDate(iso: string, timeZone: string): string {
-    return new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso).toLocaleDateString(intlLocale(), {
-        month: 'short', day: 'numeric', year: 'numeric', timeZone: iso.length === 10 ? 'UTC' : timeZone,
-    });
+    const date = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
+    const zone = iso.length === 10 ? 'UTC' : timeZone;
+    if (usesArmenianFallback()) return armenianDate(date, zone, true);
+
+    return date.toLocaleDateString(intlLocale(), { month: 'short', day: 'numeric', year: 'numeric', timeZone: zone });
 }
 
 /** "Oct 5 · 18:14" in the admin's timezone. */
 export function formatDateTime(iso: string, timeZone: string): string {
     const date = new Date(iso);
-    const day = date.toLocaleDateString(intlLocale(), { month: 'short', day: 'numeric', timeZone });
-    const time = date.toLocaleTimeString(currentLocale() === 'en' ? 'en-GB' : intlLocale(), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone });
+    const day = usesArmenianFallback() ? armenianDate(date, timeZone, false) : date.toLocaleDateString(intlLocale(), { month: 'short', day: 'numeric', timeZone });
+    const time = date.toLocaleTimeString(currentLocale() === 'en' || usesArmenianFallback() ? 'en-GB' : intlLocale(), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone });
     return `${day} · ${time}`;
 }
 
 /** "2m ago", "3h ago", "in 3d" (Intl relative time in the admin's language: "2 мин. назад", "2 ր առաջ"). */
 export function formatRelative(iso: string, now: Date = new Date()): string {
     const seconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000);
+    if (usesArmenianFallback()) return armenianRelative(-seconds);
     const abs = Math.abs(seconds);
     const [value, unit]: [number, Intl.RelativeTimeFormatUnit] = abs < 60 ? [abs, 'second'] : abs < 3600 ? [Math.floor(abs / 60), 'minute'] : abs < 86400 ? [Math.floor(abs / 3600), 'hour'] : [Math.floor(abs / 86400), 'day'];
     const style = currentLocale() === 'en' ? 'narrow' : 'short';

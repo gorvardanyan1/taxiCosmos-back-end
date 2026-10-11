@@ -46,7 +46,7 @@ describe('P5-T3 · Zones', () => {
         cy.wait('@create').its('request.body').should('include', { name: 'Gyumri Center', code: 'GYUMRI-C', timezone: 'Asia/Yerevan', currency: 'AMD', priority: 5 });
         cy.findAllByRole('status').last().should('contain', 'Zone created.');
         cy.findByRole('dialog').should('not.exist');
-        zoneButton('Gyumri Center').should('have.attr', 'aria-pressed', 'true').and('contain', 'active');
+        zoneButton('Gyumri Center').should('have.attr', 'aria-pressed', 'true').and('contain', 'Active');
         cy.findByRole('img', { name: 'Gyumri Center service area' }).find('polygon').should('have.length', 1);
         cy.contains('Asia/Yerevan · AMD · priority 5').should('be.visible');
 
@@ -139,12 +139,12 @@ describe('P5-T3 · Zones', () => {
 
             cy.findByLabelText('Deactivate zone').click();
             cy.findAllByRole('status').last().should('contain', 'Zone deactivated.');
-            zoneButton('Dilijan').should('contain', 'inactive');
+            zoneButton('Dilijan').should('contain', 'Inactive');
             zoneRow('DILIJAN').its('is_active').should('eq', false);
 
             cy.findByLabelText('Reactivate zone').click();
             cy.findAllByRole('status').last().should('contain', 'Zone activated.');
-            zoneButton('Dilijan').should('contain', 'active').and('not.contain', 'inactive');
+            zoneButton('Dilijan').should('contain', 'Active').and('not.contain', 'Inactive');
             zoneRow('DILIJAN').its('is_active').should('eq', true);
 
             cy.sql("select description from activity_log where subject_id = ? and description like 'zone.%' order by id", [zone.id]).then((rows) => {
@@ -168,7 +168,7 @@ describe('P5-T3 · Zones', () => {
             cy.findByLabelText('Deactivate zone').click();
 
             cy.get('@deactivate').should('not.have.been.called');
-            zoneButton('Sevan').should('contain', 'active');
+            zoneButton('Sevan').should('contain', 'Active');
             zoneRow('SEVAN').its('is_active').should('eq', true);
         });
     });
