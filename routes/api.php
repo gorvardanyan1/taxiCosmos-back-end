@@ -1,8 +1,22 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Enums\SocialProvider;
+use App\Http\Controllers\Api\V1\AuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Mobile surface (rider and driver apps): JSON, Sanctum bearer tokens only, never a session.
+Route::prefix('auth')->group(function () {
+    Route::post('otp/request', [AuthController::class, 'requestOtp'])->middleware('throttle:otp-request');
+    Route::post('otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify');
+    Route::post('social/{provider}', [AuthController::class, 'social'])
+        ->whereIn('provider', array_column(SocialProvider::cases(), 'value'))
+        ->middleware('throttle:social-login');
+    Route::post('refresh', [AuthController::class, 'refresh'])->middleware('throttle:auth-refresh');
+
+    Route::middleware(['auth:sanctum', 'mobile'])->group(function () {
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('logout-all', [AuthController::class, 'logoutAll']);
+        // Only a session that still needs its phone number (social sign-in without one).
+        Route::post('phone/verify', [AuthController::class, 'verifyPhone'])->middleware(['ability:pending-phone:rider,pending-phone:driver', 'throttle:otp-verify']);
+    });
+});

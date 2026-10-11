@@ -23,7 +23,8 @@ sensitive is missing from it.
 | stored gateway / provider credentials | P13-T5 | none |
 
 Hashed (not encrypted) by design: `users.password` (bcrypt). Plaintext by design: the blind-index columns,
-`driver_bank_accounts.account_last4` and `swift` (the full list is `PiiColumns::plaintextByDesign()`).
+`driver_bank_accounts.account_last4` and `swift` (the full list is `PiiColumns::plaintextByDesign()`). `otp_codes.phone_hash` is the same
+keyed hash of the phone; the code itself is stored only as an HMAC (`code_hash`), the phone never in clear.
 
 Encrypted attributes are `$hidden` on their models, so they never appear in `toArray()`, JSON, Inertia
 props or API resources. Never log them.

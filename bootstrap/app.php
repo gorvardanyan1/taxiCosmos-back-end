@@ -3,6 +3,7 @@
 use App\Exceptions\ConflictException;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Http\Middleware\EnsureAdminAccess;
+use App\Http\Middleware\EnsureMobileClient;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RejectNullBytes;
 use Illuminate\Foundation\Application;
@@ -10,6 +11,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -30,6 +33,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [RejectNullBytes::class]);
         $middleware->alias([
             'admin' => EnsureAdminAccess::class,
+            'mobile' => EnsureMobileClient::class,
+            'abilities' => CheckAbilities::class,
+            'ability' => CheckForAnyAbility::class,
             'admin.idle' => EnforceAdminIdleTimeout::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,

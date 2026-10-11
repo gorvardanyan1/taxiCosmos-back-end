@@ -51,6 +51,32 @@ return [
         'max_vertices' => (int) env('ZONE_MAX_VERTICES', 5000),
     ],
 
+    'mobile_auth' => [
+        // Access token lifetime (Sanctum personal access token) and refresh token lifetime.
+        'access_ttl_minutes' => (int) env('MOBILE_ACCESS_TTL_MINUTES', 60),
+        'refresh_ttl_days' => (int) env('MOBILE_REFRESH_TTL_DAYS', 30),
+
+        'otp' => [
+            'length' => 6,
+            'ttl_minutes' => (int) env('OTP_TTL_MINUTES', 5),
+            // Wrong guesses allowed before the code is thrown away.
+            'max_attempts' => (int) env('OTP_MAX_ATTEMPTS', 5),
+
+            // Fixed code for listed phone numbers so mobile E2E tests can sign in. Honoured only
+            // when the app runs in the local or testing environment, whatever is configured.
+            'test_code' => env('OTP_TEST_CODE'),
+            'test_phones' => array_values(array_filter(array_map('trim', explode(',', (string) env('OTP_TEST_PHONES', ''))))),
+        ],
+
+        // Audiences accepted from the native sign-in SDKs.
+        'social' => [
+            'google_client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('GOOGLE_CLIENT_IDS', ''))))),
+            'apple_client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('APPLE_CLIENT_IDS', ''))))),
+            'facebook_app_id' => env('FACEBOOK_APP_ID'),
+            'facebook_app_secret' => env('FACEBOOK_APP_SECRET'),
+        ],
+    ],
+
     'audit' => [
         // CSV export of the Activity Log stops after this many rows.
         'export_max_rows' => (int) env('AUDIT_EXPORT_MAX_ROWS', 50000),
