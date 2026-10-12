@@ -109,7 +109,7 @@ return [
     */
 
     // DisableRememberMe: admin sessions must always respect the idle timeout.
-    'middleware' => ['web', DisableRememberMe::class],
+    'middleware' => ['web', 'throttle:admin-auth', DisableRememberMe::class],
 
     /*
     |--------------------------------------------------------------------------

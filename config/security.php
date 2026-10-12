@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * Abuse protection and hardening for the admin web surface (P9-T3): response security headers,
+ * the optional IP allowlist for /admin and /horizon, and the tunable ceilings of the general
+ * rate limiters (docs/rate-limits.md, docs/security.md).
+ */
+return [
+
+    'headers' => [
+        // Strict-Transport-Security max-age in seconds, sent on HTTPS responses only. 0 turns it off.
+        'hsts_max_age' => (int) env('SECURITY_HSTS_MAX_AGE', 31536000),
+
+        // Report-only CSP: the browser logs violations but blocks nothing. Use it to trial a stricter policy.
+        'csp_report_only' => (bool) env('SECURITY_CSP_REPORT_ONLY', false),
+
+        // The fonts the admin loads (resources/css/app.css). Everything else must come from the app itself.
+        'style_sources' => ['https://fonts.googleapis.com'],
+        'font_sources' => ['https://fonts.gstatic.com'],
+    ],
+
+    // Optional: when set, /admin, /horizon and the admin sign-in screens answer 403 to every other address.
+    // Comma separated IPv4/IPv6 addresses or CIDR ranges, e.g. "203.0.113.7,10.0.0.0/8". Empty = off.
+    'admin_ip_allowlist' => array_values(array_filter(array_map('trim', explode(',', (string) env('ADMIN_IP_ALLOWLIST', ''))))),
+
+    // Requests per minute. Named limiters are registered in AppServiceProvider.
+    'rate_limits' => [
+        'admin' => (int) env('RATE_LIMIT_ADMIN', 300),             // per signed-in admin, every /admin page and action
+        'admin_auth' => (int) env('RATE_LIMIT_ADMIN_AUTH', 30),     // per IP and path, the admin auth POSTs (reset, 2FA, ...)
+        'login_ip' => (int) env('RATE_LIMIT_LOGIN_IP', 30),         // per IP, POST /login across all emails
+        'api' => (int) env('RATE_LIMIT_API', 120),                 // per signed-in rider/driver, every authenticated /api/v1 call
+        'payment' => (int) env('RATE_LIMIT_PAYMENT', 10),           // per signed-in user, payment endpoints (P6)
+    ],
+
+];

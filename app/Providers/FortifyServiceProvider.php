@@ -9,6 +9,7 @@ use App\Listeners\RecordAdminLogin;
 use App\Models\User;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
@@ -49,17 +50,26 @@ class FortifyServiceProvider extends ServiceProvider
                 : null;
         });
 
-        // throttle:login on POST /login — 5 attempts per minute per email + IP.
+        // throttle:login on POST /login — 5 attempts per minute per email + IP, and a per-IP ceiling across all emails
+        // (one address trying many accounts). The browser form (Inertia) gets the message on the sign-in page; any other
+        // client gets a real 429. Both carry Retry-After.
         RateLimiter::for('login', function (Request $request) {
             $key = Str::transliterate(Str::lower((string) $request->input('email'))).'|'.$request->ip();
-
-            return Limit::perMinute(5)->by($key)->response(function (Request $request, array $headers) {
+            $respond = function (Request $request, array $headers) {
                 $seconds = (int) ($headers['Retry-After'] ?? 60);
+                $message = trans('auth.throttle', ['seconds' => $seconds]);
 
-                return back()->withInput($request->only('email'))->withErrors([
-                    'email' => trans('auth.throttle', ['seconds' => $seconds]),
-                ]);
-            });
+                if (! $request->header('X-Inertia')) {
+                    throw new ThrottleRequestsException($message, null, $headers);
+                }
+
+                return back()->withInput($request->only('email'))->withErrors(['email' => $message])->withHeaders($headers);
+            };
+
+            return [
+                Limit::perMinute(5)->by($key)->response($respond),
+                Limit::perMinute(config('security.rate_limits.login_ip'))->by('login-ip:'.$request->ip())->response($respond),
+            ];
         });
 
         Event::listen(Login::class, RecordAdminLogin::class);

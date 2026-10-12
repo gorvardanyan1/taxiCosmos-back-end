@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Str;
 
+// Secure in staging and production unless SESSION_SECURE_COOKIE says otherwise; a blank or invalid value counts as unset.
+$secureCookie = env('SESSION_SECURE_COOKIE');
+$secureCookie = $secureCookie === null || $secureCookie === '' ? null : filter_var($secureCookie, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
 return [
 
     /*
@@ -169,7 +173,7 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => $secureCookie ?? in_array(env('APP_ENV'), ['staging', 'production'], true),
 
     /*
     |--------------------------------------------------------------------------

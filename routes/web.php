@@ -22,12 +22,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::get('/two-factor-setup', [AuthPageController::class, 'twoFactorSetup'])
-    ->middleware(['auth', 'admin.idle', 'admin'])
+    ->middleware(['auth', 'admin.idle', 'admin', 'throttle:admin'])
     ->name('two-factor.setup');
 
 // Admin panel: session guard + idle timeout + admin access, and a named permission per page
 // (docs/permissions.md).
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin', 'throttle:admin'])->group(function () {
     Route::get('/', Admin\DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
     Route::get('/live-map', Admin\LiveMapController::class)->middleware('permission:live_map.view')->name('live-map');
 
