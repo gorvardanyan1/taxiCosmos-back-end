@@ -23,7 +23,7 @@ class ZoneController extends Controller
 
     public function index(Request $request): Response
     {
-        $zones = Zone::query()->withGeometry()->orderByDesc('priority')->orderBy('name')->orderBy('id')->get();
+        $zones = Zone::query()->withGeometry()->withPricingInUse()->orderByDesc('priority')->orderBy('name')->orderBy('id')->get();
         $selected = $zones->firstWhere('id', (int) $request->query('zone')) ?? $zones->first();
 
         return Inertia::render('Zones/Index', [
@@ -108,6 +108,8 @@ class ZoneController extends Controller
             'polygon_valid' => true,
             'timezone' => $zone->timezone,
             'currency' => $zone->currency,
+            // Fare rules, fees, commission rules or trips hold amounts in it: the currency can no longer change.
+            'currency_locked' => (bool) ($zone->pricing_in_use ?? false),
             'priority' => $zone->priority,
             'points' => (int) $zone->polygon_points,
         ];

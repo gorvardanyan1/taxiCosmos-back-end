@@ -61,6 +61,28 @@ class Zone extends Model
     }
 
     /**
+     * Adds pricing_in_use: whether fare rules, fare fees, commission rules or trips already hold amounts in
+     * this zone's currency. Those amounts are plain numbers, so the currency can no longer change.
+     *
+     * @param  Builder<Zone>  $query
+     */
+    public function scopeWithPricingInUse(Builder $query): void
+    {
+        $query->selectRaw('('.implode(' OR ', array_map(
+            fn (string $table) => "EXISTS (SELECT 1 FROM {$table} WHERE {$table}.zone_id = zones.id)",
+            ['fare_rules', 'fare_fees', 'commission_rules', 'trips'],
+        )).') as pricing_in_use');
+    }
+
+    /**
+     * Whether the zone's currency is locked (see scopeWithPricingInUse).
+     */
+    public function hasPricingInUse(): bool
+    {
+        return (bool) static::query()->whereKey($this->getKey())->withPricingInUse()->value('pricing_in_use');
+    }
+
+    /**
      * The current date and time in this zone's timezone (for display and "today" logic).
      */
     public function localNow(): CarbonImmutable

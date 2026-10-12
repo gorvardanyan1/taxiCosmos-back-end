@@ -39,6 +39,7 @@ export default function ZoneForm({ open, onClose, zone, polygon, timezones, curr
     const form = useForm<FormData>(empty(currencies));
     const once = useSubmitOnce();
     const editing = zone !== null;
+    const locked = editing && zone.currency_locked;
 
     useEffect(() => {
         if (!open) return;
@@ -88,9 +89,10 @@ export default function ZoneForm({ open, onClose, zone, polygon, timezones, curr
                         </select>
                     </FormField>
                     <FormField label={t('Currency')} required error={form.errors.currency} htmlFor="zone-currency">
-                        <select id="zone-currency" value={form.data.currency} onChange={(e) => form.setData('currency', e.target.value)} className={field}>
+                        <select id="zone-currency" value={form.data.currency} disabled={locked} onChange={(e) => form.setData('currency', e.target.value)} className={`${field} disabled:opacity-60`}>
                             {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
+                        {locked && <p className="mt-1 text-[11px]" style={{ color: '#94a3b8' }}>{t('The currency cannot change once the zone has prices, commission rules or trips.')}</p>}
                     </FormField>
                 </div>
                 <FormField label={t('Priority (higher wins where zones overlap)')} error={form.errors.priority} htmlFor="zone-priority">

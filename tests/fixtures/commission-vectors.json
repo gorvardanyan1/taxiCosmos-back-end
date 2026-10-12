@@ -1,0 +1,16 @@
+[
+  { "name": "percentage of a fare", "fare": 12500, "type": "percentage", "rate_bps": 1800, "fixed": 0, "min": 0, "max": null, "commission": 2250 },
+  { "name": "half rounds up (151.5)", "fare": 1010, "type": "percentage", "rate_bps": 1500, "fixed": 0, "min": 0, "max": null, "commission": 152 },
+  { "name": "below half rounds down (150.45)", "fare": 1003, "type": "percentage", "rate_bps": 1500, "fixed": 0, "min": 0, "max": null, "commission": 150 },
+  { "name": "percentage plus fixed", "fare": 10000, "type": "percentage_plus_fixed", "rate_bps": 1600, "fixed": 300, "min": 0, "max": null, "commission": 1900 },
+  { "name": "fixed amount", "fare": 12500, "type": "fixed", "rate_bps": 0, "fixed": 2500, "min": 0, "max": null, "commission": 2500 },
+  { "name": "minimum lifts a small commission", "fare": 1000, "type": "percentage", "rate_bps": 1800, "fixed": 0, "min": 500, "max": null, "commission": 500 },
+  { "name": "maximum caps a large commission", "fare": 100000, "type": "percentage", "rate_bps": 1800, "fixed": 0, "min": 0, "max": 8000, "commission": 8000 },
+  { "name": "never more than the fare (fixed above fare)", "fare": 2000, "type": "fixed", "rate_bps": 0, "fixed": 2500, "min": 0, "max": null, "commission": 2000 },
+  { "name": "nothing to take from a zero fare", "fare": 0, "type": "percentage", "rate_bps": 1800, "fixed": 0, "min": 500, "max": null, "commission": 0 },
+  { "name": "minimum above the fare is held to the fare", "fare": 300, "type": "percentage", "rate_bps": 1800, "fixed": 0, "min": 500, "max": null, "commission": 300 },
+  { "name": "100 percent takes the whole fare", "fare": 7777, "type": "percentage", "rate_bps": 10000, "fixed": 0, "min": 0, "max": null, "commission": 7777 },
+  { "name": "0 percent takes nothing", "fare": 12500, "type": "percentage", "rate_bps": 0, "fixed": 0, "min": 0, "max": null, "commission": 0 },
+  { "name": "maximum of zero takes nothing", "fare": 12500, "type": "percentage", "rate_bps": 1800, "fixed": 0, "min": 0, "max": 0, "commission": 0 },
+  { "name": "fixed fee plus percentage capped together", "fare": 50000, "type": "percentage_plus_fixed", "rate_bps": 1000, "fixed": 1000, "min": 0, "max": 5500, "commission": 5500 }
+]

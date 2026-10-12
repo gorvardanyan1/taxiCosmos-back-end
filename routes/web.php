@@ -79,7 +79,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     });
     Route::post('/zones/{zone}/fare-rules', [Admin\FareRuleController::class, 'store'])->middleware('permission:fares.manage')->whereNumber('zone')->name('fare-rules.store');
     Route::get('/surge', Admin\SurgeController::class)->middleware('permission:fares.manage')->name('surge.index');
-    Route::get('/commission-rules', Admin\CommissionRuleController::class)->middleware('permission:fares.manage')->name('commission-rules.index');
+    Route::middleware('permission:fares.manage')->group(function () {
+        Route::get('/commission-rules', [Admin\CommissionRuleController::class, 'index'])->name('commission-rules.index');
+        Route::post('/commission-rules', [Admin\CommissionRuleController::class, 'store'])->name('commission-rules.store');
+    });
 
     Route::get('/settings', fn () => to_route('admin.settings.users'))->name('settings');
     Route::get('/settings/users', [Admin\SettingsController::class, 'users'])->middleware('permission:admins.manage')->name('settings.users');

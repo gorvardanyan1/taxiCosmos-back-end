@@ -62,6 +62,10 @@ final class ZoneService
             $old = [];
             $new = [];
 
+            if (array_key_exists('currency', $data) && $data['currency'] !== $locked->currency && $locked->hasPricingInUse()) {
+                throw ZoneStateException::currencyInUse();
+            }
+
             foreach (['name', 'timezone', 'currency', 'priority'] as $field) {
                 if (array_key_exists($field, $data) && $data[$field] !== $locked->{$field}) {
                     $old[$field] = $locked->{$field};

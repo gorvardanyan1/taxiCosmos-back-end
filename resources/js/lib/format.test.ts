@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { compactNumber, daysUntil, formatBasisPoints, formatDate, formatDateTime, formatMoney, formatNumber, formatRelative, parseMoneyInput } from '@/lib/format';
+import { compactNumber, daysUntil, formatBasisPoints, formatDate, formatDateTime, formatMoney, formatNumber, formatRelative, parseMoneyInput, parsePercentInput } from '@/lib/format';
 import { setDictionary } from '@/lib/i18n';
 
 const currencies = [{ code: 'AMD', symbol: '֏', decimals: 0 }, { code: 'USD', symbol: '$', decimals: 2 }];
@@ -41,6 +41,22 @@ describe('parseMoneyInput', () => {
         expect(parseMoneyInput('1.5', 0)).toBeNull();
         expect(parseMoneyInput('abc', 2)).toBeNull();
         expect(parseMoneyInput('99999999999999999999', 0)).toBeNull();
+    });
+});
+
+describe('parsePercentInput', () => {
+    it('turns a typed percentage into basis points without floats', () => {
+        expect(parsePercentInput('18')).toBe(1800);
+        expect(parsePercentInput('17.5')).toBe(1750);
+        expect(parsePercentInput(' 17,25 ')).toBe(1725);
+        expect(parsePercentInput('0')).toBe(0);
+        expect(parsePercentInput('100')).toBe(10000);
+        expect(parsePercentInput('0.07')).toBe(7);
+        expect(parsePercentInput('99.99')).toBe(9999);
+    });
+
+    it('rejects anything that is not 0-100 with at most two decimals', () => {
+        for (const bad of ['', 'abc', '-1', '100.01', '101', '1.234', '1e2', '18%', '1,2,3', '.5']) expect(parsePercentInput(bad), bad).toBeNull();
     });
 });
 

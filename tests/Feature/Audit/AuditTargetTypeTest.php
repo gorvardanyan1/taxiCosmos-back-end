@@ -47,6 +47,6 @@ class AuditTargetTypeTest extends TestCase
 
     public function test_the_filter_values_are_stable(): void
     {
-        $this->assertSame(['driver', 'driver_document', 'fare_rule', 'vehicle', 'user', 'zone'], AuditTargetType::values());
+        $this->assertSame(['commission_rule', 'driver', 'driver_document', 'fare_rule', 'vehicle', 'user', 'zone'], AuditTargetType::values());
     }
 }

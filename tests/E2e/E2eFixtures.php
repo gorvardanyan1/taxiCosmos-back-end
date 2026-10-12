@@ -5,17 +5,23 @@ namespace Tests\E2e;
 use App\Enums\AdminRole;
 use App\Enums\AppClient;
 use App\Enums\DriverDocumentType;
+use App\Enums\TripStatus;
 use App\Enums\UserStatus;
+use App\Enums\VehicleClass;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
+use App\Models\CommissionRule;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\FareFee;
 use App\Models\FareRule;
+use App\Models\Trip;
 use App\Models\User;
 use App\Models\Zone;
 use App\Realtime\RealtimeEventType;
 use App\Realtime\StreamClient;
 use App\Services\Audit\AuditLogger;
+use App\Services\Commission\TripCommission;
+use App\Services\Fares\FareCalculator;
 use App\Services\MobileAuth\MobileSessionService;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
@@ -56,6 +62,8 @@ final class E2eFixtures
             'zone' => $this->zone($a),
             'fare_rule' => $this->fareRule($a),
             'fare_fee' => $this->fareFee($a),
+            'commission_rule' => $this->commissionRule($a),
+            'completed_trip' => $this->completedTrip($a),
             'expire_fare_quote' => $this->expireFareQuote($a),
             'password_reset_link' => $this->passwordResetLink($a),
             'age_password_reset' => $this->agePasswordReset($a),
@@ -216,6 +224,35 @@ final class E2eFixtures
         $rule = FareRule::factory()->forZone($zone)->create(array_diff_key($a, ['zone_code' => 1]));
 
         return ['id' => $rule->id, 'zone_id' => $zone->id];
+    }
+
+    /**
+     * One version of a zone's commission (the factory defaults: 20 % for every class, in force since a day ago).
+     * {zone_code, ...any CommissionRule column}
+     */
+    private function commissionRule(array $a): array
+    {
+        $zone = Zone::query()->where('code', $a['zone_code'])->firstOrFail();
+        $rule = CommissionRule::factory()->forZone($zone)->create(array_diff_key($a, ['zone_code' => 1]));
+
+        return ['id' => $rule->id, 'zone_id' => $zone->id];
+    }
+
+    /**
+     * A trip completed with a 1,490 AMD fare (5 km, 12 min: 500 + 750 + 240), its commission taken with the
+     * rule in force now, as the trip lifecycle does. {zone_code}
+     */
+    private function completedTrip(array $a): array
+    {
+        $zone = Zone::query()->where('code', $a['zone_code'])->firstOrFail();
+        $fare = (new FareCalculator)->calculate(new FareRule(['base_fare' => 500, 'per_km' => 150, 'per_minute' => 20, 'min_fare' => 0, 'waiting_free_minutes' => 3, 'waiting_per_minute' => 30, 'cancellation_fee' => 0, 'cancellation_free_seconds' => 0, 'booking_fee' => 0, 'tax_rate_bps' => 0, 'tax_inclusive' => false, 'currency' => $zone->currency]), 5000, 720);
+        $trip = Trip::factory()->inProgress()->create(['zone_id' => $zone->id]);
+        $trip->transitionTo(TripStatus::Completed, attributes: [
+            ...app(TripCommission::class)->snapshot($zone, VehicleClass::Economy, $fare),
+            'fare_amount' => $fare->total, 'fare_breakdown' => $fare->toArray(),
+        ]);
+
+        return ['id' => $trip->id];
     }
 
     /**

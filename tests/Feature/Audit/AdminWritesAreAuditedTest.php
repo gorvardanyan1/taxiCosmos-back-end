@@ -47,6 +47,9 @@ class AdminWritesAreAuditedTest extends AuditTestCase
             'admin.zones.update' => ['zone.updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/zones/'.Zone::factory()->create()->id, ['name' => 'Renamed '.uniqid()])],
             'admin.zones.deactivate' => ['zone.deactivated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->create()->id.'/deactivate')],
             'admin.zones.activate' => ['zone.activated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->inactive()->create()->id.'/activate')],
+            'admin.commission-rules.store' => ['commission_rule.created', fn (User $admin) => $this->actingAs($admin)->post('/admin/commission-rules', [
+                'zone_id' => Zone::factory()->create()->id, 'vehicle_class' => null, 'type' => 'percentage', 'rate_bps' => 1800, 'fixed_amount' => 0, 'min_commission' => 0, 'max_commission' => null, 'applies_to_surge' => true,
+            ])],
             'admin.fare-rules.store' => ['fare_rule.created', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->create()->id.'/fare-rules', [
                 'vehicle_class' => 'economy', 'base_fare' => 500, 'per_km' => 150, 'per_minute' => 20, 'min_fare' => 800, 'waiting_free_minutes' => 3, 'waiting_per_minute' => 30,
                 'cancellation_fee' => 500, 'cancellation_free_seconds' => 120, 'booking_fee' => 0, 'tax_rate_bps' => 0, 'tax_inclusive' => false,

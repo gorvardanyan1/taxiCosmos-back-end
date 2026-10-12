@@ -4,6 +4,10 @@ namespace Tests\Feature\Zones;
 
 use App\Enums\AdminRole;
 use App\Models\Audit\ActivityLogEntry;
+use App\Models\CommissionRule;
+use App\Models\FareFee;
+use App\Models\FareRule;
+use App\Models\Trip;
 use App\Models\User;
 use App\Models\Zone;
 use Database\Factories\ZoneFactory;
@@ -236,6 +240,71 @@ class ZoneAdminTest extends AdminTestCase
         $entry = ActivityLogEntry::where('description', 'zone.updated')->sole();
         $this->assertSame(['name' => 'Old name', 'priority' => 1], $entry->attribute_changes['old']);
         $this->assertSame(['name' => 'New name', 'priority' => 8], $entry->attribute_changes['attributes']);
+    }
+
+    // ---- the currency is locked once amounts exist in it ----
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function pricedThings(): array
+    {
+        return ['a fare rule' => ['fare_rule'], 'a fare fee' => ['fare_fee'], 'a commission rule' => ['commission_rule'], 'a trip' => ['trip']];
+    }
+
+    private function price(Zone $zone, string $what): void
+    {
+        match ($what) {
+            'fare_rule' => FareRule::factory()->forZone($zone)->create(),
+            'fare_fee' => FareFee::factory()->forZone($zone)->create(),
+            'commission_rule' => CommissionRule::factory()->forZone($zone)->create(),
+            'trip' => Trip::factory()->create(['zone_id' => $zone->id]),
+        };
+    }
+
+    #[DataProvider('pricedThings')]
+    public function test_the_currency_cannot_change_once_the_zone_has_priced_things(string $what): void
+    {
+        $zone = Zone::factory()->create(['currency' => 'AMD', 'name' => 'Priced']);
+        $this->price($zone, $what);
+
+        $this->actingAs($this->admin)->from('/admin/zones')->withHeaders(['X-Inertia' => 'true'])->patch("/admin/zones/{$zone->id}", ['currency' => 'USD', 'name' => 'Renamed'])
+            ->assertRedirect('/admin/zones')->assertSessionHas('error', 'The currency cannot change once the zone has fare rules, commission rules, fees or trips.');
+
+        $fresh = $zone->fresh();
+        $this->assertSame(['AMD', 'Priced'], [$fresh->currency, $fresh->name], 'nothing in the request was applied');
+        $this->assertSame(0, ActivityLogEntry::where('description', 'zone.updated')->count());
+    }
+
+    public function test_other_changes_and_the_same_currency_still_work_on_a_priced_zone(): void
+    {
+        $zone = Zone::factory()->create(['currency' => 'AMD']);
+        $this->price($zone, 'commission_rule');
+
+        $this->actingAs($this->admin)->patch("/admin/zones/{$zone->id}", ['currency' => 'AMD', 'name' => 'Renamed', 'priority' => 9])->assertSessionHasNoErrors();
+
+        $this->assertSame(['Renamed', 'AMD', 9], [$zone->fresh()->name, $zone->fresh()->currency, $zone->fresh()->priority]);
+    }
+
+    public function test_the_currency_can_change_while_nothing_is_priced_in_it(): void
+    {
+        $zone = Zone::factory()->create(['currency' => 'AMD']);
+        FareRule::factory()->forZone(Zone::factory()->create())->create(); // another zone's price does not lock this one
+
+        $this->actingAs($this->admin)->patch("/admin/zones/{$zone->id}", ['currency' => 'USD'])->assertSessionHasNoErrors();
+
+        $this->assertSame('USD', $zone->fresh()->currency);
+    }
+
+    public function test_the_page_says_which_zones_have_a_locked_currency(): void
+    {
+        $locked = Zone::factory()->priority(9)->create();
+        $free = Zone::factory()->priority(1)->create();
+        $this->price($locked, 'fare_rule');
+
+        $this->actingAs($this->admin)->get('/admin/zones')->assertInertia(fn (Assert $p) => $p
+            ->where('zones.0.id', $locked->id)->where('zones.0.currency_locked', true)
+            ->where('zones.1.id', $free->id)->where('zones.1.currency_locked', false));
     }
 
     public function test_changing_the_polygon_replaces_it_and_the_log_only_counts_points(): void

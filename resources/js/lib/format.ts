@@ -98,6 +98,17 @@ export function parseMoneyInput(input: string, decimals: number): number | null 
     return Number.isSafeInteger(minor) ? minor : null;
 }
 
+/**
+ * "18" or "18.5" typed as a percentage to basis points (1800, 1850) with integer maths. Null for anything
+ * that is not 0-100 with at most 2 decimals.
+ */
+export function parsePercentInput(input: string): number | null {
+    const match = input.trim().replace(',', '.').match(/^(\d{1,3})(?:\.(\d{1,2}))?$/);
+    if (!match) return null;
+    const bps = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
+    return bps <= 10_000 ? bps : null;
+}
+
 export function newIdempotencyKey(): string {
     return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

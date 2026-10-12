@@ -7,7 +7,7 @@ import type { Zone } from '@/types';
 
 vi.mock('@inertiajs/react', async (importOriginal) => (await import('@/test/inertia')).inertiaMock(importOriginal));
 
-const zone: Zone = { id: 9, name: 'Downtown', code: 'DOWNTOWN', status: 'active', polygon_valid: true, timezone: 'Europe/Berlin', currency: 'EUR', priority: 4, points: 5 };
+const zone: Zone = { id: 9, name: 'Downtown', code: 'DOWNTOWN', status: 'active', polygon_valid: true, timezone: 'Europe/Berlin', currency: 'EUR', currency_locked: false, priority: 4, points: 5 };
 const polygon = { type: 'Polygon' as const, coordinates: [[[44.4, 40.1], [44.6, 40.1], [44.6, 40.3], [44.4, 40.1]]] };
 const props = { open: true, onClose: vi.fn(), zone: null, polygon: null, timezones: ['Asia/Yerevan', 'Europe/Berlin', 'UTC'], currencies: ['AMD', 'EUR', 'USD'], url: '/admin/zones' };
 
@@ -104,5 +104,22 @@ describe('Zone form', () => {
         render(<ZoneForm {...props} open={false} />);
 
         expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('locks the currency once the zone has prices, commission rules or trips', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(<ZoneForm {...props} zone={{ ...zone, currency_locked: true }} polygon={polygon} url="/admin/zones/9" />);
+
+        expect(screen.getByLabelText(/Currency/)).toBeDisabled();
+        expect(screen.getByLabelText(/Currency/)).toHaveValue('EUR');
+        expect(screen.getByText(/The currency cannot change once the zone has prices/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        expect(visit.mock.calls[0][1]).toMatchObject({ data: { currency: 'EUR' } });
+    });
+
+    it('lets the currency change while nothing is priced in it, and always when creating', () => {
+        render(<ZoneForm {...props} zone={zone} polygon={polygon} url="/admin/zones/9" />);
+        expect(screen.getByLabelText(/Currency/)).toBeEnabled();
+        expect(screen.queryByText(/The currency cannot change/)).toBeNull();
     });
 });
