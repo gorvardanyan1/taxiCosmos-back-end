@@ -26,7 +26,11 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/riders`, `/admin/riders/{id}` | `riders.view` |
 | `PATCH /admin/riders/{id}` (contact details, reason required) | `riders.edit` |
 | `POST /admin/riders/{id}/suspend`, `.../reactivate` (reason required) | `riders.suspend` |
-| `GET /admin/drivers`, `/admin/drivers/{id}` | `drivers.view` |
+| `GET /admin/drivers`, `/admin/drivers/{id}`, `/admin/drivers/{id}/vehicles` | `drivers.view` |
+| `PATCH /admin/drivers/{id}` (reason required) | `drivers.edit` |
+| `POST /admin/drivers/{id}/suspend`, `.../reactivate` (reason required) | `drivers.suspend` |
+| `POST /admin/drivers/{id}/vehicles`, `PATCH /admin/drivers/{id}/vehicles/{vehicleId}`, `POST .../vehicles/{vehicleId}/set-primary` | `drivers.edit` |
+| `POST /admin/drivers/{id}/bank-accounts/{accountId}/reveal` (logged, rate-limited) | `drivers.reveal_bank_account` |
 | `GET /admin/drivers/{id}/documents/{docId}/file` (signed, expiring link) | `drivers.view` |
 | `POST /admin/drivers/{id}/documents/{docId}/approve`, `.../reject` (reason required) | `drivers.verify` |
 | `GET /admin/trips`, `/admin/trips/{id}` | `trips.view` |
@@ -75,8 +79,10 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `riders.edit` | ✓ | ✓ | ✓ | — | — | Edit a rider's name, email, phone and language (reason required) |
 | `riders.suspend` | ✓ | ✓ | ✓ | — | — | Suspend / reactivate a rider (reason required) |
 | `drivers.view` | ✓ | ✓ | ✓ | ✓ | ✓ | View driver list, profiles, vehicles and documents |
+| `drivers.edit` | ✓ | ✓ | ✓ | — | — | Edit a driver's name, email, phone, licence and home zone (reason required), and manage the driver's vehicles |
 | `drivers.suspend` | ✓ | ✓ | ✓ | — | — | Suspend / reactivate a driver (reason required) |
 | `drivers.verify` | ✓ | ✓ | ✓ | — | — | Approve / reject driver applications and documents |
+| `drivers.reveal_bank_account` | ✓ | — | — | ✓ | — | Reveal a driver's full bank account number (every reveal is logged) |
 | `trips.view` | ✓ | ✓ | ✓ | ✓ | ✓ | View trip list and trip detail |
 | `trips.force_cancel` | ✓ | ✓ | — | — | ✓ | Force-cancel or reassign a live trip |
 | `trips.adjust_fare` | ✓ | ✓ | — | ✓ | — | Adjust the fare of a completed trip |

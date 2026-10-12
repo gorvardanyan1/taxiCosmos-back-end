@@ -77,6 +77,7 @@ describe('P13-T1 · Admin shell and route map', () => {
         cy.go('back');
         cy.location('pathname').should('eq', '/admin/trips');
 
+        cy.make('driver_with_documents', { name: 'Shell Driver' });
         cy.visit('/admin/drivers');
         cy.get('tbody tr a').first().then(($link) => {
             const name = $link.text();
@@ -149,7 +150,7 @@ describe('P13-T1 · Admin shell and route map', () => {
         cy.pageProps('/admin/riders').then((props) => {
             expect(props.auth.user).to.include({ name: 'Sol Support', email: 'cy-shell-support@taxikosmos.test', role: 'support' });
             expect(props.auth.permissions).to.deep.equal([
-                'dashboard.view', 'drivers.suspend', 'drivers.verify', 'drivers.view', 'payments.view', 'ratings.view',
+                'dashboard.view', 'drivers.edit', 'drivers.suspend', 'drivers.verify', 'drivers.view', 'payments.view', 'ratings.view',
                 'riders.edit', 'riders.suspend', 'riders.view', 'support.manage', 'trips.view',
             ]);
             expect(props.app.currencies.map((c: { code: string }) => c.code)).to.include('AMD');

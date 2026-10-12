@@ -81,6 +81,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('auth-refresh', fn (Request $request) => Limit::perMinute(30)->by('auth-refresh:'.$request->ip()));
 
+        // Revealing a bank account number is logged every time; the limit stops a stolen session from harvesting numbers.
+        RateLimiter::for('bank-account-reveal', fn (Request $request) => Limit::perMinute(10)->by('bank-account-reveal:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         // Each estimate stores a quote, so it is limited per rider (not per address, which phones share).
         RateLimiter::for('fare-estimate', fn (Request $request) => Limit::perMinute(30)->by('fare-estimate:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }

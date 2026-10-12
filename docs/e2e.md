@@ -47,7 +47,7 @@ when `APP_ENV` is `e2e` or `testing`, and refusing to run unless the database na
 | Cypress | Artisan | Does |
 | --- | --- | --- |
 | `cy.resetDb()` | `e2e:reset` | `migrate:fresh --seed`, empty cache, realtime streams, e2e files and `e2e.log` |
-| `cy.make(fixture, attrs)` | `e2e:make` | a named fixture from `tests/E2e/E2eFixtures.php` (admins, riders, drivers with documents, zones, fare rules and fees, reset links, session ageing, status changes, …) through the real models |
+| `cy.make(fixture, attrs)` | `e2e:make` | a named fixture from `tests/E2e/E2eFixtures.php` (admins, riders, drivers with documents, zones, drivers (with vehicles, bank account, trips), fare rules and fees, reset links, session ageing, status changes, …) through the real models |
 | `cy.sql(query, bindings)` | `e2e:sql` | one read-only `SELECT` (READ ONLY transaction) to assert what reached the database |
 
 Other commands: `cy.loginAs(email)` (real login form, cached per spec with `cy.session`),

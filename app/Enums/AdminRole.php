@@ -35,7 +35,7 @@ enum AdminRole: string
             self::SuperAdmin => AdminPermission::cases(),
             self::Admin => array_values(array_filter(
                 AdminPermission::cases(),
-                fn (AdminPermission $permission) => $permission !== AdminPermission::AdminsManage,
+                fn (AdminPermission $permission) => ! in_array($permission, [AdminPermission::AdminsManage, AdminPermission::DriversRevealBankAccount], true),
             )),
             self::Support => [
                 AdminPermission::DashboardView,
@@ -43,6 +43,7 @@ enum AdminRole: string
                 AdminPermission::RidersEdit,
                 AdminPermission::RidersSuspend,
                 AdminPermission::DriversView,
+                AdminPermission::DriversEdit,
                 AdminPermission::DriversSuspend,
                 AdminPermission::DriversVerify,
                 AdminPermission::TripsView,
@@ -54,6 +55,7 @@ enum AdminRole: string
                 AdminPermission::DashboardView,
                 AdminPermission::RidersView,
                 AdminPermission::DriversView,
+                AdminPermission::DriversRevealBankAccount,
                 AdminPermission::TripsView,
                 AdminPermission::TripsAdjustFare,
                 AdminPermission::PaymentsView,

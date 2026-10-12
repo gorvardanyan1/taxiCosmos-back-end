@@ -15,6 +15,7 @@ function renderTab(documents: DriverDocument[], actions: { approveDocument: stri
     const driver = {
         id: 9, code: 'DRV-0009', name: 'Gor Hakobyan', verification_status: 'pending', documents,
         phone: '+374 99 661 009', vehicle: { label: 'Hyundai Elantra', year: 2021 }, trips_count: 0, rating: null, earnings: { amount: 0, currency: 'AMD' },
+        availability: 'offline', status: 'active', raw: { name: 'Gor Hakobyan', email: null, phone: '+374 99 661 009', license_expiry: null, home_zone_id: null }, license_last4: null, home_zone: null, suspension_reason: null,
         vehicles: [], bank_accounts: [], trip_history: [],
         earnings_detail: { balance: { amount: 0, currency: 'AMD' }, debt_limit_exceeded: false, summary: { week: { amount: 0, currency: 'AMD' }, month: { amount: 0, currency: 'AMD' }, all_time: { amount: 0, currency: 'AMD' } }, ledger: [] },
     } as unknown as DriverDetail;
@@ -24,7 +25,9 @@ function renderTab(documents: DriverDocument[], actions: { approveDocument: stri
             driver={driver}
             tab="documents"
             tabs={['profile', 'documents']}
-            actions={{ ...actions, addVehicle: null, setPrimaryVehicle: null, addAdjustment: null, recordCashSettlement: null, revealBankAccount: null }}
+            zones={[]}
+            vehicleClasses={['economy', 'comfort', 'business']}
+            actions={{ ...actions, edit: null, suspend: null, reactivate: null, addVehicle: null, updateVehicle: null, setPrimaryVehicle: null, addAdjustment: null, recordCashSettlement: null, revealBankAccount: null }}
         />,
     );
 }

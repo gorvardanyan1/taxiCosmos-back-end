@@ -46,6 +46,9 @@ are handled too. Failed sign-ins store the email that was typed, never the passw
 | `auth.login`, `auth.logout` (incl. idle timeout), `auth.login_failed` | `LogAuthActivity` |
 | `activity_log.exported` | `ActivityLogController::export` (filters used) |
 | `zone.created`, `zone.updated`, `zone.deactivated`, `zone.activated` | `ZoneService` (see [zones.md](zones.md)) |
+| `driver.updated`, `driver.suspended`, `driver.reactivated` (reason required; the licence number, phone and email show as "changed", never as values) | `DriverService` (see [drivers.md](drivers.md)) |
+| `driver.vehicle.added`, `driver.vehicle.updated`, `driver.vehicle.primary_set` | `DriverVehicleService` |
+| `driver.bank_account.revealed` (one entry per reveal: who, which account, last four digits only) | `BankAccountReveal` |
 | `commission_rule.created` (first rule of a zone and class), `commission_rule.versioned` (old and new values of what changed; `context` = zone code, class or `all`, previous rule id) | `CommissionRuleService` (see [commission.md](commission.md)) |
 | `fare_rule.created` (first rule of a class), `fare_rule.versioned` (a price change: old and new values of what changed, `context` = zone code, class, previous rule id) | `FareRuleService` (see [fares.md](fares.md)) |
 | `rider.updated`, `rider.suspended`, `rider.reactivated` | `RiderService` (see [riders.md](riders.md)); a reason is required |

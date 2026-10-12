@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\DriverProfile;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\Audit\AuditLogger;
@@ -99,8 +100,9 @@ class UrlStateTest extends AdminTestCase
     {
         $admin = $this->admin();
 
-        $this->actingAs($admin)->get('/admin/drivers/8?tab=documents')->assertInertia(fn (Assert $page) => $page->where('tab', 'documents'));
-        $this->actingAs($admin)->get('/admin/drivers/8?tab=../../etc')->assertInertia(fn (Assert $page) => $page->where('tab', 'profile'));
+        $driverId = DriverProfile::factory()->create()->id;
+        $this->actingAs($admin)->get("/admin/drivers/{$driverId}?tab=documents")->assertInertia(fn (Assert $page) => $page->where('tab', 'documents'));
+        $this->actingAs($admin)->get("/admin/drivers/{$driverId}?tab=../../etc")->assertInertia(fn (Assert $page) => $page->where('tab', 'profile'));
         $rider = User::factory()->rider()->create();
         $this->actingAs($admin)->get("/admin/riders/{$rider->id}?tab=payment-methods")->assertInertia(fn (Assert $page) => $page->where('tab', 'payment-methods'));
         $this->actingAs($admin)->get('/admin/account?tab=security')->assertInertia(fn (Assert $page) => $page->where('tab', 'security'));

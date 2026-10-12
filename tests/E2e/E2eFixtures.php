@@ -10,12 +10,14 @@ use App\Enums\UserStatus;
 use App\Enums\VehicleClass;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Models\CommissionRule;
+use App\Models\DriverBankAccount;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\FareFee;
 use App\Models\FareRule;
 use App\Models\Trip;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Models\Zone;
 use App\Realtime\RealtimeEventType;
 use App\Realtime\StreamClient;
@@ -58,6 +60,7 @@ final class E2eFixtures
             'riders' => $this->riders($a),
             'system_audit_entry' => $this->systemAuditEntry($a),
             'driver_with_documents' => $this->driverWithDocuments($a),
+            'driver' => $this->driver($a),
             'signed_document_url' => $this->signedDocumentUrl($a),
             'zone' => $this->zone($a),
             'fare_rule' => $this->fareRule($a),
@@ -183,6 +186,58 @@ final class E2eFixtures
         }
 
         return ['driver_id' => $profile->id, 'user_id' => $user->id, 'name' => $user->name, 'license_number' => $profile->license_number, 'phone' => $user->phone, 'documents' => $documents];
+    }
+
+    /**
+     * A driver for the admin driver pages. {name?, phone?, email?, license_number?, license_expiry?, zone_code?, verification_status?, availability?,
+     * suspended?, rating?, vehicles?: [{make, model, plate, class?, status?, primary?}], bank_account?: {bank_name, account_number},
+     * completed_trips?: [earningsMinorUnits...], live_trip?: matched|arrived|in_progress, document_expires?}
+     *
+     * @param  array<string, mixed>  $a
+     * @return array<string, mixed>
+     */
+    private function driver(array $a): array
+    {
+        $user = User::factory()->driver()->withPhone($a['phone'] ?? null)->create([
+            'name' => $a['name'] ?? 'Cypress Driver',
+            'email' => $a['email'] ?? null,
+            ...(($a['suspended'] ?? false) ? ['status' => UserStatus::Suspended, 'suspension_reason' => 'Suspended by fixture'] : []),
+        ]);
+        $zone = isset($a['zone_code']) ? Zone::query()->where('code', $a['zone_code'])->firstOrFail() : null;
+        $profile = DriverProfile::factory()->create(array_filter([
+            'user_id' => $user->id,
+            'license_number' => $a['license_number'] ?? null,
+            'license_expiry' => $a['license_expiry'] ?? null,
+            'home_zone_id' => $zone?->id,
+            'rating_avg' => $a['rating'] ?? null,
+        ], fn ($value) => $value !== null));
+        $profile->forceFill(array_filter(['verification_status' => $a['verification_status'] ?? null, 'availability' => $a['availability'] ?? null], fn ($value) => $value !== null))->save();
+
+        ($a['deleted'] ?? false) && $user->delete();
+
+        foreach ($a['vehicles'] ?? [] as $vehicle) {
+            Vehicle::factory()->for($profile, 'driver')->create(['make' => $vehicle['make'], 'model' => $vehicle['model'], 'plate_number' => $vehicle['plate'], 'vehicle_class' => $vehicle['class'] ?? 'economy', 'status' => $vehicle['status'] ?? 'active', 'is_primary' => $vehicle['primary'] ?? false]);
+        }
+
+        if (isset($a['bank_account'])) {
+            DriverBankAccount::factory()->default()->for($profile, 'driver')->create($a['bank_account']);
+        }
+
+        if (isset($a['document_expires'])) {
+            DriverDocument::factory()->for($profile, 'driver')->expiring($a['document_expires'])->create();
+        }
+
+        $tripZone = $zone ?? Zone::factory()->create();
+        foreach ($a['completed_trips'] ?? [] as $earnings) {
+            Trip::factory()->completed()->create(['driver_id' => $profile->id, 'zone_id' => $tripZone->id, 'driver_earnings_amount' => $earnings, 'commission_amount' => 1000, 'fare_amount' => $earnings + 1000]);
+        }
+
+        if (isset($a['live_trip'])) {
+            $trip = Trip::factory()->create(['driver_id' => $profile->id, 'zone_id' => $tripZone->id]);
+            $trip->forceFill(['status' => $a['live_trip'], 'matched_at' => now()])->saveQuietly();
+        }
+
+        return ['driver_id' => $profile->id, 'user_id' => $user->id, 'name' => $user->name, 'phone' => $user->phone, 'code' => sprintf('D-%04d', $profile->id)];
     }
 
     /**

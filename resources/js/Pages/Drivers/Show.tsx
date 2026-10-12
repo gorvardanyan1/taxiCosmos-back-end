@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { CheckCircle, Eye, XCircle } from 'lucide-react';
+import { CheckCircle, Edit2, Eye, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import ActionButton from '@/Components/ActionButton';
 import Avatar from '@/Components/Avatar';
@@ -10,24 +10,36 @@ import UrlTabs from '@/Components/UrlTabs';
 import { daysUntil, formatDate, formatDateTime, formatNumber } from '@/lib/format';
 import { label } from '@/lib/labels';
 import { withId } from '@/lib/query';
+import EditDriver from './EditDriver';
+import RevealAccountNumber from './RevealAccountNumber';
+import VehicleForm from './VehicleForm';
 import { useShared } from '@/lib/useShared';
-import type { Actions, DriverDetail, DriverDocument } from '@/types';
-import { t, tc, tk } from '@/lib/i18n';
+import type { Actions, DriverDetail, DriverDocument, Vehicle, VehicleClass } from '@/types';
+import { t, tc, tk, tn } from '@/lib/i18n';
 
 interface Props {
     driver: DriverDetail;
     tab: string;
     tabs: string[];
-    actions: Actions<'approveDocument' | 'rejectDocument' | 'addVehicle' | 'setPrimaryVehicle' | 'addAdjustment' | 'recordCashSettlement' | 'revealBankAccount'>;
+    zones: { id: number; name: string }[];
+    vehicleClasses: VehicleClass[];
+    actions: Actions<'approveDocument' | 'rejectDocument' | 'edit' | 'suspend' | 'reactivate' | 'addVehicle' | 'updateVehicle' | 'setPrimaryVehicle' | 'addAdjustment' | 'recordCashSettlement' | 'revealBankAccount'>;
 }
 
 const tile = { background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' } as const;
 const tabLabels: Record<string, string> = { 'trip-history': tk('Trip History'), 'bank-accounts': tk('Bank accounts') };
 
-export default function DriverShow({ driver, tab, tabs, actions }: Props) {
+export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, actions }: Props) {
     const { money, timezone } = useShared();
     const [rejecting, setRejecting] = useState<DriverDocument | null>(null);
+    const [editing, setEditing] = useState(false);
+    const [acting, setActing] = useState(false);
+    /** The vehicle form: a vehicle being edited, or (null) a new one. */
+    const [vehicleForm, setVehicleForm] = useState<{ vehicle: Vehicle | null } | null>(null);
     const earnings = driver.earnings_detail;
+    const suspended = driver.status === 'suspended';
+    // Only active drivers can be suspended and only suspended ones reactivated.
+    const canToggle = (driver.status === 'active' || suspended) && (suspended ? actions.reactivate : actions.suspend) !== null;
 
     return (
         <div className="mx-auto max-w-4xl">
@@ -41,7 +53,17 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                         <p className="text-xs" style={{ color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{driver.code}</p>
                     </div>
                     <StatusBadge status={driver.verification_status} />
+                    {suspended && <StatusBadge status="suspended" />}
+                    <button onClick={() => setEditing(true)} disabled={actions.edit === null} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">{t('Edit')}</button>
+                    {canToggle && (
+                        <button onClick={() => setActing(true)} className={`rounded-xl px-3 py-2 text-xs font-bold ${suspended ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>{suspended ? t('Reactivate') : t('Suspend')}</button>
+                    )}
                 </div>
+                {suspended && (
+                    <div className="border-b border-red-200 bg-red-50 px-6 py-3 text-sm font-semibold text-red-700">
+                        {t('Suspended')}{driver.suspension_reason ? `: ${driver.suspension_reason}` : ''}
+                    </div>
+                )}
                 <div style={{ background: 'white', borderBottom: '1px solid #f1f5f9' }}><UrlTabs tabs={tabs} active={tab} variant="underline" labels={tabLabels} /></div>
 
                 <div className="p-6">
@@ -54,6 +76,9 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                                 [t('Rating'), driver.rating ? `${driver.rating} / 5.0` : '—'],
                                 [t('Total Earnings'), money(driver.earnings)],
                                 [t('Verification'), label(driver.verification_status)],
+                                [t('Availability'), label(driver.availability)],
+                                [t('License'), driver.license_last4 ? `•••• ${driver.license_last4}${driver.raw.license_expiry ? ` · ${formatDate(driver.raw.license_expiry, timezone)}` : ''}` : '—'],
+                                [t('Home zone'), driver.home_zone ?? '—'],
                             ] as const).map(([title, value]) => (
                                 <div key={title} className="rounded-2xl p-4" style={tile}>
                                     <p className="mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{title}</p>
@@ -100,7 +125,8 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
 
                     {tab === 'vehicles' && (
                         <div className="space-y-3">
-                            <ActionButton url={actions.addVehicle} className="w-full rounded-xl border border-dashed border-indigo-300 bg-indigo-50 py-3 text-xs font-bold text-indigo-600">{t('+ Add vehicle')}</ActionButton>
+                            <button onClick={() => setVehicleForm({ vehicle: null })} disabled={actions.addVehicle === null} className="w-full rounded-xl border border-dashed border-indigo-300 bg-indigo-50 py-3 text-xs font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40">{t('+ Add vehicle')}</button>
+                            {driver.vehicles.length === 0 && <EmptyState title={t('No vehicles yet')} />}
                             {driver.vehicles.map((vehicle) => (
                                 <div key={vehicle.id} className="rounded-2xl bg-white p-4 shadow-sm">
                                     <div className="flex items-start">
@@ -108,7 +134,8 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                                             <p className="font-display text-sm font-bold text-slate-900">{vehicle.make} {vehicle.model} · {vehicle.year}</p>
                                             <p className="mt-1 font-mono text-xs text-slate-500">{vehicle.plate_number}</p>
                                         </div>
-                                        <div className="ml-auto flex gap-1">
+                                        <div className="ml-auto flex items-start gap-1">
+                                            <button aria-label={t('Edit :vehicle', { vehicle: `${vehicle.make} ${vehicle.model}` })} onClick={() => setVehicleForm({ vehicle })} disabled={actions.updateVehicle === null} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 disabled:opacity-40"><Edit2 size={12} /></button>
                                             <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold text-violet-700">{label(vehicle.vehicle_class)}</span>
                                             <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">{vehicle.is_primary ? t('Primary') : label(vehicle.status)}</span>
                                         </div>
@@ -116,7 +143,7 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                                     <div className="mt-4 flex items-center text-xs text-slate-500">
                                         <span className="mr-2 size-3 rounded-full border border-slate-200" style={{ background: vehicle.color.toLowerCase() }} />
                                         {vehicle.color}
-                                        {!vehicle.is_primary && <ActionButton url={withId(actions.setPrimaryVehicle, vehicle.id)} className="ml-auto font-bold text-indigo-600">{t('Set as primary')}</ActionButton>}
+                                        {!vehicle.is_primary && vehicle.status === 'active' && <ActionButton url={withId(actions.setPrimaryVehicle, vehicle.id)} className="ml-auto font-bold text-indigo-600">{t('Set as primary')}</ActionButton>}
                                     </div>
                                 </div>
                             ))}
@@ -132,6 +159,7 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                                     <p className="mt-1 text-xs text-red-600">{t('Owes platform :amount', { amount: money({ ...earnings.balance, amount: -earnings.balance.amount }) })}{earnings.debt_limit_exceeded ? ` · ${t('Debt limit exceeded')}` : ''}</p>
                                 )}
                             </div>
+                            {earnings.ledger_pending && <p className="mb-4 text-xs text-slate-400">{t('Showing earnings from completed trips. Payouts, cash settlements and adjustments appear here once the earnings ledger is available.')}</p>}
                             <div className="mb-4 grid grid-cols-3 gap-3">
                                 {([[t('This week'), earnings.summary.week], [t('This month'), earnings.summary.month], [t('All time'), earnings.summary.all_time]] as const).map(([title, value]) => (
                                     <div key={title} className="rounded-2xl p-4 text-center" style={tile}>
@@ -187,12 +215,32 @@ export default function DriverShow({ driver, tab, tabs, actions }: Props) {
                                     </div>
                                     {account.is_default && <span className="ml-auto rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">{t('Default')}</span>}
                                 </div>
-                                <ActionButton url={withId(actions.revealBankAccount, account.id)} className="mt-5 w-full rounded-xl border border-slate-200 py-2 text-xs font-bold text-indigo-600">{t('Reveal account · This action is logged')}</ActionButton>
+                                <RevealAccountNumber url={withId(actions.revealBankAccount, account.id)} />
                             </div>
                         ))
                     )}
                 </div>
             </div>
+            <EditDriver open={editing} onClose={() => setEditing(false)} driver={driver} zones={zones} url={actions.edit} />
+            <VehicleForm
+                open={vehicleForm !== null}
+                onClose={() => setVehicleForm(null)}
+                vehicle={vehicleForm?.vehicle ?? null}
+                vehicleClasses={vehicleClasses}
+                url={vehicleForm?.vehicle ? withId(actions.updateVehicle, vehicleForm.vehicle.id) : actions.addVehicle}
+            />
+            <ReasonModal
+                open={acting}
+                onClose={() => setActing(false)}
+                title={`${suspended ? t('Reactivate') : t('Suspend')} ${driver.name}`}
+                description={suspended
+                    ? tn('This lets :name sign in and take trips again.', { name: <strong style={{ color: '#0f172a' }}>{driver.name}</strong> })
+                    : tn('This will immediately take :name offline and sign them out of the app. A driver on a trip cannot be suspended.', { name: <strong style={{ color: '#0f172a' }}>{driver.name}</strong> })}
+                confirmLabel={suspended ? t('Confirm Reactivation') : t('Confirm Suspension')}
+                placeholder={suspended ? t('Why is this driver being reactivated…') : t('Describe why this driver is being suspended…')}
+                tone={suspended ? 'primary' : 'danger'}
+                url={suspended ? actions.reactivate : actions.suspend}
+            />
             <ReasonModal
                 open={rejecting !== null}
                 onClose={() => setRejecting(null)}
