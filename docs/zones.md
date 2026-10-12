@@ -13,6 +13,8 @@ writes it. `driver_profiles.home_zone_id` is a foreign key to zones (restricted)
 
 Prices per vehicle class live in `fare_rules` (effective-dated, see [fares.md](fares.md)); the Zones page shows them.
 
+A zone's **currency is locked** once fare rules, fare fees, commission rules or trips exist for it (their amounts are plain numbers in that currency): `PATCH` with a different currency answers 409 and changes nothing (the form shows the field disabled; `currency_locked` in the page props). Sending the same currency is fine.
+
 Zones are **never deleted**: the model refuses `delete()`, no route exists, and the foreign key restricts removal
 of a zone that something points to. Deactivate instead.
 

@@ -7,7 +7,7 @@ import type { FareRule, Zone } from '@/types';
 
 vi.mock('@inertiajs/react', async (importOriginal) => (await import('@/test/inertia')).inertiaMock(importOriginal));
 
-const zone = (overrides: Partial<Zone>): Zone => ({ id: 1, name: 'Downtown Core', code: 'DOWNTOWN', status: 'active', polygon_valid: true, timezone: 'Asia/Yerevan', currency: 'AMD', priority: 5, points: 5, ...overrides });
+const zone = (overrides: Partial<Zone>): Zone => ({ id: 1, name: 'Downtown Core', code: 'DOWNTOWN', status: 'active', polygon_valid: true, timezone: 'Asia/Yerevan', currency: 'AMD', currency_locked: false, priority: 5, points: 5, ...overrides });
 const polygon = { type: 'Polygon' as const, coordinates: [[[44.4, 40.1], [44.6, 40.1], [44.6, 40.3], [44.4, 40.3], [44.4, 40.1]]] };
 const actions = { createZone: '/admin/zones', updateZone: '/admin/zones/{id}', deactivateZone: '/admin/zones/{id}/deactivate', activateZone: '/admin/zones/{id}/activate', saveFareRule: '/admin/zones/{id}/fare-rules', drawPolygon: null };
 const amd = (amount: number) => ({ amount, currency: 'AMD' });

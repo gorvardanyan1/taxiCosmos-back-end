@@ -173,6 +173,36 @@ describe('P5-T3 · Zones', () => {
         });
     });
 
+    // Money: amounts are plain numbers, so a zone's currency is locked once fare rules (or commission rules, fees, trips) exist.
+    it('locks the currency of a zone that already has prices, and still lets an unpriced zone change it', () => {
+        cy.make('zone', { name: 'Priced Zone', code: 'PRICED', lat: 41.9, lng: 44.9 }).then((zone) => {
+            cy.make('fare_rule', { zone_code: 'PRICED' });
+            cy.visit(`/admin/zones?zone=${zone.id}`);
+
+            cy.findByRole('button', { name: 'Edit zone' }).click();
+            cy.findByRole('dialog', { name: 'Edit Priced Zone' }).within(() => {
+                cy.findByLabelText(/^Currency/).should('be.disabled').and('have.value', 'AMD');
+                cy.contains('The currency cannot change once the zone has prices').should('be.visible');
+            });
+
+            cy.adminRequest('PATCH', `/admin/zones/${zone.id}`, { currency: 'USD' }).its('status').should('eq', 303);
+            cy.pageProps(`/admin/zones?zone=${zone.id}`).its('flash.error').should('eq', 'The currency cannot change once the zone has fare rules, commission rules, fees or trips.');
+            cy.sql('select currency from zones where id = ?', [zone.id]).its('0.currency').should('eq', 'AMD');
+            cy.sql("select count(*)::int as n from activity_log where description = 'zone.updated' and subject_id = ?", [zone.id]).its('0.n').should('eq', 0);
+        });
+
+        cy.make('zone', { name: 'Unpriced Zone', code: 'UNPRICED', lat: 42.1, lng: 45.1 }).then((zone) => {
+            cy.visit(`/admin/zones?zone=${zone.id}`);
+            cy.findByRole('button', { name: 'Edit zone' }).click();
+            cy.findByRole('dialog', { name: 'Edit Unpriced Zone' }).within(() => {
+                cy.findByLabelText(/^Currency/).should('be.enabled').select('USD');
+                cy.findByRole('button', { name: 'Save changes' }).click();
+            });
+            cy.findAllByRole('status').last().should('contain', 'Zone updated.');
+            cy.sql('select currency from zones where id = ?', [zone.id]).its('0.currency').should('eq', 'USD');
+        });
+    });
+
     // Permission: zones.manage. Support does not have it.
     it('refuses the zones page and every zone write to a role without zones.manage', () => {
         cy.make('zone', { name: 'Guarded', code: 'GUARDED' }).then((zone) => {

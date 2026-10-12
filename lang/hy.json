@@ -584,6 +584,8 @@
     "The code could not be sent. Please try again shortly.": "Կոդը հնարավոր չեղավ ուղարկել։ Փորձեք կրկին մի փոքր ուշ։",
     "The code is invalid or has expired.": "Կոդը սխալ է կամ ժամկետը լրացել է։",
     "The code must be 2-32 characters: capital letters, digits, \"-\" or \"_\".": "Կոդը պետք է պարունակի 2–32 նիշ՝ մեծատառեր, թվանշաններ, «-» կամ «_»։",
+    "The currency cannot change once the zone has fare rules, commission rules, fees or trips.": "Արժույթը չի կարելի փոխել, երբ գոտին ունի սակագների կանոններ, միջնորդավճարի կանոններ, վճարներ կամ ուղևորություններ։",
+    "The currency cannot change once the zone has prices, commission rules or trips.": "Արժույթը չի կարելի փոխել, երբ գոտին ունի սակագներ, միջնորդավճարի կանոններ կամ ուղևորություններ։",
     "The language of the admin panel, its messages and the emails we send you.": "Ադմինիստրատորի վահանակի, դրա հաղորդագրությունների և ձեզ ուղարկվող նամակների լեզուն։",
     "The page may have moved or no longer exists.": "Էջը կարող է տեղափոխվել կամ այլևս գոյություն չունի։",
     "The phone must be a valid phone number.": "Հեռախոսը պետք է լինի վավեր համար։",

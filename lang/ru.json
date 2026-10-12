@@ -584,6 +584,8 @@
     "The code could not be sent. Please try again shortly.": "Не удалось отправить код. Повторите попытку чуть позже.",
     "The code is invalid or has expired.": "Код неверен или срок его действия истёк.",
     "The code must be 2-32 characters: capital letters, digits, \"-\" or \"_\".": "Код должен содержать от 2 до 32 символов: заглавные буквы, цифры, «-» или «_».",
+    "The currency cannot change once the zone has fare rules, commission rules, fees or trips.": "Валюту нельзя изменить, когда у зоны есть тарифы, правила комиссии, сборы или поездки.",
+    "The currency cannot change once the zone has prices, commission rules or trips.": "Валюту нельзя изменить, когда у зоны есть тарифы, правила комиссии или поездки.",
     "The language of the admin panel, its messages and the emails we send you.": "Язык панели администратора, её сообщений и писем, которые мы вам отправляем.",
     "The page may have moved or no longer exists.": "Страница могла быть перемещена или больше не существует.",
     "The phone must be a valid phone number.": "Телефон должен быть действительным номером.",

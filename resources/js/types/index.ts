@@ -263,6 +263,8 @@ export interface Zone {
     polygon_valid: boolean;
     timezone: string;
     currency: string;
+    /** Prices, fees, commission rules or trips already hold amounts in this currency: it can no longer change. */
+    currency_locked: boolean;
     /** Overlapping zones: the highest priority wins. */
     priority: number;
     /** Number of points in the polygon. */
