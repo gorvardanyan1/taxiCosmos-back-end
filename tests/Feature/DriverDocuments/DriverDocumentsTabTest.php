@@ -70,14 +70,11 @@ class DriverDocumentsTabTest extends DriverDocumentTestCase
             ->assertInertia(fn (Assert $page) => $page->where('driver.documents', [])->where('driver.verification_status', 'pending'));
     }
 
-    public function test_a_fixture_driver_keeps_fixture_documents_and_has_no_review_endpoints(): void
+    public function test_the_former_fixture_driver_ids_are_gone_the_page_only_shows_real_drivers(): void
     {
-        $this->actingAs($this->admin())->get('/admin/drivers/8?tab=documents')
-            ->assertInertia(fn (Assert $page) => $page
-                ->has('driver.documents', 4)
-                ->missing('driver.documents.0.file_url')
-                ->where('actions.approveDocument', null)
-                ->where('actions.rejectDocument', null));
+        foreach ([1, 8] as $fixtureId) {
+            $this->actingAs($this->admin())->get("/admin/drivers/{$fixtureId}?tab=documents")->assertNotFound();
+        }
     }
 
     public function test_an_unknown_driver_is_still_a_404(): void

@@ -6,7 +6,6 @@ use App\Models\DriverBankAccount;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Models\Vehicle;
-use App\Support\AdminFixtures;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -26,14 +25,16 @@ class DriverDetailPageTest extends DriverDocumentTestCase
     public function test_a_database_driver_has_exactly_the_props_the_page_reads(): void
     {
         $driver = DriverProfile::factory()->create();
-        $fixture = app(AdminFixtures::class)->get('drivers');
-        $fixtureProps = [...$fixture['rows'][0], ...$fixture['detail']];
 
         $props = $this->props($driver);
 
-        $this->assertEqualsCanonicalizing(array_keys($fixtureProps), array_keys($props), 'Real and fixture driver props must have the same shape.');
-        $this->assertEqualsCanonicalizing(array_keys($fixtureProps['earnings_detail']), array_keys($props['earnings_detail']));
-        $this->assertEqualsCanonicalizing(array_keys($fixtureProps['earnings']), array_keys($props['earnings']));
+        // The keys of resources/js/types DriverDetail: the page reads each of them.
+        $this->assertEqualsCanonicalizing([
+            'id', 'code', 'name', 'phone', 'vehicle', 'verification_status', 'availability', 'status', 'rating', 'trips_count', 'earnings',
+            'raw', 'license_last4', 'home_zone', 'suspension_reason', 'documents', 'vehicles', 'earnings_detail', 'trip_history', 'bank_accounts',
+        ], array_keys($props), 'The driver props must match the page\'s DriverDetail type.');
+        $this->assertEqualsCanonicalizing(['balance', 'debt_limit_exceeded', 'summary', 'ledger', 'ledger_pending'], array_keys($props['earnings_detail']));
+        $this->assertEqualsCanonicalizing(['amount', 'currency'], array_keys($props['earnings']));
     }
 
     public function test_the_header_comes_from_the_driver_and_their_primary_vehicle(): void

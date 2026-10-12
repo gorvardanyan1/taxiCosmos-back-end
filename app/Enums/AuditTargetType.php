@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use App\Models\CommissionRule;
+use App\Models\DriverBankAccount;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\FareRule;
@@ -19,6 +20,7 @@ enum AuditTargetType: string
 {
     case CommissionRule = 'commission_rule';
     case Driver = 'driver';
+    case DriverBankAccount = 'driver_bank_account';
     case DriverDocument = 'driver_document';
     case FareRule = 'fare_rule';
     case Vehicle = 'vehicle';
@@ -33,6 +35,7 @@ enum AuditTargetType: string
         return match ($this) {
             self::CommissionRule => CommissionRule::class,
             self::Driver => DriverProfile::class,
+            self::DriverBankAccount => DriverBankAccount::class,
             self::DriverDocument => DriverDocument::class,
             self::FareRule => FareRule::class,
             self::Vehicle => Vehicle::class,
@@ -70,6 +73,7 @@ enum AuditTargetType: string
     public static function describe(Model $model): string
     {
         return match (true) {
+            $model instanceof DriverBankAccount => sprintf('Bank account #%d / •••• %s', $model->getKey(), $model->account_last4),
             $model instanceof DriverDocument => sprintf('D-%04d / %s', $model->driver_id, $model->type->label()),
             $model instanceof DriverProfile => sprintf('D-%04d', $model->getKey()),
             $model instanceof Vehicle => sprintf('Vehicle #%d', $model->getKey()),

@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthPageController;
 use Illuminate\Support\Facades\Route;
 
 // Record ids in URLs: 1-18 digits, so an id too large for a bigint is a plain 404, never a type error.
-foreach (['rider', 'driver', 'document', 'trip', 'zone'] as $parameter) {
+foreach (['rider', 'driver', 'document', 'trip', 'zone', 'vehicle', 'account'] as $parameter) {
     Route::pattern($parameter, '[0-9]{1,18}');
 }
 
@@ -45,11 +45,25 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     Route::middleware('permission:drivers.view')->group(function () {
         Route::get('/drivers', [Admin\DriverController::class, 'index'])->name('drivers.index');
         Route::get('/drivers/{driver}', [Admin\DriverController::class, 'show'])->name('drivers.show');
+        Route::get('/drivers/{driver}/vehicles', [Admin\DriverController::class, 'vehicles'])->name('drivers.vehicles');
 
         // Document files: only with a valid, unexpired signature (links are issued per page load).
         Route::get('/drivers/{driver}/documents/{document}/file', [Admin\DriverDocumentController::class, 'file'])
             ->middleware('signed:relative')->name('drivers.documents.file');
     });
+
+    Route::patch('/drivers/{driver}', [Admin\DriverController::class, 'update'])->middleware('permission:drivers.edit')->name('drivers.update');
+    Route::middleware('permission:drivers.suspend')->group(function () {
+        Route::post('/drivers/{driver}/suspend', [Admin\DriverController::class, 'suspend'])->name('drivers.suspend');
+        Route::post('/drivers/{driver}/reactivate', [Admin\DriverController::class, 'reactivate'])->name('drivers.reactivate');
+    });
+    Route::middleware('permission:drivers.edit')->group(function () {
+        Route::post('/drivers/{driver}/vehicles', [Admin\DriverVehicleController::class, 'store'])->name('drivers.vehicles.store');
+        Route::patch('/drivers/{driver}/vehicles/{vehicle}', [Admin\DriverVehicleController::class, 'update'])->name('drivers.vehicles.update');
+        Route::post('/drivers/{driver}/vehicles/{vehicle}/set-primary', [Admin\DriverVehicleController::class, 'setPrimary'])->name('drivers.vehicles.set-primary');
+    });
+    Route::post('/drivers/{driver}/bank-accounts/{account}/reveal', [Admin\DriverBankAccountController::class, 'reveal'])
+        ->middleware(['permission:drivers.reveal_bank_account', 'throttle:bank-account-reveal'])->name('drivers.bank-accounts.reveal');
 
     Route::middleware('permission:drivers.verify')->group(function () {
         Route::post('/drivers/{driver}/documents/{document}/approve', [Admin\DriverDocumentController::class, 'approve'])

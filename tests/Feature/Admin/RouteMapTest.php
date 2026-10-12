@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\DriverProfile;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -25,10 +26,7 @@ class RouteMapTest extends AdminTestCase
                 ->where('riders.total', 0)->where('riders.data', [])->where('totalRegistered', 0)->where('statuses', ['active', 'suspended', 'deactivated', 'pending_deletion'])
                 ->where('actions.suspend', '/admin/riders/{id}/suspend')->where('actions.reactivate', '/admin/riders/{id}/reactivate')],
             'drivers' => ['/admin/drivers', 'Drivers/Index', fn (Assert $p) => $p
-                ->where('drivers.total', 8)->where('verificationStatuses', ['pending', 'approved', 'rejected', 'expired'])->where('totalRegistered', 5847)],
-            'driver detail' => ['/admin/drivers/8', 'Drivers/Show', fn (Assert $p) => $p
-                ->where('driver.name', 'Arman Petrosyan')->where('driver.earnings', ['amount' => 18410000, 'currency' => 'AMD'])->where('driver.earnings_detail.balance.amount', -18000)
-                ->has('driver.documents', 4)->has('driver.vehicles', 2)->where('tab', 'profile')->has('tabs', 6)],
+                ->where('drivers.total', 0)->where('drivers.data', [])->where('verificationStatuses', ['pending', 'approved', 'rejected', 'expired'])->where('availabilities', ['offline', 'online', 'on_trip'])->where('totalRegistered', 0)->has('zones', 0)],
             'trips' => ['/admin/trips', 'Trips/Index', fn (Assert $p) => $p->where('trips.total', 8)->where('trips.data.0.code', 'TK-8F3K2')->has('statuses', 7)],
             'trip detail' => ['/admin/trips/4', 'Trips/Show', fn (Assert $p) => $p->where('trip.code', 'TK-58200')->where('trip.status', 'in_progress')->where('trip.fare', null)],
             'support tickets' => ['/admin/support-tickets', 'SupportTickets/Index', fn (Assert $p) => $p->where('tickets.total', 4)->where('selected.code', 'TKT-2941')->has('selected.messages', 3)],
@@ -100,6 +98,14 @@ class RouteMapTest extends AdminTestCase
     public function test_signed_in_users_are_sent_away_from_guest_screens(): void
     {
         $this->actingAs($this->admin())->get('/login')->assertRedirect();
+    }
+
+    public function test_a_driver_page_renders_the_real_driver_with_its_tabs(): void
+    {
+        $driver = DriverProfile::factory()->create();
+
+        $this->actingAs($this->admin())->get("/admin/drivers/{$driver->id}")->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('Drivers/Show')->where('driver.id', $driver->id)->where('tab', 'profile')->has('tabs', 6));
     }
 
     public function test_settings_root_redirects_to_the_users_tab(): void

@@ -3,8 +3,11 @@
 namespace Tests\Feature\Audit;
 
 use App\Models\Audit\ActivityLogEntry;
+use App\Models\DriverBankAccount;
 use App\Models\DriverDocument;
+use App\Models\DriverProfile;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Models\Zone;
 use Database\Factories\ZoneFactory;
 use Illuminate\Routing\Route as LaravelRoute;
@@ -28,6 +31,27 @@ class AdminWritesAreAuditedTest extends AuditTestCase
         $document = fn () => DriverDocument::factory()->create();
 
         return [
+            'admin.drivers.update' => ['driver.updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/drivers/'.DriverProfile::factory()->create()->id, ['name' => 'Renamed '.uniqid(), 'reason' => 'Guard test'])],
+            'admin.drivers.suspend' => ['driver.suspended', fn (User $admin) => $this->actingAs($admin)->post('/admin/drivers/'.DriverProfile::factory()->create()->id.'/suspend', ['reason' => 'Guard test'])],
+            'admin.drivers.reactivate' => ['driver.reactivated', fn (User $admin) => $this->actingAs($admin)->post('/admin/drivers/'.DriverProfile::factory()->for(User::factory()->driver()->suspended()->create(), 'user')->create()->id.'/reactivate', ['reason' => 'Guard test'])],
+            'admin.drivers.vehicles.store' => ['driver.vehicle.added', fn (User $admin) => $this->actingAs($admin)->post('/admin/drivers/'.DriverProfile::factory()->create()->id.'/vehicles', [
+                'make' => 'Toyota', 'model' => 'Camry', 'year' => 2020, 'color' => 'White', 'plate_number' => strtoupper('GD'.uniqid()), 'vehicle_class' => 'economy',
+            ])],
+            'admin.drivers.vehicles.update' => ['driver.vehicle.updated', function (User $admin) {
+                $vehicle = Vehicle::factory()->active()->create();
+
+                return $this->actingAs($admin)->patch("/admin/drivers/{$vehicle->driver_id}/vehicles/{$vehicle->id}", ['color' => 'Pink '.uniqid()]);
+            }],
+            'admin.drivers.vehicles.set-primary' => ['driver.vehicle.primary_set', function (User $admin) {
+                $vehicle = Vehicle::factory()->active()->create();
+
+                return $this->actingAs($admin)->post("/admin/drivers/{$vehicle->driver_id}/vehicles/{$vehicle->id}/set-primary");
+            }],
+            'admin.drivers.bank-accounts.reveal' => ['driver.bank_account.revealed', function (User $admin) {
+                $account = DriverBankAccount::factory()->create();
+
+                return $this->actingAs($admin)->postJson("/admin/drivers/{$account->driver_id}/bank-accounts/{$account->id}/reveal");
+            }],
             'admin.drivers.documents.approve' => ['driver.document.approved', function (User $admin) use ($document) {
                 $doc = $document();
 
@@ -85,7 +109,9 @@ class AdminWritesAreAuditedTest extends AuditTestCase
             $admin = $this->admin();
             $before = ActivityLogEntry::where('description', $action)->count();
 
-            $perform($admin)->assertRedirect();
+            // Every admin write redirects back to its page, except the bank-account reveal, which answers with the number as JSON.
+            $response = $perform($admin);
+            $route === 'admin.drivers.bank-accounts.reveal' ? $response->assertOk() : $response->assertRedirect();
 
             $entries = ActivityLogEntry::where('description', $action)->orderByDesc('id')->get();
             $this->assertCount($before + 1, $entries, "{$route} must write exactly one {$action} entry.");

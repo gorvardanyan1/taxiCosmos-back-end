@@ -72,6 +72,22 @@ class DriverProfile extends Model
     }
 
     /**
+     * @return BelongsTo<Zone, $this>
+     */
+    public function homeZone(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class, 'home_zone_id');
+    }
+
+    /**
+     * @return HasMany<Trip, $this>
+     */
+    public function trips(): HasMany
+    {
+        return $this->hasMany(Trip::class, 'driver_id');
+    }
+
+    /**
      * @return HasMany<Vehicle, $this>
      */
     public function vehicles(): HasMany

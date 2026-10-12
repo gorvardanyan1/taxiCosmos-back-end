@@ -16,8 +16,10 @@ enum AdminPermission: string
     case RidersSuspend = 'riders.suspend';
 
     case DriversView = 'drivers.view';
+    case DriversEdit = 'drivers.edit';
     case DriversSuspend = 'drivers.suspend';
     case DriversVerify = 'drivers.verify';
+    case DriversRevealBankAccount = 'drivers.reveal_bank_account';
 
     case TripsView = 'trips.view';
     case TripsForceCancel = 'trips.force_cancel';

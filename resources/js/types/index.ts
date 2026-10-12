@@ -107,8 +107,12 @@ export interface DriverRow {
     code: string;
     name: string;
     phone: string;
-    vehicle: { label: string; year: number };
+    /** The primary vehicle; null when the driver has none yet. */
+    vehicle: { label: string; year: number } | null;
     verification_status: DriverVerificationStatus;
+    availability: 'offline' | 'online' | 'on_trip';
+    /** The account's status: a suspended driver cannot sign in or take trips. */
+    status: 'active' | 'suspended' | 'deactivated' | 'pending_deletion';
     rating: string | null;
     trips_count: number;
     earnings: Money;
@@ -148,9 +152,12 @@ export interface LedgerEntry {
     occurred_at: string;
 }
 
-export interface DriverDetail extends Omit<DriverRow, 'vehicle'> {
-    /** The primary vehicle; null when the driver has none yet. */
-    vehicle: DriverRow['vehicle'] | null;
+export interface DriverDetail extends DriverRow {
+    /** The edit form's current values (the list columns show "—" placeholders). The licence number is never sent. */
+    raw: { name: string | null; email: string | null; phone: string | null; license_expiry: string | null; home_zone_id: number | null };
+    license_last4: string | null;
+    home_zone: string | null;
+    suspension_reason: string | null;
     documents: DriverDocument[];
     vehicles: Vehicle[];
     earnings_detail: {
@@ -158,6 +165,8 @@ export interface DriverDetail extends Omit<DriverRow, 'vehicle'> {
         debt_limit_exceeded: boolean;
         summary: { week: Money; month: Money; all_time: Money };
         ledger: LedgerEntry[];
+        /** True until the earnings ledger (payouts, cash settlements, adjustments) exists: the list shows trip earnings only. */
+        ledger_pending?: boolean;
     };
     trip_history: { id: number; code: string; route: string; fare: Money; status: TripStatus; rating: string | null; occurred_at: string }[];
     bank_accounts: { id: number; bank_name: string; account_last4: string; is_default: boolean }[];
