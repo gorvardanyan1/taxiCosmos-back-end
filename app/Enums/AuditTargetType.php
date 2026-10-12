@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Models\CommissionRule;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\FareRule;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 enum AuditTargetType: string
 {
+    case CommissionRule = 'commission_rule';
     case Driver = 'driver';
     case DriverDocument = 'driver_document';
     case FareRule = 'fare_rule';
@@ -29,6 +31,7 @@ enum AuditTargetType: string
     public function modelClass(): string
     {
         return match ($this) {
+            self::CommissionRule => CommissionRule::class,
             self::Driver => DriverProfile::class,
             self::DriverDocument => DriverDocument::class,
             self::FareRule => FareRule::class,
@@ -72,6 +75,7 @@ enum AuditTargetType: string
             $model instanceof Vehicle => sprintf('Vehicle #%d', $model->getKey()),
             $model instanceof User => sprintf('User #%d', $model->getKey()),
             $model instanceof Zone => sprintf('Zone %s', $model->code),
+            $model instanceof CommissionRule => sprintf('Commission rule #%d / %s', $model->getKey(), $model->vehicle_class->value ?? 'all'),
             $model instanceof FareRule => sprintf('Fare rule #%d / %s', $model->getKey(), $model->vehicle_class->value),
             default => class_basename($model).' #'.$model->getKey(),
         };

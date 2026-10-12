@@ -5,6 +5,7 @@ namespace Tests\Feature\Trips;
 use App\Enums\TripCancelledBy;
 use App\Enums\TripStatus;
 use App\Exceptions\TripStateException;
+use App\Models\CommissionRule;
 use App\Models\FareRule;
 use App\Models\Trip;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,7 +42,7 @@ class TripPricingSnapshotTest extends TestCase
     #[DataProvider('frozenColumns')]
     public function test_a_completed_trips_pricing_can_not_be_edited(string $column, mixed $value): void
     {
-        $trip = Trip::factory()->completed()->create(['fare_rule_id' => FareRule::factory()->create()->id, 'commission_rule_id' => 3, 'surge_multiplier' => '1.50']);
+        $trip = Trip::factory()->completed()->create(['fare_rule_id' => FareRule::factory()->create()->id, 'commission_rule_id' => CommissionRule::factory()->create()->id, 'surge_multiplier' => '1.50']);
         $before = DB::table('trips')->where('id', $trip->id)->first();
 
         try {
@@ -57,7 +58,8 @@ class TripPricingSnapshotTest extends TestCase
     public function test_the_stored_fare_and_breakdown_do_not_move_when_a_rule_changes_later(): void
     {
         $rule = FareRule::factory()->create(['base_fare' => 500]);
-        $trip = Trip::factory()->completed()->create(['fare_rule_id' => $rule->id, 'commission_rule_id' => 3, 'surge_multiplier' => '1.50']);
+        $commission = CommissionRule::factory()->create(['rate_bps' => 2000]);
+        $trip = Trip::factory()->completed()->create(['fare_rule_id' => $rule->id, 'commission_rule_id' => $commission->id, 'surge_multiplier' => '1.50']);
         $breakdown = Trip::findOrFail($trip->id)->fare_breakdown;
 
         // A "rule edit" never reaches trips: a rule is never edited (a change adds a version, and the old
@@ -73,7 +75,9 @@ class TripPricingSnapshotTest extends TestCase
         $this->assertSame('1.50', $fresh->surge_multiplier);
         $this->assertSame($breakdown, $fresh->fare_breakdown);
         $this->assertSame($rule->id, $fresh->fare_rule_id);
+        $this->assertSame($commission->id, $fresh->commission_rule_id);
         $this->assertSame(500, $rule->fresh()->base_fare);
+        $this->assertSame(2000, $commission->fresh()->rate_bps);
         $this->assertSame('paid', $fresh->payment_status->value);
     }
 
@@ -81,10 +85,11 @@ class TripPricingSnapshotTest extends TestCase
     {
         $trip = Trip::factory()->inProgress()->create();
         $rule = FareRule::factory()->create();
+        $commission = CommissionRule::factory()->create();
 
         $trip->transitionTo(TripStatus::Completed, attributes: [
             'fare_amount' => 175000, 'commission_amount' => 35000, 'driver_earnings_amount' => 140000,
-            'fare_rule_id' => $rule->id, 'commission_rule_id' => 2, 'surge_multiplier' => '1.25',
+            'fare_rule_id' => $rule->id, 'commission_rule_id' => $commission->id, 'surge_multiplier' => '1.25',
             'fare_breakdown' => ['base' => 50000, 'surge' => 25000],
         ]);
 

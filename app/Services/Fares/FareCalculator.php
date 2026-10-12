@@ -5,6 +5,7 @@ namespace App\Services\Fares;
 use App\Data\FareBreakdown;
 use App\Enums\TripCancelledBy;
 use App\Models\FareRule;
+use App\Support\MinorUnits;
 use Carbon\CarbonInterface;
 use InvalidArgumentException;
 
@@ -53,13 +54,13 @@ final class FareCalculator
 
         $surgeHundredths = max(self::SURGE_NONE, min($surgeHundredths, (int) config('taxikosmos.fares.surge_cap_hundredths')));
 
-        $distance = $this->ratio($rule->per_km, $distanceMeters, self::METERS_PER_KM);
-        $time = $this->ratio($rule->per_minute, $durationSeconds, self::SECONDS_PER_MINUTE);
+        $distance = MinorUnits::ratio($rule->per_km, $distanceMeters, self::METERS_PER_KM);
+        $time = MinorUnits::ratio($rule->per_minute, $durationSeconds, self::SECONDS_PER_MINUTE);
         $billableWaiting = max(0, $waitingSeconds - $rule->waiting_free_minutes * self::SECONDS_PER_MINUTE);
-        $waiting = $this->ratio($rule->waiting_per_minute, $billableWaiting, self::SECONDS_PER_MINUTE);
+        $waiting = MinorUnits::ratio($rule->waiting_per_minute, $billableWaiting, self::SECONDS_PER_MINUTE);
 
         $metered = $rule->base_fare + $distance + $time + $waiting;
-        $surge = $this->ratio($metered, $surgeHundredths - self::SURGE_NONE, self::SURGE_NONE);
+        $surge = MinorUnits::ratio($metered, $surgeHundredths - self::SURGE_NONE, self::SURGE_NONE);
         $minimumAdjustment = max(0, $rule->min_fare - ($metered + $surge));
 
         $placeFees = [];
@@ -70,10 +71,10 @@ final class FareCalculator
         $subtotal = $metered + $surge + $minimumAdjustment + $rule->booking_fee + array_sum(array_column($placeFees, 'amount'));
 
         if ($rule->tax_inclusive) {
-            $tax = $this->ratio($subtotal, $rule->tax_rate_bps, 10_000 + $rule->tax_rate_bps);
+            $tax = MinorUnits::ratio($subtotal, $rule->tax_rate_bps, 10_000 + $rule->tax_rate_bps);
             $total = $subtotal;
         } else {
-            $tax = $this->ratio($subtotal, $rule->tax_rate_bps, 10_000);
+            $tax = MinorUnits::ratio($subtotal, $rule->tax_rate_bps, 10_000);
             $total = $subtotal + $tax;
         }
 
@@ -128,17 +129,5 @@ final class FareCalculator
             currency: $rule->currency, base: 0, distance: 0, time: 0, waiting: 0, minimumAdjustment: 0, bookingFee: 0, fees: [],
             surgeMultiplier: '1.00', surge: 0, subtotal: $fee, taxRateBps: 0, taxInclusive: false, tax: 0, total: $fee, cancellationFee: $fee,
         );
-    }
-
-    /**
-     * $amount x $numerator / $denominator, rounded half-up (all non-negative).
-     */
-    private function ratio(int $amount, int $numerator, int $denominator): int
-    {
-        if ($numerator > 0 && $amount > intdiv(PHP_INT_MAX - $denominator, 2 * $numerator)) {
-            throw new InvalidArgumentException('The fare is too large to calculate.');
-        }
-
-        return intdiv($amount * $numerator * 2 + $denominator, $denominator * 2);
     }
 }

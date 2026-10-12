@@ -310,17 +310,33 @@ export interface SurgeRow {
     created_by: string | null;
 }
 
+export type CommissionType = 'percentage' | 'percentage_plus_fixed' | 'fixed';
+
 export interface CommissionRule {
     id: number;
+    zone_id: number;
     zone: string;
-    vehicle_class: VehicleClass;
-    type: 'percentage' | 'percentage_plus_fixed' | 'fixed';
+    /** Null = every vehicle class of the zone. */
+    vehicle_class: VehicleClass | null;
+    type: CommissionType;
+    /** Basis points (1800 = 18 %); null for a fixed rule. */
     rate_bp: number | null;
+    /** Null for a percentage rule. */
     fixed_fee: Money | null;
     minimum: Money | null;
     maximum: Money | null;
     applies_to_surge: boolean;
     effective_from: string;
+    /** Null while this is the version in force. */
+    effective_to: string | null;
+    created_by: string | null;
+}
+
+/** Every version of one commission rule (same zone and class), newest first. */
+export interface CommissionHistory {
+    zone: string;
+    vehicle_class: VehicleClass | null;
+    versions: CommissionRule[];
 }
 
 export interface AdminUserRow {

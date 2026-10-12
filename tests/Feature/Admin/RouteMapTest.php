@@ -40,7 +40,7 @@ class RouteMapTest extends AdminTestCase
             'reports' => ['/admin/reports', 'Reports/Index', fn (Assert $p) => $p->has('series', 5)->where('filters.metric', 'revenue')->where('filters.currency', 'AMD')->has('metrics', 8)],
             'zones' => ['/admin/zones', 'Zones/Index', fn (Assert $p) => $p->where('zones', [])->where('selectedZoneId', null)->where('selectedPolygon', null)->where('fareRules', [])],
             'surge' => ['/admin/surge', 'Surge/Index', fn (Assert $p) => $p->where('surges.total', 3)->where('maxMultiplier', '3.00')],
-            'commission rules' => ['/admin/commission-rules', 'CommissionRules/Index', fn (Assert $p) => $p->where('rules.total', 3)->where('previewRule.rate_bp', 1800)],
+            'commission rules' => ['/admin/commission-rules', 'CommissionRules/Index', fn (Assert $p) => $p->where('rules.total', 0)->where('previewRule', null)->has('zones', 0)->where('history', null)],
             'settings users' => ['/admin/settings/users', 'Settings/Users', fn (Assert $p) => $p->has('roles', 5)->has('matrix.finance')],
             'settings gateways' => ['/admin/settings/gateways', 'Settings/Gateways', fn (Assert $p) => $p->has('gateways', 2)->where('gateways.0.masked_key', 'sk_live_…a91F')],
             'settings currencies' => ['/admin/settings/currencies', 'Settings/Currencies', fn (Assert $p) => $p->has('currencies', 4)->where('baseCurrency', 'AMD')->where('currencies.3.active', false)],
