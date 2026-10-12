@@ -280,6 +280,27 @@ class FareCalculatorTest extends TestCase
         }
     }
 
+    public function test_the_highest_price_the_form_accepts_prices_the_longest_possible_trip(): void
+    {
+        $cap = 1_000_000_000;
+        $rule = $this->rule(['base_fare' => $cap, 'per_km' => $cap, 'per_minute' => $cap, 'min_fare' => $cap, 'waiting_per_minute' => $cap, 'booking_fee' => $cap]);
+
+        // 26,000 km (more than half way round the world) and 3.1 million seconds of waiting, all at the cap
+        $fare = $this->calculator->calculate($rule, 26_000_000, 3_100_000, 3_100_000, 300);
+
+        $this->assertSame(26_000_000_000_000, $fare->distance);
+        $this->assertSame(51_666_666_666_667, $fare->time);
+        $this->assertGreaterThan(26_000_000_000_000 + 51_666_666_666_667, $fare->total);
+    }
+
+    public function test_an_amount_too_large_to_calculate_is_refused_clearly_instead_of_overflowing(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('too large');
+
+        $this->calculator->calculate($this->rule(['per_km' => 1_000_000_000_000]), 30_000_000, 0);
+    }
+
     public function test_a_large_trip_does_not_overflow(): void
     {
         // 2000 km at 150/km = 300,000; 40 h at 20/min = 48,000; base 500

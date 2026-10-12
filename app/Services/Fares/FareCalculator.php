@@ -135,6 +135,10 @@ final class FareCalculator
      */
     private function ratio(int $amount, int $numerator, int $denominator): int
     {
+        if ($numerator > 0 && $amount > intdiv(PHP_INT_MAX - $denominator, 2 * $numerator)) {
+            throw new InvalidArgumentException('The fare is too large to calculate.');
+        }
+
         return intdiv($amount * $numerator * 2 + $denominator, $denominator * 2);
     }
 }

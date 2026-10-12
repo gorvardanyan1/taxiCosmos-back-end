@@ -198,6 +198,12 @@ describe('P5-T2 · Fare estimation', () => {
                 cy.findByLabelText(/^Tax rate/).clear().type('10001');
                 cy.findByRole('button', { name: 'Save new version' }).click();
                 cy.findByLabelText(/^Tax rate/).closest('div').should('contain', 'must be between 0 and 10000');
+
+                // a price so large that price x distance could overflow is refused
+                cy.findByLabelText(/^Tax rate/).clear().type('0');
+                cy.findByLabelText(/^Per km/).clear().type('1000000001');
+                cy.findByRole('button', { name: 'Save new version' }).click();
+                cy.findByLabelText(/^Per km/).closest('div').should('contain', 'must not be greater than 1000000000');
             });
 
             cy.findByRole('dialog').should('be.visible');

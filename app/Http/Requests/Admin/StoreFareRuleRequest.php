@@ -12,7 +12,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreFareRuleRequest extends FormRequest
 {
-    private const MAX_MONEY = 1_000_000_000_000;
+    /** Far above any real fare, and low enough that price x distance can never overflow a 64-bit integer. */
+    private const MAX_MONEY = 1_000_000_000;
 
     /**
      * Authorization is the route's permission middleware (fares.manage).

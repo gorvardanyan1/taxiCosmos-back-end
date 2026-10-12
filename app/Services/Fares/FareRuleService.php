@@ -33,9 +33,11 @@ final class FareRuleService
             $locked = Zone::query()->whereKey($zone->getKey())->lockForUpdate()->firstOrFail();
             // Times are stored to the second, so versions are cut on whole seconds.
             $now = CarbonImmutable::now()->startOfSecond();
+            // The open rule is the one to close, whatever the clock says: a version saved a moment ago may
+            // start a second from now (see below), and it is still the latest.
             $current = FareRule::query()
                 ->where('zone_id', $locked->id)->where('vehicle_class', $class->value)
-                ->effectiveAt($now)->lockForUpdate()->first();
+                ->whereNull('effective_to')->lockForUpdate()->first();
 
             $terms += $current === null ? [] : $current->only(FareRule::TERMS);
             $changes = $current === null ? $terms : array_diff_assoc($terms, $current->only(FareRule::TERMS));
@@ -45,7 +47,7 @@ final class FareRuleService
             }
 
             if ($current !== null) {
-                // The new version starts after the old one began, even if both are saved within the same second.
+                // The new version starts after the old one began, even if several are saved within the same second.
                 $now = $now->greaterThan($current->effective_from) ? $now : CarbonImmutable::instance($current->effective_from)->addSecond();
                 $current->forceFill(['effective_to' => $now])->save();
             }

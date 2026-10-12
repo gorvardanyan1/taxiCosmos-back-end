@@ -144,6 +144,28 @@ class FareRuleServiceTest extends AdminTestCase
         $this->assertSame(600, (new FareRuleLookup)->at($this->zone, VehicleClass::Economy)->base_fare);
     }
 
+    public function test_several_saves_in_one_second_each_add_a_version_and_leave_one_open_rule(): void
+    {
+        $admin = $this->admin(AdminRole::Admin);
+        $this->travelTo('2026-10-12 09:00:00');
+
+        foreach ([500, 600, 700, 800] as $base) {
+            $this->service->saveVersion($admin, $this->zone, VehicleClass::Economy, $this->terms(['base_fare' => $base]));
+        }
+
+        $versions = FareRule::query()->orderBy('id')->get();
+        $this->assertSame([500, 600, 700, 800], $versions->pluck('base_fare')->all());
+        $this->assertSame(1, $versions->whereNull('effective_to')->count());
+        foreach ($versions->slice(1) as $i => $version) {
+            $this->assertTrue($versions[$i - 1]->effective_to->equalTo($version->effective_from), 'each version starts when the previous one ends');
+        }
+        $this->assertSame(500, (new FareRuleLookup)->at($this->zone, VehicleClass::Economy)->base_fare);
+
+        $this->travelTo('2026-10-12 09:00:10');
+        $this->assertSame(800, (new FareRuleLookup)->at($this->zone, VehicleClass::Economy)->base_fare);
+        $this->assertFalse($this->service->saveVersion($admin, $this->zone, VehicleClass::Economy, $this->terms(['base_fare' => 800]))['created']);
+    }
+
     public function test_every_save_is_audited_with_the_actor_the_changed_terms_and_the_previous_version(): void
     {
         $admin = $this->admin(AdminRole::Admin);

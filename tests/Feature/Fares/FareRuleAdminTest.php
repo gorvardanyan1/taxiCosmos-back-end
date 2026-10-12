@@ -107,7 +107,7 @@ class FareRuleAdminTest extends AdminTestCase
             'base fare negative' => ['base_fare', -1],
             'base fare with decimals' => ['base_fare', 12.5],
             'base fare text' => ['base_fare', 'abc'],
-            'base fare too large' => ['base_fare', 1_000_000_000_001],
+            'base fare too large' => ['base_fare', 1_000_000_001],
             'per km negative' => ['per_km', -1],
             'per minute negative' => ['per_minute', -1],
             'minimum negative' => ['min_fare', -1],
@@ -140,7 +140,7 @@ class FareRuleAdminTest extends AdminTestCase
     {
         $this->save(['base_fare' => 0, 'per_km' => 0, 'per_minute' => 0, 'min_fare' => 0, 'waiting_free_minutes' => 0, 'waiting_per_minute' => 0, 'cancellation_fee' => 0, 'cancellation_free_seconds' => 0, 'booking_fee' => 0, 'tax_rate_bps' => 0])->assertSessionHasNoErrors();
         $this->travel(5)->minutes();
-        $this->save(['vehicle_class' => 'business', 'base_fare' => 1_000_000_000_000, 'waiting_free_minutes' => 240, 'cancellation_free_seconds' => 86_400, 'tax_rate_bps' => 10_000, 'tax_inclusive' => true])->assertSessionHasNoErrors();
+        $this->save(['vehicle_class' => 'business', 'base_fare' => 1_000_000_000, 'waiting_free_minutes' => 240, 'cancellation_free_seconds' => 86_400, 'tax_rate_bps' => 10_000, 'tax_inclusive' => true])->assertSessionHasNoErrors();
 
         $this->assertSame(2, FareRule::count());
     }
