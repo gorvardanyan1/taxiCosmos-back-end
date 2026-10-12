@@ -12,6 +12,7 @@ Named rate limiters and other request throttles. Add every new limiter here (tas
 | OTP attempt cap | a single code | 5 wrong guesses, then the code is dead | the code | `422` "invalid or expired" | `App\Services\MobileAuth\OtpService` |
 | `social-login` (`throttle:social-login`) | `POST /api/v1/auth/social/{provider}` | 20 per minute | IP | 429 JSON | `App\Providers\AppServiceProvider` |
 | `auth-refresh` (`throttle:auth-refresh`) | `POST /api/v1/auth/refresh` | 30 per minute | IP | 429 JSON | `App\Providers\AppServiceProvider` |
+| `fare-estimate` (`throttle:fare-estimate`) | `POST /api/v1/trips/fare-estimate` (every call stores a quote) | 30 per minute | rider (falls back to IP) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 
 Notes:
 

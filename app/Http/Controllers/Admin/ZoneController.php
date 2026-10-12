@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\VehicleClass;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreZoneRequest;
 use App\Http\Requests\Admin\UpdateZoneRequest;
 use App\Http\Requests\Admin\ZoneStatusRequest;
 use App\Models\User;
 use App\Models\Zone;
+use App\Services\Fares\FareRuleLookup;
 use App\Services\Zones\ZoneService;
+use App\Support\FareRulePresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,7 +19,7 @@ use Inertia\Response;
 
 class ZoneController extends Controller
 {
-    public function __construct(private readonly ZoneService $zones) {}
+    public function __construct(private readonly ZoneService $zones, private readonly FareRuleLookup $fareRules) {}
 
     public function index(Request $request): Response
     {
@@ -28,8 +31,10 @@ class ZoneController extends Controller
             'selectedZoneId' => $selected?->id,
             // Only the selected zone's shape goes to the browser (a polygon can have thousands of points).
             'selectedPolygon' => $selected === null ? null : json_decode($selected->polygon_geojson, true),
-            // Fare rules arrive with P5-T2.
-            'fareRules' => [],
+            // The prices in force now, one row per vehicle class that has any; ?history=<class> adds that class's versions.
+            'fareRules' => $selected === null ? [] : $this->fareRules->allAt($selected)->map(fn ($rule) => FareRulePresenter::row($rule))->values()->all(),
+            'fareHistory' => $this->history($request, $selected),
+            'vehicleClasses' => array_column(VehicleClass::cases(), 'value'),
             'timezones' => \DateTimeZone::listIdentifiers(),
             'currencies' => array_column(config('taxikosmos.currencies'), 'code'),
             'actions' => [
@@ -37,7 +42,8 @@ class ZoneController extends Controller
                 'updateZone' => $this->template('admin.zones.update'),
                 'deactivateZone' => $this->template('admin.zones.deactivate'),
                 'activateZone' => $this->template('admin.zones.activate'),
-                'updateFareRule' => null,
+                // Saving a fare rule always adds a version (fares.manage).
+                'saveFareRule' => $request->user()->can('fares.manage') ? $this->template('admin.fare-rules.store') : null,
                 'drawPolygon' => null,
             ],
         ]);
@@ -69,6 +75,23 @@ class ZoneController extends Controller
         $this->zones->activate($this->admin($request), Zone::query()->findOrFail($zone), $request->validated('reason'));
 
         return back()->with('success', __('Zone activated.'));
+    }
+
+    /**
+     * @return array{vehicle_class: string, versions: list<array<string, mixed>>}|null
+     */
+    private function history(Request $request, ?Zone $zone): ?array
+    {
+        $class = VehicleClass::tryFrom((string) $request->query('history'));
+
+        if ($zone === null || $class === null) {
+            return null;
+        }
+
+        return [
+            'vehicle_class' => $class->value,
+            'versions' => $this->fareRules->history($zone, $class)->map(fn ($rule) => FareRulePresenter::row($rule))->all(),
+        ];
     }
 
     /**

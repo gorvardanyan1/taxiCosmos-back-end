@@ -11,6 +11,8 @@ where zones overlap), and `polygon geometry(MultiPolygon, 4326)` with a **GIST i
 (`ST_IsValid(polygon) AND NOT ST_IsEmpty(polygon)`) means an invalid shape can never be stored, whatever code
 writes it. `driver_profiles.home_zone_id` is a foreign key to zones (restricted).
 
+Prices per vehicle class live in `fare_rules` (effective-dated, see [fares.md](fares.md)); the Zones page shows them.
+
 Zones are **never deleted**: the model refuses `delete()`, no route exists, and the foreign key restricts removal
 of a zone that something points to. Deactivate instead.
 

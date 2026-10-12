@@ -47,6 +47,10 @@ class AdminWritesAreAuditedTest extends AuditTestCase
             'admin.zones.update' => ['zone.updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/zones/'.Zone::factory()->create()->id, ['name' => 'Renamed '.uniqid()])],
             'admin.zones.deactivate' => ['zone.deactivated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->create()->id.'/deactivate')],
             'admin.zones.activate' => ['zone.activated', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->inactive()->create()->id.'/activate')],
+            'admin.fare-rules.store' => ['fare_rule.created', fn (User $admin) => $this->actingAs($admin)->post('/admin/zones/'.Zone::factory()->create()->id.'/fare-rules', [
+                'vehicle_class' => 'economy', 'base_fare' => 500, 'per_km' => 150, 'per_minute' => 20, 'min_fare' => 800, 'waiting_free_minutes' => 3, 'waiting_per_minute' => 30,
+                'cancellation_fee' => 500, 'cancellation_free_seconds' => 120, 'booking_fee' => 0, 'tax_rate_bps' => 0, 'tax_inclusive' => false,
+            ])],
             'admin.account.locale' => ['account.locale_changed', fn (User $admin) => $this->actingAs($admin)->patch('/admin/account/locale', ['locale' => $admin->locale === 'ru' ? 'hy' : 'ru'])],
         ];
     }

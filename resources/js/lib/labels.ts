@@ -34,7 +34,7 @@ const LABELS: Record<string, string> = {
     duplicate: tk('Duplicate'), fraudulent: tk('Fraudulent'), product_not_received: tk('Not received'),
     // Support and ratings
     urgent: tk('Urgent'), high: tk('High'), normal: tk('Normal'), low: tk('Low'), safety: tk('Safety'), payment: tk('Payment'),
-    trip: tk('Trip'), vehicle: tk('Vehicle'), flag: tk('Flag'), internal: tk('Internal'), zone: tk('Zone'), signup: tk('Sign-up'),
+    trip: tk('Trip'), vehicle: tk('Vehicle'), fare_rule: tk('Fare rule'), flag: tk('Flag'), internal: tk('Internal'), zone: tk('Zone'), signup: tk('Sign-up'),
     cancel: tk('Cancel'), rider_to_driver: tk('Rider → Driver'), driver_to_rider: tk('Driver → Rider'),
     // Notification events
     chargeback_opened: tk('Chargeback opened'), document_expiring: tk('Document expiring'), manual_payment_pending: tk('Manual payment pending'),

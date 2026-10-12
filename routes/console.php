@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\FareQuote;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -14,3 +15,6 @@ Schedule::command('activitylog:clean --force')->dailyAt('03:15')->withoutOverlap
 // Mobile sign-in housekeeping: expired access tokens (Sanctum), then expired one-time codes and refresh tokens.
 Schedule::command('sanctum:prune-expired --hours=24')->dailyAt('03:30')->withoutOverlapping()->onOneServer();
 Schedule::command('mobile-auth:prune')->dailyAt('03:40')->withoutOverlapping()->onOneServer();
+
+// Fare quotes are useful for minutes; the expired ones are deleted a day later.
+Schedule::command('model:prune', ['--model' => [FareQuote::class]])->dailyAt('03:50')->withoutOverlapping()->onOneServer();

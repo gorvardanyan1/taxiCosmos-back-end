@@ -51,6 +51,22 @@ return [
         'max_vertices' => (int) env('ZONE_MAX_VERTICES', 5000),
     ],
 
+    'fares' => [
+        // How long a rider's estimate (quote) can be used to create a trip.
+        'quote_ttl_minutes' => (int) env('FARE_QUOTE_TTL_MINUTES', 10),
+
+        // The estimate is shown as a range around the quoted price: ± this many basis points (1000 = 10 %).
+        'range_bps' => (int) env('FARE_ESTIMATE_RANGE_BPS', 1000),
+
+        // Highest surge multiplier ever applied, in hundredths (300 = 3.00x). Surge rules (P5-T4) may not exceed it.
+        'surge_cap_hundredths' => (int) env('FARE_SURGE_CAP_HUNDREDTHS', 300),
+
+        // Until the maps provider supplies routes (P5-T1) the route is estimated from the straight line:
+        // the distance is multiplied by this detour factor (130 = 1.30x) and driven at the average speed.
+        'route_detour_percent' => (int) env('FARE_ROUTE_DETOUR_PERCENT', 130),
+        'route_average_speed_kmh' => (int) env('FARE_ROUTE_AVERAGE_SPEED_KMH', 30),
+    ],
+
     'mobile_auth' => [
         // Access token lifetime (Sanctum personal access token) and refresh token lifetime.
         'access_ttl_minutes' => (int) env('MOBILE_ACCESS_TTL_MINUTES', 60),

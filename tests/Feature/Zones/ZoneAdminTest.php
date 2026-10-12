@@ -90,7 +90,7 @@ class ZoneAdminTest extends AdminTestCase
             ->where('actions.updateZone', '/admin/zones/{id}')
             ->where('actions.deactivateZone', '/admin/zones/{id}/deactivate')
             ->where('actions.activateZone', '/admin/zones/{id}/activate')
-            ->where('actions.updateFareRule', null));
+            ->where('actions.saveFareRule', '/admin/zones/{id}/fare-rules'));
     }
 
     public function test_the_page_issues_the_same_queries_however_many_zones_exist(): void

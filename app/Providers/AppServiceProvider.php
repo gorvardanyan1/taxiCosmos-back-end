@@ -80,6 +80,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('social-login', fn (Request $request) => Limit::perMinute(20)->by('social-login:'.$request->ip()));
 
         RateLimiter::for('auth-refresh', fn (Request $request) => Limit::perMinute(30)->by('auth-refresh:'.$request->ip()));
+
+        // Each estimate stores a quote, so it is limited per rider (not per address, which phones share).
+        RateLimiter::for('fare-estimate', fn (Request $request) => Limit::perMinute(30)->by('fare-estimate:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }
 
     /**

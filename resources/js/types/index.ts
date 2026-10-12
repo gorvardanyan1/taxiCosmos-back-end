@@ -270,12 +270,32 @@ export interface Zone {
 }
 
 export interface FareRule {
+    id: number;
     zone_id: number;
     vehicle_class: VehicleClass;
     base_fare: Money;
     per_km: Money;
     per_minute: Money;
-    minimum_fare: Money;
+    min_fare: Money;
+    waiting_free_minutes: number;
+    waiting_per_minute: Money;
+    cancellation_fee: Money;
+    cancellation_free_seconds: number;
+    booking_fee: Money;
+    /** Basis points: 1800 = 18 %. */
+    tax_rate_bps: number;
+    tax_inclusive: boolean;
+    effective_from: string;
+    /** Null while this is the version in force. */
+    effective_to: string | null;
+    /** Who saved this version (only sent with the history). */
+    created_by: string | null;
+}
+
+/** Every version of one vehicle class's prices in the selected zone, newest first. */
+export interface FareHistory {
+    vehicle_class: VehicleClass;
+    versions: FareRule[];
 }
 
 export interface SurgeRow {
