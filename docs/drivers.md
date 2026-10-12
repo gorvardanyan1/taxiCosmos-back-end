@@ -54,3 +54,7 @@ The page and every API shape carry only `account_last4`. Finance (and super admi
 (`POST .../reveal`), the server writes an activity-log entry **first** (who, which account, which driver, the last four digits - never the number), then answers
 `{"account_number": "..."}` with `Cache-Control: no-store`; the page shows it for 30 seconds and hides it again. One entry per reveal, 10 reveals per minute per admin
 (`bank-account-reveal` limiter). `admin` does not hold the permission.
+
+## Deleted accounts
+
+A driver whose account was deleted keeps their documents, trips and earnings for review, but the page shows no personal data and offers no Edit, Suspend or Reactivate. The server refuses those three requests with a 409 ("This driver's account was deleted. It can no longer be changed.") and writes nothing, not even an audit entry. Vehicles, documents and the bank-account reveal are not affected by this rule.

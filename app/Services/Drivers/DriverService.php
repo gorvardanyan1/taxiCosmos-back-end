@@ -151,6 +151,7 @@ final class DriverService
 
     /**
      * The driver profile and its user, both locked (profile first, the same order everywhere).
+     * A deleted account keeps its driver records for review but is no longer anyone's to change.
      *
      * @return array{DriverProfile, User}
      */
@@ -158,6 +159,10 @@ final class DriverService
     {
         $locked = DriverProfile::query()->whereKey($driver->getKey())->lockForUpdate()->firstOrFail();
         $user = User::query()->withTrashed()->whereKey($locked->user_id)->lockForUpdate()->firstOrFail();
+
+        if ($user->trashed()) {
+            throw DriverStateException::deletedAccount();
+        }
 
         return [$locked, $user];
     }

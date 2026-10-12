@@ -91,6 +91,8 @@ class DriverController extends Controller
     private function render(Request $request, int $driver, string $tab): Response
     {
         $profile = DriverProfile::query()->findOrFail($driver);
+        // A deleted account stays reviewable (documents, trips, earnings) but cannot be edited or suspended.
+        $changeable = ! User::query()->withTrashed()->findOrFail($profile->user_id)->trashed();
 
         return Inertia::render('Drivers/Show', [
             'driver' => DriverDetailPresenter::present($profile),
@@ -101,9 +103,9 @@ class DriverController extends Controller
             'actions' => [
                 'approveDocument' => $this->can($request, 'drivers.verify') ? $this->template('approve', $profile) : null,
                 'rejectDocument' => $this->can($request, 'drivers.verify') ? $this->template('reject', $profile) : null,
-                'edit' => $this->can($request, 'drivers.edit') ? route('admin.drivers.update', $profile->id, absolute: false) : null,
-                'suspend' => $this->can($request, 'drivers.suspend') ? route('admin.drivers.suspend', $profile->id, absolute: false) : null,
-                'reactivate' => $this->can($request, 'drivers.suspend') ? route('admin.drivers.reactivate', $profile->id, absolute: false) : null,
+                'edit' => $changeable && $this->can($request, 'drivers.edit') ? route('admin.drivers.update', $profile->id, absolute: false) : null,
+                'suspend' => $changeable && $this->can($request, 'drivers.suspend') ? route('admin.drivers.suspend', $profile->id, absolute: false) : null,
+                'reactivate' => $changeable && $this->can($request, 'drivers.suspend') ? route('admin.drivers.reactivate', $profile->id, absolute: false) : null,
                 'addVehicle' => $this->can($request, 'drivers.edit') ? route('admin.drivers.vehicles.store', $profile->id, absolute: false) : null,
                 'updateVehicle' => $this->can($request, 'drivers.edit') ? $this->vehicleTemplate('admin.drivers.vehicles.update', $profile) : null,
                 'setPrimaryVehicle' => $this->can($request, 'drivers.edit') ? $this->vehicleTemplate('admin.drivers.vehicles.set-primary', $profile) : null,

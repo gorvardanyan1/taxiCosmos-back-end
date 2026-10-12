@@ -213,6 +213,8 @@ final class E2eFixtures
         ], fn ($value) => $value !== null));
         $profile->forceFill(array_filter(['verification_status' => $a['verification_status'] ?? null, 'availability' => $a['availability'] ?? null], fn ($value) => $value !== null))->save();
 
+        ($a['deleted'] ?? false) && $user->delete();
+
         foreach ($a['vehicles'] ?? [] as $vehicle) {
             Vehicle::factory()->for($profile, 'driver')->create(['make' => $vehicle['make'], 'model' => $vehicle['model'], 'plate_number' => $vehicle['plate'], 'vehicle_class' => $vehicle['class'] ?? 'economy', 'status' => $vehicle['status'] ?? 'active', 'is_primary' => $vehicle['primary'] ?? false]);
         }

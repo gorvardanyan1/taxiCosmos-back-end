@@ -32,6 +32,11 @@ class DriverStateException extends ConflictException
         return new self(__('You cannot suspend your own account.'));
     }
 
+    public static function deletedAccount(): self
+    {
+        return new self(__('This driver\'s account was deleted. It can no longer be changed.'));
+    }
+
     public static function vehicleNotActive(): self
     {
         return new self(__('Only an active vehicle can be the primary vehicle.'));

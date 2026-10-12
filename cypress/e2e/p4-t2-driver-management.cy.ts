@@ -404,6 +404,32 @@ describe('P4-T2 · Driver management', () => {
         });
     });
 
+    // A deleted account keeps its records for review, but cannot be edited, suspended or reactivated.
+    it('offers no edit or suspend for a driver whose account was deleted, and refuses direct requests', () => {
+        cy.loginAs('cy-drivers-support@taxikosmos.test');
+        cy.make<DriverFixture>('driver', { name: 'Dee Deleted', phone: '091 660 001', deleted: true }).then((driver) => {
+            cy.visit(`/admin/drivers/${driver.driver_id}`);
+            cy.contains('Deleted account').should('be.visible');
+            cy.findByRole('button', { name: 'Edit' }).should('be.disabled');
+            cy.findByRole('button', { name: /^(Suspend|Reactivate)$/ }).should('not.exist');
+
+            const message = "This driver's account was deleted. It can no longer be changed.";
+            for (const [method, path, body] of [
+                ['PATCH', '', { name: 'Revived Name', reason: 'x' }],
+                ['POST', '/suspend', { reason: 'x' }],
+                ['POST', '/reactivate', { reason: 'x' }],
+            ] as const) {
+                // The Inertia request is sent back to the page with the refusal as its error flash.
+                cy.adminRequest(method, `/admin/drivers/${driver.driver_id}${path}`, body).its('status').should('be.oneOf', [302, 303]);
+                cy.pageProps(`/admin/drivers/${driver.driver_id}`).its('flash.error').should('eq', message);
+            }
+
+            cy.sql('select u.name, u.status, u.deleted_at is not null as deleted from driver_profiles p join users u on u.id = p.user_id where p.id = ?', [driver.driver_id])
+                .its('0').should('include', { name: 'Dee Deleted', status: 'active', deleted: true });
+            cy.sql("select count(*)::int as n from activity_log where description like 'driver.%' and subject_id = ?", [driver.driver_id]).its('0.n').should('eq', 0);
+        });
+    });
+
     // Permissions: drivers.view only (dispatcher) sees the pages but no write actions; direct writes are 403; a guest signs in first.
     it('gives a view-only role no write actions and refuses its direct requests', () => {
         cy.make<DriverFixture>('driver', { name: 'Vio View', vehicles: [{ make: 'Kia', model: 'Rio', plate: 'VIO1', primary: true }] }).then((driver) => {
