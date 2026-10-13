@@ -30,7 +30,7 @@ const tile = { background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' } as
 const tabLabels: Record<string, string> = { 'trip-history': tk('Trip History'), 'bank-accounts': tk('Bank accounts') };
 
 export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, actions }: Props) {
-    const { money, timezone } = useShared();
+    const { money, timezone, can } = useShared();
     const [rejecting, setRejecting] = useState<DriverDocument | null>(null);
     const [editing, setEditing] = useState(false);
     const [acting, setActing] = useState(false);
@@ -39,7 +39,7 @@ export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, a
     const earnings = driver.earnings_detail;
     const suspended = driver.status === 'suspended';
     // Only active drivers can be suspended and only suspended ones reactivated.
-    const canToggle = (driver.status === 'active' || suspended) && (suspended ? actions.reactivate : actions.suspend) !== null;
+    const canToggle = can('drivers.suspend') && (driver.status === 'active' || suspended) && (suspended ? actions.reactivate : actions.suspend) !== null;
 
     return (
         <div className="mx-auto max-w-4xl">
@@ -54,7 +54,7 @@ export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, a
                     </div>
                     <StatusBadge status={driver.verification_status} />
                     {suspended && <StatusBadge status="suspended" />}
-                    <button onClick={() => setEditing(true)} disabled={actions.edit === null} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">{t('Edit')}</button>
+                    {can('drivers.edit') && <button onClick={() => setEditing(true)} disabled={actions.edit === null} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 disabled:opacity-40">{t('Edit')}</button>}
                     {canToggle && (
                         <button onClick={() => setActing(true)} className={`rounded-xl px-3 py-2 text-xs font-bold ${suspended ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>{suspended ? t('Reactivate') : t('Suspend')}</button>
                     )}
@@ -110,7 +110,7 @@ export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, a
                                                     <Eye size={11} /> {t('View')}
                                                 </a>
                                             )}
-                                            {doc.status === 'pending' && <><ActionButton url={withId(actions.approveDocument, doc.id)} className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#f0fdf4', color: '#16a34a', fontFamily: 'var(--font-display)' }}>
+                                            {doc.status === 'pending' && can('drivers.verify') && <><ActionButton url={withId(actions.approveDocument, doc.id)} className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#f0fdf4', color: '#16a34a', fontFamily: 'var(--font-display)' }}>
                                                 <CheckCircle size={11} /> {t('Approve')}
                                             </ActionButton>
                                             <button onClick={() => setRejecting(doc)} className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#fef2f2', color: '#dc2626', fontFamily: 'var(--font-display)' }}>
@@ -125,7 +125,7 @@ export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, a
 
                     {tab === 'vehicles' && (
                         <div className="space-y-3">
-                            <button onClick={() => setVehicleForm({ vehicle: null })} disabled={actions.addVehicle === null} className="w-full rounded-xl border border-dashed border-indigo-300 bg-indigo-50 py-3 text-xs font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40">{t('+ Add vehicle')}</button>
+                            {can('drivers.edit') && <button onClick={() => setVehicleForm({ vehicle: null })} disabled={actions.addVehicle === null} className="w-full rounded-xl border border-dashed border-indigo-300 bg-indigo-50 py-3 text-xs font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-40">{t('+ Add vehicle')}</button>}
                             {driver.vehicles.length === 0 && <EmptyState title={t('No vehicles yet')} />}
                             {driver.vehicles.map((vehicle) => (
                                 <div key={vehicle.id} className="rounded-2xl bg-white p-4 shadow-sm">
@@ -135,7 +135,7 @@ export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, a
                                             <p className="mt-1 font-mono text-xs text-slate-500">{vehicle.plate_number}</p>
                                         </div>
                                         <div className="ml-auto flex items-start gap-1">
-                                            <button aria-label={t('Edit :vehicle', { vehicle: `${vehicle.make} ${vehicle.model}` })} onClick={() => setVehicleForm({ vehicle })} disabled={actions.updateVehicle === null} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 disabled:opacity-40"><Edit2 size={12} /></button>
+                                            {can('drivers.edit') && <button aria-label={t('Edit :vehicle', { vehicle: `${vehicle.make} ${vehicle.model}` })} onClick={() => setVehicleForm({ vehicle })} disabled={actions.updateVehicle === null} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 disabled:opacity-40"><Edit2 size={12} /></button>}
                                             <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold text-violet-700">{label(vehicle.vehicle_class)}</span>
                                             <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">{vehicle.is_primary ? t('Primary') : label(vehicle.status)}</span>
                                         </div>
@@ -143,7 +143,7 @@ export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, a
                                     <div className="mt-4 flex items-center text-xs text-slate-500">
                                         <span className="mr-2 size-3 rounded-full border border-slate-200" style={{ background: vehicle.color.toLowerCase() }} />
                                         {vehicle.color}
-                                        {!vehicle.is_primary && vehicle.status === 'active' && <ActionButton url={withId(actions.setPrimaryVehicle, vehicle.id)} className="ml-auto font-bold text-indigo-600">{t('Set as primary')}</ActionButton>}
+                                        {!vehicle.is_primary && vehicle.status === 'active' && can('drivers.edit') && <ActionButton url={withId(actions.setPrimaryVehicle, vehicle.id)} className="ml-auto font-bold text-indigo-600">{t('Set as primary')}</ActionButton>}
                                     </div>
                                 </div>
                             ))}
@@ -215,7 +215,7 @@ export default function DriverShow({ driver, tab, tabs, zones, vehicleClasses, a
                                     </div>
                                     {account.is_default && <span className="ml-auto rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">{t('Default')}</span>}
                                 </div>
-                                <RevealAccountNumber url={withId(actions.revealBankAccount, account.id)} />
+                                {can('drivers.reveal_bank_account') && <RevealAccountNumber url={withId(actions.revealBankAccount, account.id)} />}
                             </div>
                         ))
                     )}

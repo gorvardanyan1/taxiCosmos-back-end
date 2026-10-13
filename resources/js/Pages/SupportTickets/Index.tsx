@@ -10,6 +10,7 @@ import PageHeader from '@/Components/PageHeader';
 import { formatRelative } from '@/lib/format';
 import { label } from '@/lib/labels';
 import { visitQuery, withId } from '@/lib/query';
+import { useShared } from '@/lib/useShared';
 import { card, field, ghost, primary } from '@/lib/ui';
 import type { Actions, Filters, Paginated, TicketDetail, TicketRow } from '@/types';
 import { t } from '@/lib/i18n';
@@ -27,6 +28,7 @@ const messageStyle = {
 };
 
 export default function SupportTicketsIndex({ tickets, filters, selected, actions }: Props) {
+    const { can } = useShared();
     const [internal, setInternal] = useState(false);
     const [resolving, setResolving] = useState(false);
     const reply = useForm({ body: '', internal: false });
@@ -105,7 +107,7 @@ export default function SupportTicketsIndex({ tickets, filters, selected, action
                                         <p className="mt-2 font-mono text-sm font-bold text-indigo-600">{selected.linked_trip.code}</p>
                                         <div className="mt-3 flex gap-2">
                                             <Link href={`/admin/trips/${selected.linked_trip.id}`} className="text-xs font-bold text-indigo-600">{t('Open trip')}</Link>
-                                            <ActionButton url={withId(actions.refund, selected.id)} className="text-xs font-bold text-amber-600">{t('Issue refund')}</ActionButton>
+                                            {can('payments.refund') && <ActionButton url={withId(actions.refund, selected.id)} className="text-xs font-bold text-amber-600">{t('Issue refund')}</ActionButton>}
                                         </div>
                                     </div>
                                 )}

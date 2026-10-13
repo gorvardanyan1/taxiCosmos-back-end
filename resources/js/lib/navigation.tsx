@@ -4,14 +4,15 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { t, tk } from '@/lib/i18n';
+import type { PermissionRule } from '@/lib/permissions';
 
 export interface NavItem {
     key: string;
     label: string;
     href: string;
     icon: ReactNode;
-    /** Permission the route requires (sidebar hiding by permission is P13-T2). */
-    permission: string;
+    /** Permission the page's route requires (any one of a list); the sidebar hides the item without it. tests/Feature/Admin/PermissionNavigationTest compares it with the route. */
+    permission: PermissionRule;
 }
 
 export const navGroups: { label: string; items: NavItem[] }[] = [
@@ -48,7 +49,7 @@ export const navGroups: { label: string; items: NavItem[] }[] = [
             { key: 'zones', label: tk('Zones & Fares'), href: '/admin/zones', icon: <Map size={15} />, permission: 'zones.manage' },
             { key: 'surge', label: tk('Surge'), href: '/admin/surge', icon: <TrendingUp size={15} />, permission: 'fares.manage' },
             { key: 'commission-rules', label: tk('Commission'), href: '/admin/commission-rules', icon: <Percent size={15} />, permission: 'fares.manage' },
-            { key: 'settings', label: tk('Settings'), href: '/admin/settings', icon: <Settings size={15} />, permission: 'settings.manage' },
+            { key: 'settings', label: tk('Settings'), href: '/admin/settings', icon: <Settings size={15} />, permission: ['admins.manage', 'settings.manage'] },
             { key: 'activity-logs', label: tk('Activity Log'), href: '/admin/activity-logs', icon: <ScrollText size={15} />, permission: 'activity_log.view' },
         ],
     },

@@ -38,7 +38,7 @@ const classColors: Record<string, { bg: string; color: string }> = {
 };
 
 export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, fareRules, fareHistory, vehicleClasses, timezones, currencies: zoneCurrencies, actions }: Props) {
-    const { money, timezone } = useShared();
+    const { money, timezone, can } = useShared();
     const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null);
     /** The fare form: a new version of this rule, or (null rule) the first rule of a class. */
     const [fareForm, setFareForm] = useState<{ rule: FareRule | null } | null>(null);
@@ -107,7 +107,7 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                         <div className="h-2 w-2 rounded-full" style={{ background: color }} />
                         <h2 className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: 'var(--font-display)' }}>{t('Fare Rules — :zone', { zone: zone?.name ?? '' })}</h2>
                         <span className="ml-auto text-xs" style={{ color: '#94a3b8' }}>{tc(':count vehicle class|:count vehicle classes', fareRules.length)}</span>
-                        <button onClick={() => setFareForm({ rule: null })} disabled={saveUrl === null || freeClasses.length === 0} title={saveUrl === null ? t(UNAVAILABLE_HINT) : freeClasses.length === 0 ? t('Every vehicle class has a fare rule.') : undefined} className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 disabled:opacity-40"><Plus size={12} />{t('Add fare rule')}</button>
+                        {can('fares.manage') && <button onClick={() => setFareForm({ rule: null })} disabled={saveUrl === null || freeClasses.length === 0} title={saveUrl === null ? t(UNAVAILABLE_HINT) : freeClasses.length === 0 ? t('Every vehicle class has a fare rule.') : undefined} className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 disabled:opacity-40"><Plus size={12} />{t('Add fare rule')}</button>}
                     </div>
                     <div className="overflow-x-auto">
                     <table className="w-full" style={{ minWidth: 760 }}>
@@ -131,7 +131,7 @@ export default function ZonesIndex({ zones, selectedZoneId, selectedPolygon, far
                                         <td className="px-4 py-4 text-xs" style={{ color: '#64748b' }}>{until(rule)}</td>
                                         <td className="px-4 py-4">
                                             <div className="flex gap-1">
-                                                <button aria-label={t('New version of :class', { class: label(rule.vehicle_class) })} onClick={() => setFareForm({ rule })} disabled={saveUrl === null} title={saveUrl === null ? t(UNAVAILABLE_HINT) : t('New version of :class', { class: label(rule.vehicle_class) })} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100 disabled:opacity-40" style={{ color: '#94a3b8' }}><Edit2 size={13} /></button>
+                                                {can('fares.manage') && <button aria-label={t('New version of :class', { class: label(rule.vehicle_class) })} onClick={() => setFareForm({ rule })} disabled={saveUrl === null} title={saveUrl === null ? t(UNAVAILABLE_HINT) : t('New version of :class', { class: label(rule.vehicle_class) })} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100 disabled:opacity-40" style={{ color: '#94a3b8' }}><Edit2 size={13} /></button>}
                                                 <button aria-label={t('History of :class', { class: label(rule.vehicle_class) })} onClick={() => visitQuery({ history: rule.vehicle_class })} className="rounded-lg p-1.5 transition-colors hover:bg-slate-100" style={{ color: '#94a3b8' }}><History size={13} /></button>
                                             </div>
                                         </td>

@@ -12,7 +12,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
   `active` account (`User::hasAdminAccess()`). The flag alone grants nothing.
 - **`super_admin` bypasses every check** through `Gate::before` in `AppServiceProvider`, as long as
   the account still has admin access (a suspended super admin loses the bypass).
-- The admin UI hides actions the current user lacks (P13-T2), but the server is the only
+- The admin UI hides what the current user lacks (P13-T2, below), but the server is the only
   enforcement point.
 - **Self-service pages need no permission**: `GET /admin/account` (My Account) only requires
   admin access, because every admin manages their own profile and security.
@@ -56,6 +56,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `POST /admin/zones/{id}/fare-rules` (add a fare rule version; the Zones page shows prices and history with `zones.manage`, saving needs this too) | `fares.manage` |
 | `GET /admin/surge` | `fares.manage` |
 | `GET /admin/commission-rules`, `POST /admin/commission-rules` (add a version) | `fares.manage` |
+| `GET /admin/settings` (redirects to the first Settings tab the admin may open: Users & Roles, else Gateways) | `admins.manage` or `settings.manage` |
 | `GET /admin/settings/users` | `admins.manage` |
 | `GET /admin/settings/{gateways,currencies,platform,maps}` | `settings.manage` |
 | `GET /admin/activity-logs`, `/admin/activity-logs/export` (CSV) | `activity_log.view` |
@@ -64,6 +65,41 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /two-factor-setup`, `POST /two-factor-setup` (start; password), `POST /two-factor-setup/confirm` (code) | admin access only (self-service; outside `/admin` so an admin who must set it up can reach it) |
 | `DELETE /admin/account/two-factor` (password), `POST /admin/account/two-factor/recovery-codes` (password) | admin access only (self-service; they change only the signed-in admin's own two-factor) |
 | `POST /admin/settings/users/{id}/two-factor/reset` (own password and a reason; logged) | `admins.manage`, and the actor must be a `super_admin` (the service checks both) |
+
+## What the admin UI shows (P13-T2)
+
+The browser gets the admin's permissions as the shared prop `auth.permissions` (every permission for a super admin) and hides
+what they do not allow: `useShared().can(permission)` and `<Can permission="...">` (a list means "any one of"). The server
+answers 403 for the same requests anyway (`PermissionMatrixTest` checks every role against every `/admin` route).
+
+| UI element | Shown with |
+| --- | --- |
+| Sidebar item | the permission of its page (`resources/js/lib/navigation.tsx`; Settings: `admins.manage` or `settings.manage`); a group with no item left is dropped |
+| Sidebar "Queue Monitor" link | the Horizon gate `viewHorizon` (super admin, admin), shared as `navigation.queueMonitor` |
+| Settings tabs | Users & Roles: `admins.manage`; Gateways, Currencies, Platform, Maps: `settings.manage` |
+| Riders: Edit | `riders.edit`; Suspend / Reactivate (page and list menu): `riders.suspend` |
+| Drivers: Edit | `drivers.edit`; Suspend / Reactivate (page and list menu): `drivers.suspend`; "+ Add Driver": `drivers.edit` |
+| Drivers: Approve / Reject a document | `drivers.verify` |
+| Drivers: add / edit a vehicle, Set as primary | `drivers.edit` |
+| Drivers: Reveal account number | `drivers.reveal_bank_account` |
+| Trips: Force Cancel and Reassign Driver | `trips.force_cancel` (assumption: P7-T2 defines no separate reassign permission) |
+| Trips: Adjust Fare | `trips.adjust_fare` (the "Admin Actions" panel is hidden when neither is held) |
+| Payments: Record Manual Payment, Confirm / Reject a manual payment | `payments.manual`; Refund: `payments.refund` |
+| Payouts: Approve batch, Approve / Reject | `payouts.approve` |
+| Support tickets: Issue refund | `payments.refund` (on top of `support.manage` for the page) |
+| Zones & Fares: Add fare rule, new version of a rule | `fares.manage` (the page itself needs `zones.manage`) |
+
+Actions whose endpoint and permission are not built yet (driver balance adjustments and cash settlements, ratings moderation,
+gateway keys, user invitations) are still shown disabled with the "not available yet" hint; the task that builds each one adds its
+permission here and gates it the same way. `tests/Feature/Admin/PermissionNavigationTest` keeps `resources/js/lib/permissions.ts`
+equal to `AdminPermission` and every sidebar item equal to its route's permission.
+
+### Sidebar badges
+
+`App\Services\Admin\NavigationBadges` counts, cached for **60 seconds** (`admin:navigation-badges`, the same numbers for every admin):
+Drivers = driver profiles with verification pending; Support Tickets = open urgent tickets (P7-T5); Payments = manual payments awaiting
+confirmation (P6-T5); Payouts = pending payouts (P6-T8). The last three read 0 until their tables exist, so no badge shows.
+An admin receives only the badges of pages they may open, and a zero count sends no badge.
 
 ## Source of truth
 

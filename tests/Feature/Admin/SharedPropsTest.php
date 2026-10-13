@@ -56,7 +56,7 @@ class SharedPropsTest extends AdminTestCase
                 ->where('app.timezone', 'Europe/Berlin')
                 ->where('app.baseCurrency', 'AMD')
                 ->where('app.currencies', config('taxikosmos.currencies'))
-                ->where('navigation.badges.drivers', 63));
+                ->where('navigation.badges', []));
 
         $this->actingAs($this->admin(attributes: ['timezone' => null]))->get('/admin')
             ->assertInertia(fn (Assert $page) => $page->where('app.timezone', config('taxikosmos.display_timezone')));

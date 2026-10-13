@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AdminPermission;
 use App\Enums\AdminRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AdminFixtures;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,6 +16,14 @@ use Spatie\Permission\Models\Role;
 class SettingsController extends Controller
 {
     public function __construct(private readonly AdminFixtures $fixtures) {}
+
+    /**
+     * GET /admin/settings: the first tab the admin may open (the route lets in either permission, so one of them is held).
+     */
+    public function index(Request $request): RedirectResponse
+    {
+        return to_route($request->user()->can(AdminPermission::AdminsManage->value) ? 'admin.settings.users' : 'admin.settings.gateways');
+    }
 
     /**
      * Admin users and the live role → permission matrix (invite/edit/deactivate: P3-T4).

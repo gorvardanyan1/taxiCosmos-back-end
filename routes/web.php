@@ -102,7 +102,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
         Route::post('/commission-rules', [Admin\CommissionRuleController::class, 'store'])->name('commission-rules.store');
     });
 
-    Route::get('/settings', fn () => to_route('admin.settings.users'))->name('settings');
+    // Opens the first Settings tab the admin may use (Users & Roles, else Gateways).
+    Route::get('/settings', [Admin\SettingsController::class, 'index'])->middleware('permission:admins.manage|settings.manage')->name('settings');
     Route::get('/settings/users', [Admin\SettingsController::class, 'users'])->middleware('permission:admins.manage')->name('settings.users');
     Route::post('/settings/users/{user}/two-factor/reset', [Admin\AdminUserTwoFactorController::class, 'reset'])->middleware(['permission:admins.manage', 'throttle:password-confirm'])->name('settings.users.two-factor.reset');
     Route::middleware('permission:settings.manage')->group(function () {

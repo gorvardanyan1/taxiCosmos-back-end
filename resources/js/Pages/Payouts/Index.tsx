@@ -24,7 +24,7 @@ interface Props {
 }
 
 export default function PayoutsIndex({ periods, summary, payouts, filters, statuses, skipped, actions }: Props) {
-    const { money, timezone } = useShared();
+    const { money, timezone, can } = useShared();
     const period = (start: string, end: string) => `${formatDate(start, timezone).replace(/, \d{4}$/, '')} – ${formatDate(end, timezone)}`;
 
     return (
@@ -36,7 +36,7 @@ export default function PayoutsIndex({ periods, summary, payouts, filters, statu
                 actions={
                     <>
                         <ActionButton url={actions.exportBankCsv} className={ghost}><Download size={14} />{t('Export CSV for bank')}</ActionButton>
-                        <ActionButton url={actions.approveBatch} className={primary}>{t('Approve batch')}</ActionButton>
+                        {can('payouts.approve') && <ActionButton url={actions.approveBatch} className={primary}>{t('Approve batch')}</ActionButton>}
                     </>
                 }
             />
@@ -70,7 +70,7 @@ export default function PayoutsIndex({ periods, summary, payouts, filters, statu
                     { key: 'amount', header: t('Amount'), render: (p) => <span className="font-mono font-bold text-slate-900">{money(p.amount)}</span> },
                     { key: 'status', header: t('Status'), render: (p) => <StatusBadge status={p.status} /> },
                     {
-                        key: 'actions', header: t('Actions'), render: (p) => p.status === 'pending' ? (
+                        key: 'actions', header: t('Actions'), render: (p) => p.status === 'pending' && can('payouts.approve') ? (
                             <div className="flex gap-2">
                                 <ActionButton url={withId(actions.approve, p.id)} className="text-xs font-bold text-emerald-600">{t('Approve')}</ActionButton>
                                 <ActionButton url={withId(actions.reject, p.id)} className="text-xs font-bold text-red-600">{t('Reject')}</ActionButton>
