@@ -17,6 +17,7 @@ const HEADERS = {
 };
 const ALLOWLISTED = 'http://127.0.0.1:8002'; // started with ADMIN_IP_ALLOWLIST=203.0.113.7 (not this machine)
 const OPEN = 'http://127.0.0.1:8003'; // started with ADMIN_IP_ALLOWLIST=127.0.0.1/32,203.0.113.7
+const BEHIND_PROXY = 'http://127.0.0.1:8004'; // ADMIN_IP_ALLOWLIST=203.0.113.7 and TRUSTED_PROXIES=127.0.0.1 (this machine is the proxy)
 
 const expectHardened = (headers: Record<string, unknown>, where: string) => {
     Object.entries(HEADERS).forEach(([name, value]) => expect(headers[name], `${where}: ${name}`).to.equal(value));
@@ -227,7 +228,8 @@ describe('P9-T3 · Rate limiting and abuse protection', () => {
         before(() => {
             cy.task('e2e:server:start', { port: 8002, env: { ADMIN_IP_ALLOWLIST: '203.0.113.7' } });
             cy.task('e2e:server:start', { port: 8003, env: { ADMIN_IP_ALLOWLIST: '127.0.0.1/32,203.0.113.7' } });
-            [ALLOWLISTED, OPEN].forEach((base) => cy.request({ url: `${base}/up`, retryOnNetworkFailure: true, failOnStatusCode: false }).its('status').should('eq', 200));
+            cy.task('e2e:server:start', { port: 8004, env: { ADMIN_IP_ALLOWLIST: '203.0.113.7', TRUSTED_PROXIES: '127.0.0.1' } });
+            [ALLOWLISTED, OPEN, BEHIND_PROXY].forEach((base) => cy.request({ url: `${base}/up`, retryOnNetworkFailure: true, failOnStatusCode: false }).its('status').should('eq', 200));
         });
 
         after(() => {
@@ -247,6 +249,18 @@ describe('P9-T3 · Rate limiting and abuse protection', () => {
         it('never restricts the mobile API or the health check', () => {
             cy.request({ url: `${ALLOWLISTED}/up`, failOnStatusCode: false }).its('status').should('eq', 200);
             cy.request({ method: 'POST', url: `${ALLOWLISTED}/api/v1/auth/otp/verify`, body: {}, failOnStatusCode: false, headers: { Accept: 'application/json' } }).its('status').should('eq', 422);
+        });
+
+        it('believes X-Forwarded-For only from a proxy listed in TRUSTED_PROXIES', () => {
+            const forwarded = (address: string) => ({ 'X-Forwarded-For': address });
+
+            // No trusted proxy: the header is ignored, so a spoofed allowed address does not get in.
+            cy.request({ url: `${ALLOWLISTED}/login`, headers: forwarded('203.0.113.7'), failOnStatusCode: false }).its('status').should('eq', 403);
+
+            // This machine is a trusted proxy: the client address it reports is judged against the list.
+            cy.request({ url: `${BEHIND_PROXY}/login`, headers: forwarded('203.0.113.7'), failOnStatusCode: false }).its('status').should('eq', 200);
+            cy.request({ url: `${BEHIND_PROXY}/login`, headers: forwarded('198.51.100.9'), failOnStatusCode: false }).its('status').should('eq', 403);
+            cy.request({ url: `${BEHIND_PROXY}/login`, failOnStatusCode: false }).its('status').should('eq', 403); // no header: the proxy's own address
         });
 
         it('lets a listed address (a CIDR containing it) reach the sign-in page and the admin', () => {
