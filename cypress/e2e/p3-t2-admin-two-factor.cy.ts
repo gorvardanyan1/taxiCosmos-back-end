@@ -172,6 +172,31 @@ describe('P3-T2 · Two-factor authentication for admins', () => {
         });
     });
 
+    // QA regression: an authenticator app shows "123 456" and copies it with the space; the field used to cut that to five digits.
+    it('accepts a code pasted the way the authenticator app shows it, with its space', () => {
+        cy.make('admin', { email: 'cy-2fa-paste@taxikosmos.test', role: 'support', name: 'Pia Paste', two_factor: true });
+        formSignIn('cy-2fa-paste@taxikosmos.test');
+        cy.location('pathname').should('eq', '/two-factor-challenge');
+
+        const paste = (text: string) => {
+            cy.findByLabelText('Authentication code').clear().focus();
+            cy.document().then((doc) => doc.execCommand('insertText', false, text));
+        };
+
+        // Pasted, as the app displays it: all six digits stay, and the wrong ones are refused as before.
+        paste('123 456');
+        cy.findByLabelText('Authentication code').should('have.value', '123456');
+        paste(' 654-321 ');
+        cy.findByLabelText('Authentication code').should('have.value', '654321');
+        cy.findByRole('button', { name: 'Verify code' }).click();
+        cy.findByRole('alert').should('contain', 'The provided two factor authentication code was invalid.');
+
+        codeFor('cy-2fa-paste@taxikosmos.test', 1).then((code) => paste(`${code.slice(0, 3)} ${code.slice(3)}`));
+        cy.findByRole('button', { name: 'Verify code' }).click();
+        cy.location('pathname').should('eq', '/admin');
+        cy.contains('header', 'Pia Paste').should('be.visible');
+    });
+
     it('does not let the challenge be reached without the password step', () => {
         cy.request({ url: '/two-factor-challenge', followRedirect: false }).then((response) => {
             expect(response.status).to.be.oneOf([302, 303]);

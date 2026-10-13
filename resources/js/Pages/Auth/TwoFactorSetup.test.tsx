@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/core';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import TwoFactorSetup from '@/Pages/Auth/TwoFactorSetup';
 
@@ -89,5 +90,16 @@ describe('Two-factor setup', () => {
 
         expect(visit.mock.calls[0][0]).toBe('/logout');
         expect(visit.mock.calls[0][1]).toMatchObject({ method: 'post' });
+    });
+
+    // QA regression: a code pasted the way an authenticator app shows it ("123 456") was cut to five digits.
+    it.each([['123 456'], [' 123456'], ['123-456'], ['1234567']])('takes the six digits of a pasted %j', async (pasted) => {
+        const user = userEvent.setup();
+        render(<TwoFactorSetup setup={setup} required={false} {...urls} />);
+
+        await user.click(screen.getByLabelText('Authentication code'));
+        await user.paste(pasted);
+
+        expect((screen.getByLabelText('Authentication code') as HTMLInputElement).value).toBe('123456');
     });
 });
