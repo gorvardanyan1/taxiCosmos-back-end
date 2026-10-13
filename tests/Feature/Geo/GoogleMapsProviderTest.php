@@ -247,14 +247,23 @@ class GoogleMapsProviderTest extends TestCase
         }
     }
 
-    public function test_the_configured_timeout_is_used(): void
+    public function test_the_configured_timeout_is_sent_with_every_request(): void
     {
         config(['services.maps.timeout' => 3]);
-        Http::fake(['*' => Http::response(['routes' => []])]);
+        $options = null;
+        Http::fake(function (Request $request, array $sent) use (&$options) {
+            $options = $sent;
+
+            return Http::response(['routes' => []]);
+        });
 
         $this->google->getRoute(new GeoPoint(40.18, 44.51), new GeoPoint(40.19, 44.52));
 
-        Http::assertSent(fn (Request $request) => $request->toPsrRequest() !== null);
-        $this->assertSame(3, (int) config('services.maps.timeout'));
+        $this->assertEquals(3, $options['timeout'], 'a slow provider must not hold the request longer than MAPS_TIMEOUT');
+
+        config(['services.maps.timeout' => 7]);
+        $this->google->getRoute(new GeoPoint(40.18, 44.51), new GeoPoint(40.19, 44.52));
+
+        $this->assertEquals(7, $options['timeout']);
     }
 }

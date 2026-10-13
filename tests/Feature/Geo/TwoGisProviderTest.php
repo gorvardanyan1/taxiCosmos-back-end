@@ -220,4 +220,19 @@ class TwoGisProviderTest extends TestCase
             $this->assertStringNotContainsString(self::KEY, $e->getMessage());
         }
     }
+
+    public function test_the_configured_timeout_is_sent_with_every_request(): void
+    {
+        config(['services.maps.timeout' => 4]);
+        $options = null;
+        Http::fake(function (Request $request, array $sent) use (&$options) {
+            $options = $sent;
+
+            return Http::response(['meta' => ['code' => 200], 'result' => ['items' => []]]);
+        });
+
+        $this->twoGis->geocode('anything');
+
+        $this->assertEquals(4, $options['timeout']);
+    }
 }
