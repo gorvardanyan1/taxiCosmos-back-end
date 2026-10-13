@@ -29,6 +29,13 @@ function startServer(port: number, env: Record<string, string>): number {
         throw new Error(`e2e:server:start only uses ports 8002-8009, got ${port}`);
     }
 
+    // Cypress runs a suite's `before` hook twice when the suite overrides baseUrl (it reloads the spec): the second call keeps the server
+    // that is already up instead of spawning one that cannot bind and replacing the one that must still be stopped.
+    const running = extraServers.get(port);
+    if (running !== undefined && running.exitCode === null && running.signalCode === null) {
+        return port;
+    }
+
     const child = spawn('php', ['-S', `127.0.0.1:${port}`, '../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php'], {
         cwd: join(process.cwd(), 'public'),
         env: { ...process.env, ...env, APP_ENV: 'e2e' },

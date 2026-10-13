@@ -1,7 +1,9 @@
 import { Head } from '@inertiajs/react';
+import { useState } from 'react';
 import ActionButton from '@/Components/ActionButton';
 import Avatar from '@/Components/Avatar';
 import PaginatedTable from '@/Components/PaginatedTable';
+import PasswordConfirmModal from '@/Components/PasswordConfirmModal';
 import SettingsTabs from '@/Components/SettingsTabs';
 import StatusBadge from '@/Components/StatusBadge';
 import { formatDateTime } from '@/lib/format';
@@ -9,13 +11,13 @@ import { withId } from '@/lib/query';
 import { shadowCard } from '@/lib/ui';
 import { useShared } from '@/lib/useShared';
 import type { Actions, AdminUserRow, Paginated } from '@/types';
-import { t } from '@/lib/i18n';
+import { t, tn } from '@/lib/i18n';
 
 interface Props {
     users: Paginated<AdminUserRow>;
     roles: { name: string; label: string }[];
     matrix: Record<string, string[]>;
-    actions: Actions<'invite' | 'remove'>;
+    actions: Actions<'invite' | 'remove' | 'resetTwoFactor'>;
 }
 
 function Tick({ on }: { on: boolean }) {
@@ -27,7 +29,8 @@ function Tick({ on }: { on: boolean }) {
 }
 
 export default function SettingsUsers({ users, roles, matrix, actions }: Props) {
-    const { timezone } = useShared();
+    const { timezone, userId } = useShared();
+    const [resetting, setResetting] = useState<AdminUserRow | null>(null);
     const roleLabel = (name: string) => roles.find((r) => r.name === name)?.label ?? name;
     const permissions = [...new Set(Object.values(matrix).flat())].sort();
 
@@ -59,8 +62,18 @@ export default function SettingsUsers({ users, roles, matrix, actions }: Props) 
                             },
                             { key: 'role', header: t('Role'), render: (u) => u.roles.map((r) => <span key={r} className="mr-1 rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: '#eef2ff', color: '#6366f1', fontFamily: 'var(--font-display)' }}>{roleLabel(r)}</span>) },
                             { key: 'status', header: t('Status'), render: (u) => <StatusBadge status={u.status} /> },
+                            { key: 'two_factor', header: t('Two-factor'), render: (u) => <StatusBadge status={u.two_factor_enabled ? 'active' : 'inactive'} label={u.two_factor_enabled ? t('Enabled') : t('Disabled')} /> },
                             { key: 'login', header: t('Last Login'), render: (u) => <span className="text-xs" style={{ color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{u.last_login_at ? formatDateTime(u.last_login_at, timezone) : t('Never')}</span> },
-                            { key: 'remove', header: '', render: (u) => <ActionButton url={withId(actions.remove, u.id)} className="text-xs font-semibold hover:opacity-80" style={{ color: '#ef4444' }}>{t('Remove')}</ActionButton> },
+                            {
+                                key: 'remove', header: '', render: (u) => (
+                                    <div className="flex items-center justify-end gap-3">
+                                        {actions.resetTwoFactor !== null && u.two_factor_enabled && u.id !== userId && (
+                                            <button type="button" onClick={() => setResetting(u)} aria-label={t('Reset two-factor for :name', { name: u.name })} className="text-xs font-semibold text-indigo-600 hover:opacity-80">{t('Reset two-factor')}</button>
+                                        )}
+                                        <ActionButton url={withId(actions.remove, u.id)} className="text-xs font-semibold hover:opacity-80" style={{ color: '#ef4444' }}>{t('Remove')}</ActionButton>
+                                    </div>
+                                ),
+                            },
                         ]}
                     />
                 </div>
@@ -89,6 +102,13 @@ export default function SettingsUsers({ users, roles, matrix, actions }: Props) 
                     </div>
                 </div>
             </div>
+            <PasswordConfirmModal
+                open={resetting !== null} onClose={() => setResetting(null)} tone="danger"
+                url={resetting === null ? null : withId(actions.resetTwoFactor, resetting.id)}
+                title={t('Reset two-factor authentication')} confirmLabel={t('Reset two-factor')}
+                description={resetting === null ? '' : tn('This removes the authenticator app and recovery codes of :name, who signs in with a password only until they set it up again. Confirm your password and say why.', { name: <strong style={{ color: '#0f172a' }}>{resetting.name}</strong> })}
+                reasonPlaceholder={t('Why is the two-factor of this admin being reset? (e.g. lost phone)')}
+            />
         </SettingsTabs>
     );
 }

@@ -15,14 +15,18 @@ sensitive is missing from it.
 | `driver_documents.document_number` | none | Reviewers read it next to the document; nobody searches by it | Hidden on the model and never sent to the browser; document files are covered below |
 | `driver_bank_accounts.account_number` | none | Nothing searches by account number, so no index is added | `account_last4` (last 4 characters, plaintext) drives the masked display `•••• 4821`; revealing the full number is an audited action (P4-T2) |
 
+| `users.two_factor_secret` | none | The admin's TOTP secret; only Fortify's code check reads it | Hidden on the model; shown once, as a QR code and a manual key, while the setup is pending (P3-T2) |
+| `users.two_factor_recovery_codes` | none | The JSON list of unused recovery codes | Hidden on the model; shown once, at setup and after each regeneration. Fortify encrypts both columns itself; `App\Support\Pii\StringEncrypter` makes the ciphertext the same format as every other column, so `pii:reencrypt` rotates them too |
+
 **Columns that will exist later and must be encrypted the same way** (add them to `PiiColumns` when you create them; `PiiColumnsGuardTest` enforces it):
 
 | Column | Task | Blind index |
 | --- | --- | --- |
-| two-factor secrets and recovery codes | P3-T2 | none |
 | stored gateway / provider credentials | P13-T5 | none |
 
-Hashed (not encrypted) by design: `users.password` (bcrypt). Plaintext by design: the blind-index columns,
+The two-factor secrets and recovery codes (P3-T2) follow the same rules as every other column above; see "Two-factor authentication" below.
+
+Hashed (not encrypted) by design: `users.password` (bcrypt). Plaintext by design: the blind-index columns, `users.two_factor_confirmed_at` (a timestamp),
 `driver_bank_accounts.account_last4` and `swift` (the full list is `PiiColumns::plaintextByDesign()`). `otp_codes.phone_hash` is the same
 keyed hash of the phone; the code itself is stored only as an HMAC (`code_hash`), the phone never in clear.
 
@@ -137,3 +141,26 @@ from the proxy, which defeats the allowlist and pools every client into one rate
 
 **Tests:** `tests/Feature/Security/` (headers, allowlist, cookies, rate-limit responses), `LoginRateLimitTest`, and the
 Cypress spec `cypress/e2e/p9-t3-rate-limits-security.cy.ts`.
+
+## Two-factor authentication (P3-T2)
+
+TOTP (an authenticator app) through Laravel Fortify, on the session guard of the admin panel.
+
+- **Who:** `super_admin` and `finance` must have it (`ADMIN_2FA_REQUIRED_ROLES`, see `docs/permissions.md`); the other admin roles may turn it on
+  in My Account → Security. A required role that has not finished the setup reaches nothing but the setup screen and cannot switch it off.
+- **Setup:** password again → a QR code, the secret to type in by hand and eight recovery codes (shown once) → a code from the app. Until that code
+  is entered (`two_factor_confirmed_at`) nothing is active, so an abandoned setup locks nobody out.
+- **Sign-in:** the password is step one; Fortify keeps the account in the session (`login.id`) and the challenge screen asks for a code or a recovery code. Only then
+  is the admin signed in (session regenerated, no remember-me). 5 code guesses a minute per account (`docs/rate-limits.md`).
+- **Every code works once.** `SingleUseTotpProvider` replaces Fortify's check: it remembers the 30-second step the code belongs to, per secret, for as long as the
+  code could be accepted. (Fortify itself let a code from the next step pass twice and forgot a used code after 60 seconds.)
+- **Recovery codes:** eight, single use (a used code is removed, under a row lock, so two simultaneous sign-ins cannot both use it; "N recovery codes left" is
+  shown in My Account). Regenerating makes a new set of eight and kills the old set. Using one is logged (`auth.recovery_code_used`).
+- **Password again** for enabling, disabling, regenerating and resetting, limited to 5 attempts a minute. Fortify's own `/user/two-factor-*` routes answer 404.
+- **Reset:** a super admin clears another admin's two-factor (own password, a reason, logged). It does not sign the other admin out; a reset admin whose role requires it is sent to the
+  setup screen on their next request.
+- **At rest:** `users.two_factor_secret` and `users.two_factor_recovery_codes` are ciphertext, `$hidden` on the model, registered in `PiiColumns`, rewritten by
+  `pii:reencrypt` on APP_KEY rotation (`App\Support\Pii\StringEncrypter` gives Fortify's values the same format as every other column). They reach the browser only on the setup screen (secret,
+  QR code, codes) while a setup is pending, and in the one-time dialog after a regeneration, never in an audit entry or a log.
+- **Tests:** `tests/Feature/Auth/TwoFactor*Test.php`, `SingleUseTotpProviderTest`, `tests/Feature/Pii/TwoFactorKeyRotationTest`, the Vitest specs next to the pages, and
+  `cypress/e2e/p3-t2-admin-two-factor.cy.ts` (its required-role group runs on a second server with the rule on).

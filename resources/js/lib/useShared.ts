@@ -8,6 +8,8 @@ export function useShared() {
 
     return {
         timezone: app.timezone,
+        /** The signed-in admin's id (null outside the admin shell). */
+        userId: auth.user?.id ?? null,
         currencies: app.currencies,
         can: (permission: string) => auth.permissions.includes(permission),
         money: (value: Money, options?: { compact?: boolean; signed?: boolean }) => formatMoney(value, app.currencies, options),

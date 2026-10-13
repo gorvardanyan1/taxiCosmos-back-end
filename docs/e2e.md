@@ -54,6 +54,11 @@ Specs that need a different `.env` (the IP allowlist in `p9-t3-rate-limits-secur
 server with `cy.task('e2e:server:start', { port, env })` (ports 8002-8009 only, always `APP_ENV=e2e`) and stop it with
 `cy.task('e2e:server:stop')`; Cypress also stops any left over when the run ends.
 
+`two_factor` on the `admin` fixture gives the account a confirmed authenticator setup without spending a code; `two_factor_code`
+(`{email, steps}`) returns the code the app would show (use steps 1, then 0 for a second sign-in), `two_factor_recovery_codes` the unused recovery codes.
+The e2e environment does not force two-factor for `super_admin` and `finance` (the default is off in `testing` and `e2e`, so fixtures sign in with a password
+alone); the P3-T2 spec starts a second server with `ADMIN_2FA_REQUIRED_ROLES=super_admin,finance` for the rule itself.
+
 Other commands: `cy.loginAs(email)` (real login form, cached per spec with `cy.session`),
 `cy.api(method, path, body, token)` (JSON, never fails on status), `cy.adminRequest(method, path, body)`
 (same-session Inertia request with the CSRF token, for direct-URL permission checks) and

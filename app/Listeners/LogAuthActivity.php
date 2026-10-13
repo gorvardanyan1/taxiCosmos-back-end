@@ -7,10 +7,12 @@ use App\Services\Audit\AuditLogger;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Laravel\Fortify\Events\RecoveryCodeReplaced;
+use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
 
 /**
- * Admin sign-ins, sign-outs (including the idle timeout) and failed sign-ins go to the audit log.
- * The password that was typed is never read, let alone stored.
+ * Admin sign-ins, sign-outs (including the idle timeout), failed sign-ins, wrong two-factor codes and recovery codes
+ * used to sign in go to the audit log. The password or code that was typed is never read, let alone stored.
  */
 class LogAuthActivity
 {
@@ -50,5 +52,22 @@ class LogAuthActivity
             log: AuditLogger::AUTH_LOG,
             targetLabel: $email === null || $email === '' ? null : $email,
         );
+    }
+
+    /**
+     * A recovery code was used instead of an authenticator code (P3-T2). The code itself is never logged.
+     */
+    public function handleRecoveryCodeUsed(RecoveryCodeReplaced $event): void
+    {
+        if ($event->user instanceof User) {
+            $this->audit->record($event->user, 'auth.recovery_code_used', $event->user, context: ['recovery_codes_left' => $event->user->recoveryCodesLeft()], log: AuditLogger::AUTH_LOG);
+        }
+    }
+
+    public function handleTwoFactorFailed(TwoFactorAuthenticationFailed $event): void
+    {
+        if ($event->user instanceof User) {
+            $this->audit->record($event->user, 'auth.two_factor_failed', $event->user, log: AuditLogger::AUTH_LOG);
+        }
     }
 }

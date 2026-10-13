@@ -26,12 +26,15 @@ final class PiiColumns
             new PiiColumn('driver_documents', 'document_number'),
             // Not searchable (no blind index): shown masked from account_last4, revealed on demand.
             new PiiColumn('driver_bank_accounts', 'account_number'),
+            // Not searchable: Fortify's TOTP secret and the JSON list of recovery codes of an admin (StringEncrypter).
+            new PiiColumn('users', 'two_factor_secret'),
+            new PiiColumn('users', 'two_factor_recovery_codes'),
         ];
     }
 
     /**
      * Columns whose names match sensitiveNamePattern() but are deliberately not encrypted: the
-     * blind indexes themselves (a keyed hash, not the value). Other plaintext columns next to PII
+     * blind indexes themselves (a keyed hash, not the value) and users.two_factor_confirmed_at (a timestamp). Other plaintext columns next to PII
      * (driver_bank_accounts.account_last4 for the masked display, swift, users.password which is a
      * bcrypt hash) do not match the pattern and are described in docs/security.md.
      *
@@ -43,6 +46,8 @@ final class PiiColumns
             'users.phone_hash',
             'driver_profiles.license_number_hash',
             'otp_codes.phone_hash',
+            // A timestamp (when the admin confirmed their authenticator app), not a secret.
+            'users.two_factor_confirmed_at',
         ];
     }
 

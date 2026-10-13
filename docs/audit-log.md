@@ -44,6 +44,9 @@ are handled too. Failed sign-ins store the email that was typed, never the passw
 | `driver.document.approved` / `driver.document.rejected` | `DriverDocumentReviewer` |
 | `driver.verification.changed` | `DriverVerificationSync` (when a review changes the driver's status) |
 | `auth.login`, `auth.logout` (incl. idle timeout), `auth.login_failed` | `LogAuthActivity` |
+| `auth.two_factor_failed` (a wrong code at the sign-in challenge), `auth.recovery_code_used` (`context.recovery_codes_left`; the code itself is never stored) | `LogAuthActivity` (log `auth`) |
+| `admin.two_factor.setup_started`, `.enabled` (`context.recovery_codes`), `.setup_cancelled`, `.disabled`, `.recovery_codes_regenerated` (no secret, no code in any of them) | `AdminTwoFactorService` (My Account and the setup screen) |
+| `admin.two_factor.reset` (reason required; actor is the super admin, target the admin) | `AdminTwoFactorService` (Settings → Users) |
 | `activity_log.exported` | `ActivityLogController::export` (filters used) |
 | `zone.created`, `zone.updated`, `zone.deactivated`, `zone.activated` | `ZoneService` (see [zones.md](zones.md)) |
 | `driver.updated`, `driver.suspended`, `driver.reactivated` (reason required; the licence number, phone and email show as "changed", never as values) | `DriverService` (see [drivers.md](drivers.md)) |
@@ -55,7 +58,7 @@ are handled too. Failed sign-ins store the email that was typed, never the passw
 | `account.locale_changed` | `AccountLocaleController` (My Account → Language; old and new language, no reason) |
 
 Refunds, manual payments, fare adjustments, suspensions, role and settings changes, 2FA reset and PII reveal
-are logged by their own tasks through the same service.
+are logged by their own tasks through the same service (the 2FA reset is built, see above).
 
 ## Activity Log page and export
 

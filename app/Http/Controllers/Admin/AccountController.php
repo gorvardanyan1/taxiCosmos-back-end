@@ -28,10 +28,19 @@ class AccountController extends Controller
                 'timezone' => $user->timezone ?? config('taxikosmos.display_timezone'),
             ],
             ...$fixtures->get('account'),
+            // Real two-factor state; the sessions and notification preferences above are still fixtures (P13-T3 / P13-T6).
+            'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
+            'two_factor_required' => $user->requiresTwoFactor(),
+            'recovery_codes_left' => $user->hasEnabledTwoFactorAuthentication() ? $user->recoveryCodesLeft() : 0,
+            // Shown once, right after they were generated, then gone with the flash.
+            'new_recovery_codes' => $request->session()->get(AccountTwoFactorController::NEW_CODES_KEY),
             'locales' => array_map(fn (string $code) => ['code' => $code, 'name' => Locales::NAMES[$code] ?? $code], Locales::supported()),
             'actions' => [
-                'updateProfile' => null, 'updatePassword' => null, 'regenerateRecoveryCodes' => null,
+                'updateProfile' => null, 'updatePassword' => null,
                 'logoutOtherSessions' => null, 'updateNotifications' => null,
+                'enableTwoFactor' => $user->hasEnabledTwoFactorAuthentication() ? null : route('two-factor.setup.start', absolute: false),
+                'disableTwoFactor' => $user->hasEnabledTwoFactorAuthentication() && ! $user->requiresTwoFactor() ? route('admin.account.two-factor.destroy', absolute: false) : null,
+                'regenerateRecoveryCodes' => $user->hasEnabledTwoFactorAuthentication() ? route('admin.account.two-factor.recovery-codes', absolute: false) : null,
                 'updateLocale' => route('admin.account.locale', absolute: false),
             ],
         ]);

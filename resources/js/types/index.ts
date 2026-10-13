@@ -357,6 +357,7 @@ export interface AdminUserRow {
     roles: string[];
     status: UserStatus;
     last_login_at: string | null;
+    two_factor_enabled: boolean;
 }
 
 export interface ActivityEntry {

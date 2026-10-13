@@ -67,9 +67,8 @@ class RouteMapTest extends AdminTestCase
             'login' => ['/login', 'Auth/Login', '/login'],
             'forgot password' => ['/forgot-password', 'Auth/ForgotPassword', '/forgot-password'],
             'reset password' => ['/reset-password/token-123?email=a%40b.test', 'Auth/ResetPassword', '/reset-password'],
-            // POST handlers arrive with P3-T4 (invitations) and P3-T2 (two-factor).
+            // The POST handler arrives with P3-T4 (invitations). The two-factor challenge needs a password step first (below).
             'accept invitation' => ['/accept-invitation/invite-abc', 'Auth/AcceptInvitation', null],
-            'two-factor challenge' => ['/two-factor-challenge', 'Auth/TwoFactorChallenge', null],
         ];
     }
 
@@ -87,12 +86,21 @@ class RouteMapTest extends AdminTestCase
             ->assertInertia(fn (Assert $page) => $page->where('token', 'invite-abc')->where('invitation', null));
     }
 
+    public function test_the_two_factor_challenge_is_only_for_someone_who_has_just_passed_the_password_step(): void
+    {
+        $this->get('/two-factor-challenge')->assertRedirect('/login');
+
+        $this->withSession(['login.id' => $this->admin()->id])->get('/two-factor-challenge')
+            ->assertOk()->assertInertia(fn (Assert $page) => $page->component('Auth/TwoFactorChallenge')->where('submitUrl', '/two-factor-challenge'));
+    }
+
     public function test_two_factor_setup_is_for_signed_in_admins(): void
     {
         $this->get('/two-factor-setup')->assertRedirect('/login');
 
         $this->actingAs($this->admin())->get('/two-factor-setup')
-            ->assertOk()->assertInertia(fn (Assert $page) => $page->component('Auth/TwoFactorSetup')->where('setup', null));
+            ->assertOk()->assertInertia(fn (Assert $page) => $page->component('Auth/TwoFactorSetup')->where('setup', null)->where('required', false)
+            ->where('startUrl', '/two-factor-setup')->where('submitUrl', '/two-factor-setup/confirm'));
     }
 
     public function test_signed_in_users_are_sent_away_from_guest_screens(): void

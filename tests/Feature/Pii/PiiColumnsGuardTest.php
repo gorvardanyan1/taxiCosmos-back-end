@@ -10,6 +10,7 @@ use App\Support\Pii\PiiColumns;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Laravel\Fortify\Fortify;
 use Tests\TestCase;
 
 /**
@@ -34,6 +35,13 @@ class PiiColumnsGuardTest extends TestCase
                 'make' => fn () => DriverDocument::factory()->create(['document_number' => 'AB-1234567'])],
             'driver_bank_accounts.account_number' => ['table' => 'driver_bank_accounts', 'column' => 'account_number', 'plaintext' => 'AM12345678904821', 'attribute' => 'account_number',
                 'make' => fn () => DriverBankAccount::factory()->create(['account_number' => 'AM12 3456 7890 4821'])],
+            // Fortify encrypts these two itself (StringEncrypter), so Eloquent returns the ciphertext and `read` decrypts it as Fortify does.
+            'users.two_factor_secret' => ['table' => 'users', 'column' => 'two_factor_secret', 'plaintext' => 'JBSWY3DPEHPK3PXP', 'attribute' => 'two_factor_secret',
+                'read' => fn (User $user) => Fortify::currentEncrypter()->decrypt($user->two_factor_secret),
+                'make' => fn () => User::factory()->create(['two_factor_secret' => Fortify::currentEncrypter()->encrypt('JBSWY3DPEHPK3PXP')])],
+            'users.two_factor_recovery_codes' => ['table' => 'users', 'column' => 'two_factor_recovery_codes', 'plaintext' => '["AAAAAAAAAA-BBBBBBBBBB","CCCCCCCCCC-DDDDDDDDDD"]', 'attribute' => 'two_factor_recovery_codes',
+                'read' => fn (User $user) => json_encode($user->recoveryCodes()),
+                'make' => fn () => User::factory()->create(['two_factor_recovery_codes' => Fortify::currentEncrypter()->encrypt(json_encode(['AAAAAAAAAA-BBBBBBBBBB', 'CCCCCCCCCC-DDDDDDDDDD']))])],
         ];
     }
 
@@ -58,7 +66,7 @@ class PiiColumnsGuardTest extends TestCase
             $this->assertNotSame($case['plaintext'], $raw, $label);
             $this->assertStringNotContainsString(substr($case['plaintext'], -6), $raw, "{$label}: the plaintext must not be visible in the column.");
             $this->assertSame($case['plaintext'], Crypt::decryptString($raw), "{$label}: raw value is the encrypted plaintext.");
-            $this->assertSame($case['plaintext'], $model->fresh()->{$case['attribute']}, "{$label}: Eloquent returns the plaintext.");
+            $this->assertSame($case['plaintext'], isset($case['read']) ? ($case['read'])($model->fresh()) : $model->fresh()->{$case['attribute']}, "{$label}: reading it back returns the plaintext.");
         }
     }
 
