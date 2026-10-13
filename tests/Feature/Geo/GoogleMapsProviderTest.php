@@ -107,6 +107,7 @@ class GoogleMapsProviderTest extends TestCase
         $this->assertSame('id,displayName,formattedAddress,location', $request->header('X-Goog-FieldMask')[0]);
         $this->assertSame(self::KEY, $request->header('X-Goog-Api-Key')[0]);
         $this->assertStringContainsString('sessionToken=session-1', $request->url());
+        $this->assertStringContainsString('languageCode=en', $request->url());
         $this->assertSame(['place_id' => 'ChIJ1', 'name' => 'Cafe Central', 'address' => 'Abovyan St 1, Yerevan', 'location' => ['lat' => 40.18, 'lng' => 44.51]], $place->toArray());
     }
 
@@ -192,6 +193,9 @@ class GoogleMapsProviderTest extends TestCase
         $this->assertEquals(['location' => ['latLng' => ['latitude' => 40.18, 'longitude' => 44.51]]], $request['origin']);
         $this->assertEquals(['location' => ['latLng' => ['latitude' => 40.19, 'longitude' => 44.52]]], $request['destination']);
         $this->assertSame('DRIVE', $request['travelMode']);
+        $this->assertSame('TRAFFIC_AWARE', $request['routingPreference'], 'the ETA must reflect live traffic');
+        $this->assertSame('METRIC', $request['units']);
+        $this->assertSame('en', $request['languageCode']);
         $this->assertSame(['distance_meters' => 1523, 'duration_seconds' => 312, 'polyline' => '_p~iF~ps|U_ulLnnqC'], $route->toArray());
     }
 

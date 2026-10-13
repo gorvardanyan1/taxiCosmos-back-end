@@ -109,6 +109,7 @@ describe('P5-T1 · Geo API', () => {
         geo(`autocomplete?q=${'a'.repeat(121)}`, rider).its('body.errors').should('have.property', 'q');
         geo('autocomplete?q=abc&lat=40.1', rider).its('body.errors').should('have.property', 'lng');
         geo('autocomplete?q=abc&lat=91&lng=44', rider).its('body.errors').should('have.property', 'lat');
+        geo('autocomplete?q=abc&lat=40&lng=181', rider).its('body.errors').should('have.property', 'lng');
         geo('autocomplete?q=abc&session=a/b', rider).its('body.errors').should('have.property', 'session');
         geo('reverse?lat=40.1', rider).its('body.errors').should('have.property', 'lng');
         geo('reverse?lat=91&lng=44', rider).its('body.errors').should('have.property', 'lat');

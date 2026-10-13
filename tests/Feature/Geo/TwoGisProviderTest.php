@@ -160,6 +160,7 @@ class TwoGisProviderTest extends TestCase
         $this->assertSame(['key' => self::KEY], $this->queryOf($request));
         $this->assertSame('driving', $request['transport']);
         $this->assertSame('fastest', $request['route_mode']);
+        $this->assertSame('jam', $request['traffic_mode'], 'the ETA must reflect live traffic');
         $this->assertEquals([
             ['type' => 'walking', 'lon' => 44.51, 'lat' => 40.18, 'start' => true],
             ['type' => 'walking', 'lon' => 44.52, 'lat' => 40.19, 'start' => false],
