@@ -3,6 +3,7 @@
 use App\Enums\SocialProvider;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\FareEstimateController;
+use App\Http\Controllers\Api\V1\GeoController;
 use Illuminate\Support\Facades\Route;
 
 // Mobile surface (rider and driver apps): JSON, Sanctum bearer tokens only, never a session.
@@ -25,4 +26,14 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->prefix('trips')->group(function () {
     // What a trip would cost per vehicle class; returns the quote_id trip creation (P7-T6) refers to.
     Route::post('fare-estimate', FareEstimateController::class)->middleware('throttle:fare-estimate');
+});
+
+// Address search, pickup pin and route preview for both apps (a phone-less pending session cannot use them). Each call that misses
+// the cache costs money, so they share one per-user budget (throttle:geo).
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driver', 'throttle:geo'])->prefix('geo')->group(function () {
+    Route::get('autocomplete', [GeoController::class, 'autocomplete']);
+    // Place ids are the provider's own (Google ChIJ…, 2GIS digits): letters, digits, - _ : and . but never starting with a dot, so one cannot climb the provider's URL path.
+    Route::get('places/{placeId}', [GeoController::class, 'place'])->where('placeId', '[A-Za-z0-9_:\-][A-Za-z0-9_.:\-]{0,199}');
+    Route::get('reverse', [GeoController::class, 'reverse']);
+    Route::get('route', [GeoController::class, 'route']);
 });
