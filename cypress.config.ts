@@ -1,4 +1,5 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
+import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineConfig } from 'cypress';
 
@@ -45,6 +46,22 @@ function stopServers(): null {
     return null;
 }
 
+/**
+ * Puts Laravel's Vite integration into hot mode (what `npm run dev` does) by writing/removing public/hot, so a spec can check
+ * the page the dev server needs (P9-T3). The server need not run: the browser checks the inline script against the CSP first.
+ */
+function viteHot(on: boolean): null {
+    const hot = join(process.cwd(), 'public', 'hot');
+
+    if (on) {
+        writeFileSync(hot, 'http://127.0.0.1:5173');
+    } else if (existsSync(hot)) {
+        rmSync(hot);
+    }
+
+    return null;
+}
+
 export default defineConfig({
     e2e: {
         baseUrl: process.env.CYPRESS_BASE_URL ?? 'http://127.0.0.1:8001',
@@ -61,10 +78,12 @@ export default defineConfig({
         setupNodeEvents(on) {
             on('after:run', () => {
                 stopServers();
+                viteHot(false);
             });
             on('task', {
                 'e2e:server:start': ({ port, env }: { port: number; env: Record<string, string> }) => startServer(port, env),
                 'e2e:server:stop': () => stopServers(),
+                'e2e:vite:hot': ({ on }: { on: boolean }) => viteHot(on),
                 'e2e:reset': () => artisan('e2e:reset', []),
                 'e2e:make': ({ fixture, attributes }: { fixture: string; attributes: Record<string, unknown> }) =>
                     artisan('e2e:make', [fixture, JSON.stringify(attributes ?? {})]),

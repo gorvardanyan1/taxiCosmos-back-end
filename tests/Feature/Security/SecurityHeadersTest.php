@@ -144,11 +144,51 @@ class SecurityHeadersTest extends AdminTestCase
         app(Vite::class)->useHotFile($hot);
 
         $csp = $this->get('/login')->headers->get('Content-Security-Policy');
-        $this->assertStringContainsString("script-src 'self' http://localhost:5173;", $csp);
+        $this->assertMatchesRegularExpression("/script-src 'self' http:\/\/localhost:5173 'nonce-[A-Za-z0-9+\/=]{16,}';/", $csp);
         $this->assertStringContainsString("connect-src 'self' http://localhost:5173 ws://localhost:5173;", $csp);
 
         unlink($hot);
-        $this->assertStringContainsString("script-src 'self';", $this->get('/login')->headers->get('Content-Security-Policy'));
+        $csp = $this->get('/login')->headers->get('Content-Security-Policy');
+        $this->assertStringContainsString("script-src 'self';", $csp);
+        $this->assertStringNotContainsString('nonce-', $csp);
+    }
+
+    public function test_the_inline_react_refresh_preamble_of_npm_run_dev_is_allowed_by_a_nonce_never_unsafe_inline(): void
+    {
+        $hot = tempnam(sys_get_temp_dir(), 'hot');
+        file_put_contents($hot, "http://localhost:5173\n");
+        app(Vite::class)->useHotFile($hot);
+
+        $response = $this->get('/login');
+        unlink($hot);
+
+        preg_match("/'nonce-([^']+)'/", $response->headers->get('Content-Security-Policy'), $policy);
+        $this->assertNotEmpty($policy, 'the policy carries a nonce');
+        preg_match('/script-src ([^;]+)/', $response->headers->get('Content-Security-Policy'), $scriptSrc);
+        $this->assertStringNotContainsString("'unsafe-inline'", $scriptSrc[1], 'no unsafe-inline for scripts');
+
+        // Every script tag the page renders is either loaded from the dev server (allowed by origin) or carries that nonce.
+        preg_match_all('/<script\b([^>]*)>/', $response->getContent(), $tags);
+        $inline = array_filter($tags[1], fn (string $attributes) => ! str_contains($attributes, ' src=') && ! str_starts_with(trim($attributes), 'src='));
+        $this->assertNotEmpty($inline, 'hot mode renders the inline preamble');
+        foreach ($inline as $attributes) {
+            if (str_contains($attributes, 'type="module"')) {
+                $this->assertStringContainsString('nonce="'.$policy[1].'"', $attributes, 'inline module script without the policy nonce');
+            }
+        }
+    }
+
+    public function test_every_response_gets_its_own_nonce(): void
+    {
+        $hot = tempnam(sys_get_temp_dir(), 'hot');
+        file_put_contents($hot, "http://localhost:5173\n");
+        app(Vite::class)->useHotFile($hot);
+
+        $first = $this->get('/login')->headers->get('Content-Security-Policy');
+        $second = $this->get('/login')->headers->get('Content-Security-Policy');
+        unlink($hot);
+
+        $this->assertNotSame($first, $second);
     }
 
     public function test_a_header_the_route_sets_itself_is_not_overwritten(): void

@@ -106,7 +106,7 @@ answered with these headers (`App\Http\Middleware\SecurityHeaders`, global middl
 
 | Header | Value |
 | --- | --- |
-| `Content-Security-Policy` | `default-src 'self'`; scripts only from the app (no inline, no eval); styles from the app, inline styles and Google Fonts; fonts from Google Fonts; `img-src` self, data:, blob:, https:; `connect-src 'self'`; `object-src 'none'`; `base-uri`, `form-action` self; **`frame-ancestors 'none'`**. While `npm run dev` runs, the Vite dev server is added. `SECURITY_CSP_REPORT_ONLY=true` sends it as `Content-Security-Policy-Report-Only` to trial changes. |
+| `Content-Security-Policy` | `default-src 'self'`; scripts only from the app (no inline, no eval); styles from the app, inline styles and Google Fonts; fonts from Google Fonts; `img-src` self, data:, blob:, https:; `connect-src 'self'`; `object-src 'none'`; `base-uri`, `form-action` self; **`frame-ancestors 'none'`**. While `npm run dev` runs, the Vite dev server is added and the inline React-refresh script gets a per-response nonce (never `'unsafe-inline'`). `SECURITY_CSP_REPORT_ONLY=true` sends it as `Content-Security-Policy-Report-Only` to trial changes. |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`, on HTTPS responses only (`SECURITY_HSTS_MAX_AGE`, 0 = off). Not sent over plain HTTP, where browsers ignore it. |
 | `X-Frame-Options` | `DENY` |
 | `X-Content-Type-Options` | `nosniff` |

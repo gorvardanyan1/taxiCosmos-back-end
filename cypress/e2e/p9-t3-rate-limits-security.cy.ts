@@ -101,6 +101,30 @@ describe('P9-T3 · Rate limiting and abuse protection', () => {
         cy.then(() => expect(violations, 'CSP violations').to.deep.equal([]));
     });
 
+    // Regression: `npm run dev` adds an inline React-refresh script; a CSP without a nonce blocks it and the app never boots.
+    describe('while the Vite dev server is configured (npm run dev)', () => {
+        before(() => cy.task('e2e:vite:hot', { on: true }));
+        after(() => cy.task('e2e:vite:hot', { on: false }));
+
+        it('allows the inline refresh script with a per-response nonce, and nothing else inline', () => {
+            const violations: string[] = [];
+            cy.clearAllCookies();
+            cy.visit('/login', {
+                failOnStatusCode: false,
+                onBeforeLoad: (win) => win.document.addEventListener('securitypolicyviolation', (event) => violations.push(`${event.violatedDirective} ${event.blockedURI} ${event.sample}`)),
+            });
+
+            cy.request('/login').then((response) => {
+                const nonce = /'nonce-([^']+)'/.exec(String(response.headers['content-security-policy']))?.[1];
+                expect(nonce, 'nonce in the policy').to.match(/^[A-Za-z0-9+/=]{16,}$/);
+                expect(String(response.headers['content-security-policy'])).not.to.match(/script-src[^;]*'unsafe-inline'/);
+                expect(String(response.body), 'the inline preamble carries the nonce').to.contain(`<script type="module" nonce="${nonce}">`);
+                cy.request('/login').then((again) => expect(/'nonce-([^']+)'/.exec(String(again.headers['content-security-policy']))?.[1]).not.to.equal(nonce));
+            });
+            cy.then(() => expect(violations.filter((v) => v.startsWith('script-src') && v.includes('inline')), 'inline script violations').to.deep.equal([]));
+        });
+    });
+
     it('cannot be framed by another site', () => {
         cy.request('/login').then((response) => {
             expect(response.headers['x-frame-options']).to.equal('DENY');

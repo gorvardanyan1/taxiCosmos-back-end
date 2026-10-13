@@ -19,6 +19,10 @@ class SecurityHeaders
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Hot mode (`npm run dev`) adds an inline script (the React-refresh preamble). It gets a per-request nonce,
+        // which Vite puts on its own tags while it renders the page and the policy below allows; never 'unsafe-inline'.
+        $nonce = $this->devServer() !== null ? app(Vite::class)->useCspNonce() : null;
+
         $response = $next($request);
 
         if ($request->is('api/*')) {
@@ -41,7 +45,7 @@ class SecurityHeaders
         // A route that sends its own policy (the signed document files: `default-src 'none'; sandbox`) keeps it.
         if (! $this->isHorizon($request) && ! $response->headers->has('Content-Security-Policy') && ! $response->headers->has('Content-Security-Policy-Report-Only')) {
             $name = config('security.headers.csp_report_only') ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
-            $headers[$name] = $this->policy();
+            $headers[$name] = $this->policy($nonce);
         }
 
         // These are defaults: a header the route already set on purpose is never overwritten.
@@ -61,15 +65,15 @@ class SecurityHeaders
         return $request->is($path, $path.'/*');
     }
 
-    private function policy(): string
+    private function policy(?string $nonce): string
     {
         $styles = ["'self'", "'unsafe-inline'", ...config('security.headers.style_sources')];
         $scripts = ["'self'"];
         $connect = ["'self'"];
 
         // `npm run dev`: the page loads modules from, and talks to, the Vite dev server.
-        if ($dev = $this->devServer()) {
-            $scripts[] = $dev;
+        if ($nonce !== null && $dev = $this->devServer()) {
+            $scripts = [...$scripts, $dev, "'nonce-{$nonce}'"];
             $styles[] = $dev;
             $connect = [...$connect, $dev, str_replace('http', 'ws', $dev)];
         }
