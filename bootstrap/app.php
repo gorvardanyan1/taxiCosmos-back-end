@@ -4,6 +4,7 @@ use App\Exceptions\ConflictException;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\EnsureMobileClient;
+use App\Http\Middleware\EnsureTwoFactorSetUp;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RejectNullBytes;
 use App\Http\Middleware\RestrictToAllowedIps;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
             'admin.idle' => EnforceAdminIdleTimeout::class,
+            'two-factor.required' => EnsureTwoFactorSetUp::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,

@@ -107,6 +107,13 @@ class AppServiceProvider extends ServiceProvider
             ? Limit::none()
             : Limit::perMinute(config('security.rate_limits.admin_auth'))->by('admin-auth:'.$request->ip().'|'.$request->path()));
 
+        // Actions that ask for the account password again (two-factor enable, disable, recovery codes, reset): each attempt
+        // is a password guess, so a stolen session cannot be used to find the password. Per signed-in admin.
+        RateLimiter::for('password-confirm', fn (Request $request) => Limit::perMinute(5)->by('password-confirm:'.$caller($request)));
+
+        // Confirming the setup with a code from the authenticator app: six-digit guesses, per signed-in admin.
+        RateLimiter::for('two-factor-confirm', fn (Request $request) => Limit::perMinute(5)->by('two-factor-confirm:'.$caller($request)));
+
         // Every authenticated /api/v1 call, per rider or driver.
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(config('security.rate_limits.api'))->by('api:'.$caller($request)));
 

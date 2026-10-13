@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BlockFortifyTwoFactorManagement;
 use App\Http\Middleware\DisableRememberMe;
 use Laravel\Fortify\Features;
 
@@ -109,7 +110,7 @@ return [
     */
 
     // DisableRememberMe: admin sessions must always respect the idle timeout.
-    'middleware' => ['web', 'throttle:admin-auth', DisableRememberMe::class],
+    'middleware' => ['web', 'throttle:admin-auth', BlockFortifyTwoFactorManagement::class, DisableRememberMe::class],
 
     /*
     |--------------------------------------------------------------------------
@@ -172,9 +173,12 @@ return [
     */
 
     'features' => [
-        // Admin-only panel: no self-registration, profile/password updates come with P13-T3,
-        // two-factor auth with P3-T2.
+        // Admin-only panel: no self-registration, profile/password updates come with P13-T3.
         Features::resetPasswords(),
+        // Fortify supplies the sign-in challenge (POST /two-factor-challenge). Enabling, confirming, disabling and the
+        // recovery codes go through App\Services\Auth\AdminTwoFactorService, so its own /user/two-factor-* routes are
+        // closed (BlockFortifyTwoFactorManagement). 'confirm': a secret counts only once a code from the app was entered.
+        Features::twoFactorAuthentication(['confirm' => true, 'confirmPassword' => false]),
     ],
 
 ];

@@ -1,7 +1,11 @@
 import { Head, useForm } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import ActionButton, { UNAVAILABLE_HINT } from '@/Components/ActionButton';
 import FormField from '@/Components/FormField';
+import Modal from '@/Components/Modal';
+import PasswordConfirmModal from '@/Components/PasswordConfirmModal';
+import RecoveryCodesList from '@/Components/RecoveryCodesList';
 import PageHeader from '@/Components/PageHeader';
 import StatusBadge from '@/Components/StatusBadge';
 import UrlTabs from '@/Components/UrlTabs';
@@ -10,21 +14,26 @@ import { label } from '@/lib/labels';
 import { card, field, ghost, primary } from '@/lib/ui';
 import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import type { Actions } from '@/types';
-import { t } from '@/lib/i18n';
+import { t, tc } from '@/lib/i18n';
 
 interface Props {
     tab: string;
     tabs: string[];
     profile: { name: string; email: string; locale: string; timezone: string };
     two_factor_enabled: boolean;
+    /** The admin's role must have two-factor authentication, so it cannot be switched off. */
+    two_factor_required: boolean;
+    recovery_codes_left: number;
+    /** Right after a regeneration: the new codes, shown once. */
+    new_recovery_codes: string[] | null;
     sessions: { id: string; device: string; ip: string; last_active_at: string; is_current: boolean }[];
     notification_preferences: { event: string; in_app: boolean; email: boolean }[];
     /** The admin panel languages, each with its own name. */
     locales: { code: string; name: string }[];
-    actions: Actions<'updateProfile' | 'updatePassword' | 'regenerateRecoveryCodes' | 'logoutOtherSessions' | 'updateNotifications' | 'updateLocale'>;
+    actions: Actions<'updateProfile' | 'updatePassword' | 'enableTwoFactor' | 'disableTwoFactor' | 'regenerateRecoveryCodes' | 'logoutOtherSessions' | 'updateNotifications' | 'updateLocale'>;
 }
 
-export default function AccountShow({ tab, tabs, profile, two_factor_enabled, sessions, notification_preferences, locales, actions }: Props) {
+export default function AccountShow({ tab, tabs, profile, two_factor_enabled, two_factor_required, recovery_codes_left, new_recovery_codes, sessions, notification_preferences, locales, actions }: Props) {
     const profileForm = useForm(profile);
     const languageForm = useForm({ locale: profile.locale });
     const once = useSubmitOnce();
@@ -32,6 +41,9 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, se
     const saveLanguage = () => actions.updateLocale && once((done) => languageForm.patch(actions.updateLocale!, { onFinish: done }));
     const passwordForm = useForm({ current_password: '', password: '', password_confirmation: '' });
     const notifications = useForm({ preferences: notification_preferences });
+    const [twoFactorDialog, setTwoFactorDialog] = useState<'enable' | 'disable' | 'regenerate' | null>(null);
+    const [showCodes, setShowCodes] = useState(false);
+    useEffect(() => { if (new_recovery_codes) setShowCodes(true); }, [new_recovery_codes]);
 
     const toggle = (event: string, channel: 'in_app' | 'email') =>
         notifications.setData('preferences', notifications.data.preferences.map((p) => (p.event === event ? { ...p, [channel]: !p[channel] } : p)));
@@ -84,7 +96,22 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, se
                             <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><KeyRound size={18} /></span>
                             <div className="ml-3"><h3 className="font-display font-bold">{t('Two-factor authentication')}</h3><StatusBadge status={two_factor_enabled ? 'active' : 'inactive'} label={two_factor_enabled ? t('Enabled') : t('Disabled')} /></div>
                         </div>
-                        <ActionButton url={actions.regenerateRecoveryCodes} className={`${ghost} mt-5`}>{t('Regenerate recovery codes')}</ActionButton>
+                        {two_factor_enabled ? (
+                            <p className="mt-4 text-xs text-slate-500">{tc(':count recovery code left|:count recovery codes left', recovery_codes_left, { count: recovery_codes_left })}</p>
+                        ) : (
+                            <p className="mt-4 text-xs text-slate-500">{t('Add a code from an authenticator app to your password when you sign in.')}</p>
+                        )}
+                        {two_factor_required && <p className="mt-2 text-xs font-semibold text-indigo-600">{t('Your role requires two-factor authentication.')}</p>}
+                        <div className="mt-5 flex flex-wrap gap-2">
+                            {two_factor_enabled ? (
+                                <>
+                                    <button type="button" onClick={() => setTwoFactorDialog('regenerate')} disabled={actions.regenerateRecoveryCodes === null} className={ghost}>{t('Regenerate recovery codes')}</button>
+                                    {actions.disableTwoFactor !== null && <button type="button" onClick={() => setTwoFactorDialog('disable')} className="rounded-xl px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">{t('Disable two-factor')}</button>}
+                                </>
+                            ) : (
+                                <button type="button" onClick={() => setTwoFactorDialog('enable')} disabled={actions.enableTwoFactor === null} className={primary}>{t('Enable two-factor')}</button>
+                            )}
+                        </div>
                         <h4 className="mt-7 text-xs font-bold uppercase text-slate-400">{t('Active sessions')}</h4>
                         {sessions.map((s) => (
                             <div key={s.id} className="mt-3 flex items-center border-t border-slate-100 pt-3 text-xs">
@@ -113,6 +140,26 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, se
                     </div>
                 </div>
             )}
+            <PasswordConfirmModal
+                open={twoFactorDialog === 'enable'} onClose={() => setTwoFactorDialog(null)} url={actions.enableTwoFactor}
+                title={t('Enable two-factor authentication')} confirmLabel={t('Continue')}
+                description={t('Confirm your password. Next you scan a QR code with an authenticator app and save your recovery codes.')}
+            />
+            <PasswordConfirmModal
+                open={twoFactorDialog === 'disable'} onClose={() => setTwoFactorDialog(null)} url={actions.disableTwoFactor} method="delete" tone="danger"
+                title={t('Disable two-factor authentication')} confirmLabel={t('Disable two-factor')}
+                description={t('Signing in will need only your password again. Confirm your password to continue.')}
+            />
+            <PasswordConfirmModal
+                open={twoFactorDialog === 'regenerate'} onClose={() => setTwoFactorDialog(null)} url={actions.regenerateRecoveryCodes}
+                title={t('Regenerate recovery codes')} confirmLabel={t('Regenerate recovery codes')}
+                description={t('You get eight new codes and the old ones stop working at once. Confirm your password to continue.')}
+            />
+            <Modal open={showCodes && new_recovery_codes !== null} onClose={() => setShowCodes(false)} title={t('Your new recovery codes')}
+                footer={<button onClick={() => setShowCodes(false)} className={primary}>{t('Done')}</button>}>
+                <p className="mb-4 text-sm text-slate-500">{t('Save these codes somewhere safe. Each one works once, and this is the only time they are shown.')}</p>
+                {new_recovery_codes && <RecoveryCodesList codes={new_recovery_codes} />}
+            </Modal>
         </div>
     );
 }

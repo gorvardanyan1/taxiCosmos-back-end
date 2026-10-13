@@ -17,6 +17,17 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 - **Self-service pages need no permission**: `GET /admin/account` (My Account) only requires
   admin access, because every admin manages their own profile and security.
 
+## Two-factor authentication (P3-T2)
+
+- The roles in `security.two_factor.required_roles` (`ADMIN_2FA_REQUIRED_ROLES`, default `super_admin,finance`; `none` turns the rule off, a
+  blank value keeps the default) must have it. Until they have finished the setup (a code from the app entered) the
+  `two-factor.required` middleware lets them reach nothing but `/two-factor-setup` and sign-out: pages redirect there, writes are refused with
+  403. It guards every `/admin` route and `/horizon` (a super admin cannot go round it through Horizon).
+- Those roles cannot switch it off (403 whatever is sent); every other admin role may turn it on and off from My Account.
+- Only a super admin can reset another admin's two-factor (lost phone): own password and a reason, logged. A reset admin whose role
+  requires it must set it up again on their next request.
+- `AdminAccessTest` fails when an `/admin` route lacks the `two-factor.required` middleware.
+
 ## Admin page → permission (P13-T1 route map)
 
 | Route | Permission |
@@ -50,6 +61,9 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/activity-logs`, `/admin/activity-logs/export` (CSV) | `activity_log.view` |
 | `GET /admin/account` | admin access only (self-service) |
 | `PATCH /admin/account/locale` (choose the panel language) | admin access only (self-service; changes only the signed-in admin) |
+| `GET /two-factor-setup`, `POST /two-factor-setup` (start; password), `POST /two-factor-setup/confirm` (code) | admin access only (self-service; outside `/admin` so an admin who must set it up can reach it) |
+| `DELETE /admin/account/two-factor` (password), `POST /admin/account/two-factor/recovery-codes` (password) | admin access only (self-service; they change only the signed-in admin's own two-factor) |
+| `POST /admin/settings/users/{id}/two-factor/reset` (own password and a reason; logged) | `admins.manage`, and the actor must be a `super_admin` (the service checks both) |
 
 ## Source of truth
 

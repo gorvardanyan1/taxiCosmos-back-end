@@ -22,6 +22,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Laravel\Fortify\Events\RecoveryCodeReplaced;
+use Laravel\Fortify\Fortify;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -31,12 +36,12 @@ use Spatie\Permission\Traits\HasRoles;
  * Flags, status and ratings are not mass-assignable — services change them explicitly.
  */
 #[Fillable(['name', 'email', 'password', 'phone', 'locale', 'timezone'])]
-#[Hidden(['password', 'remember_token', 'phone', 'phone_hash'])]
+#[Hidden(['password', 'remember_token', 'phone', 'phone_hash', 'two_factor_secret', 'two_factor_recovery_codes'])]
 #[ObservedBy([UserObserver::class])]
 class User extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
     protected $attributes = [
         'is_rider' => false,
@@ -64,6 +69,7 @@ class User extends Authenticatable implements HasLocalePreference
             'rider_rating_avg' => 'decimal:2',
             'rider_rating_count' => 'integer',
             'last_login_at' => 'datetime',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
@@ -139,5 +145,56 @@ class User extends Authenticatable implements HasLocalePreference
         return $this->is_admin
             && $this->isActive()
             && $this->hasAnyRole(AdminRole::values());
+    }
+
+    /**
+     * Whether one of this account's roles must have two-factor authentication (config security.two_factor.required_roles).
+     */
+    public function requiresTwoFactor(): bool
+    {
+        $roles = config('security.two_factor.required_roles');
+
+        return $roles !== [] && $this->hasAnyRole($roles);
+    }
+
+    /**
+     * A secret exists (the admin started the setup) but no code from their app has been entered yet.
+     */
+    public function hasPendingTwoFactorSetup(): bool
+    {
+        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at === null;
+    }
+
+    /**
+     * How many recovery codes are still unused (0 when two-factor is off).
+     */
+    public function recoveryCodesLeft(): int
+    {
+        return $this->two_factor_recovery_codes === null ? 0 : count($this->recoveryCodes());
+    }
+
+    /**
+     * A recovery code works once: it is removed from the set (so "N codes left" is true), under a row lock so two
+     * simultaneous sign-ins with the same code cannot both pass. Fortify's own version swaps in a fresh code
+     * unseen by the admin and has no lock.
+     *
+     * @param  string  $code
+     */
+    public function replaceRecoveryCode($code): void
+    {
+        DB::transaction(function () use ($code) {
+            $locked = static::query()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            $codes = $locked->two_factor_recovery_codes === null ? [] : $locked->recoveryCodes();
+
+            if (! in_array($code, $codes, true)) {
+                throw ValidationException::withMessages(['recovery_code' => __('The provided two factor recovery code was invalid.')]);
+            }
+
+            $left = array_values(array_diff($codes, [$code]));
+            $locked->forceFill(['two_factor_recovery_codes' => Fortify::currentEncrypter()->encrypt(json_encode($left, JSON_THROW_ON_ERROR))])->save();
+            $this->two_factor_recovery_codes = $locked->two_factor_recovery_codes;
+        });
+
+        RecoveryCodeReplaced::dispatch($this, $code);
     }
 }

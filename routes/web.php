@@ -2,10 +2,11 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\AuthPageController;
+use App\Http\Controllers\TwoFactorSetupController;
 use Illuminate\Support\Facades\Route;
 
 // Record ids in URLs: 1-18 digits, so an id too large for a bigint is a plain 404, never a type error.
-foreach (['rider', 'driver', 'document', 'trip', 'zone', 'vehicle', 'account'] as $parameter) {
+foreach (['rider', 'driver', 'document', 'trip', 'zone', 'vehicle', 'account', 'user'] as $parameter) {
     Route::pattern($parameter, '[0-9]{1,18}');
 }
 
@@ -21,13 +22,16 @@ Route::middleware('guest')->group(function () {
     Route::get('/two-factor-challenge', [AuthPageController::class, 'twoFactorChallenge'])->name('two-factor.login');
 });
 
-Route::get('/two-factor-setup', [AuthPageController::class, 'twoFactorSetup'])
-    ->middleware(['auth', 'admin.idle', 'admin', 'throttle:admin'])
-    ->name('two-factor.setup');
+// Two-factor setup: any signed-in admin, including one who must set it up before anything else (no EnsureTwoFactorSetUp here).
+Route::middleware(['auth', 'admin.idle', 'admin', 'throttle:admin'])->group(function () {
+    Route::get('/two-factor-setup', [TwoFactorSetupController::class, 'show'])->name('two-factor.setup');
+    Route::post('/two-factor-setup', [TwoFactorSetupController::class, 'start'])->middleware('throttle:password-confirm')->name('two-factor.setup.start');
+    Route::post('/two-factor-setup/confirm', [TwoFactorSetupController::class, 'confirm'])->middleware('throttle:two-factor-confirm')->name('two-factor.setup.confirm');
+});
 
 // Admin panel: session guard + idle timeout + admin access, and a named permission per page
 // (docs/permissions.md).
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin', 'throttle:admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin', 'two-factor.required', 'throttle:admin'])->group(function () {
     Route::get('/', Admin\DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
     Route::get('/live-map', Admin\LiveMapController::class)->middleware('permission:live_map.view')->name('live-map');
 
@@ -100,6 +104,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
 
     Route::get('/settings', fn () => to_route('admin.settings.users'))->name('settings');
     Route::get('/settings/users', [Admin\SettingsController::class, 'users'])->middleware('permission:admins.manage')->name('settings.users');
+    Route::post('/settings/users/{user}/two-factor/reset', [Admin\AdminUserTwoFactorController::class, 'reset'])->middleware(['permission:admins.manage', 'throttle:password-confirm'])->name('settings.users.two-factor.reset');
     Route::middleware('permission:settings.manage')->group(function () {
         Route::get('/settings/gateways', [Admin\SettingsController::class, 'gateways'])->name('settings.gateways');
         Route::get('/settings/currencies', [Admin\SettingsController::class, 'currencies'])->name('settings.currencies');
@@ -115,4 +120,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     // Self-service: admin access only, no permission (docs/permissions.md).
     Route::get('/account', Admin\AccountController::class)->name('account');
     Route::patch('/account/locale', Admin\AccountLocaleController::class)->name('account.locale');
+    Route::delete('/account/two-factor', [Admin\AccountTwoFactorController::class, 'destroy'])->middleware('throttle:password-confirm')->name('account.two-factor.destroy');
+    Route::post('/account/two-factor/recovery-codes', [Admin\AccountTwoFactorController::class, 'regenerateRecoveryCodes'])->middleware('throttle:password-confirm')->name('account.two-factor.recovery-codes');
 });

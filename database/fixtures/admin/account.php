@@ -1,8 +1,7 @@
 <?php
 
-// My Account security and notification data (real data: P3-T2 / P13-T3 / P13-T6).
+// My Account sessions and notification data (real data: P13-T3 / P13-T6). Two-factor state is real (P3-T2).
 return [
-    'two_factor_enabled' => true,
     'sessions' => [
         ['id' => 'current', 'device' => 'Chrome · macOS', 'ip' => '10.10.4.21', 'last_active_at' => now()->toIso8601String(), 'is_current' => true],
         ['id' => 'other-1', 'device' => 'Safari · iPhone', 'ip' => '10.10.6.14', 'last_active_at' => now()->subHours(2)->toIso8601String(), 'is_current' => false],

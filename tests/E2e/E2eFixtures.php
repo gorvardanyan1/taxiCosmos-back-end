@@ -34,7 +34,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
+use Laravel\Fortify\Fortify;
 use Laravel\Sanctum\PersonalAccessToken;
+use PragmaRX\Google2FA\Google2FA;
 
 /**
  * The data Cypress specs set up or change, one named fixture each. Only what is listed in run()
@@ -56,6 +59,8 @@ final class E2eFixtures
     {
         return match ($fixture) {
             'admin' => $this->admin($a),
+            'two_factor_code' => $this->twoFactorCode($a),
+            'two_factor_recovery_codes' => $this->twoFactorRecoveryCodes($a),
             'rider' => $this->rider($a),
             'riders' => $this->riders($a),
             'system_audit_entry' => $this->systemAuditEntry($a),
@@ -82,7 +87,8 @@ final class E2eFixtures
     }
 
     /**
-     * An admin who can sign in with PASSWORD. {email, role, name?, phone?, timezone?, locale?}
+     * An admin who can sign in with PASSWORD. {email, role, name?, phone?, timezone?, locale?, two_factor?}
+     * With two_factor: true the account has a confirmed authenticator setup (the code comes from the two_factor_code fixture).
      */
     private function admin(array $a): array
     {
@@ -96,7 +102,46 @@ final class E2eFixtures
             'locale' => $a['locale'] ?? 'en',
         ]);
 
+        if ($a['two_factor'] ?? false) {
+            // Activated without entering a code, so no code is spent: the spec can use the codes of the current and the next 30 seconds.
+            app(EnableTwoFactorAuthentication::class)($user);
+            $user->forceFill(['two_factor_confirmed_at' => now()])->save();
+        }
+
         return ['id' => $user->id, 'email' => $user->email, 'name' => $user->name, 'role' => $role->value, 'password' => self::PASSWORD, 'locale' => $user->locale];
+    }
+
+    /**
+     * The code the account's authenticator app shows now. {email, steps?, at?}: steps = 30-second steps from now, or `at` = an
+     * absolute step number (returned as `step`). Each code works once. A sign-in uses steps 1 (valid whichever side of a
+     * 30-second boundary it is typed on). A second sign-in a few seconds later asks for the step *before* that one (`at` =
+     * step - 1): still inside the accepted window, and a different code whatever happened to the clock in between.
+     *
+     * @param  array<string, mixed>  $a
+     * @return array<string, mixed>
+     */
+    private function twoFactorCode(array $a): array
+    {
+        $google = app(Google2FA::class);
+        $step = isset($a['at']) ? (int) $a['at'] : $google->getTimestamp() + (int) ($a['steps'] ?? 0);
+
+        return ['code' => $this->codeAt($this->findUser($a), $step), 'step' => $step];
+    }
+
+    /**
+     * The account's unused recovery codes (the app itself shows them only once).
+     *
+     * @param  array<string, mixed>  $a
+     * @return array<string, mixed>
+     */
+    private function twoFactorRecoveryCodes(array $a): array
+    {
+        return ['codes' => $this->findUser($a)->recoveryCodes()];
+    }
+
+    private function codeAt(User $user, int $step): string
+    {
+        return app(Google2FA::class)->oathTotp(Fortify::currentEncrypter()->decrypt($user->fresh()->two_factor_secret), $step);
     }
 
     /**

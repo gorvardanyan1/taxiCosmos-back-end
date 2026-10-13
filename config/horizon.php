@@ -83,7 +83,8 @@ return [
     |
     */
 
-    'middleware' => ['web', 'auth'],
+    // two-factor.required: Horizon must not be a way around the two-factor rule for super admins (P3-T2).
+    'middleware' => ['web', 'auth', 'two-factor.required'],
 
     /*
     |--------------------------------------------------------------------------

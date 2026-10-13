@@ -23,6 +23,19 @@ return [
     // Comma separated IPv4/IPv6 addresses or CIDR ranges, e.g. "203.0.113.7,10.0.0.0/8". Empty = off.
     'admin_ip_allowlist' => array_values(array_filter(array_map('trim', explode(',', (string) env('ADMIN_IP_ALLOWLIST', ''))))),
 
+    'two_factor' => [
+        // Admin roles that must have two-factor authentication: until they set it up they can reach nothing but the
+        // setup screen (P3-T2), and they cannot switch it off. Comma separated role names. Unset or blank means the default:
+        // super_admin and finance (none in the test and e2e environments, whose fixtures sign in with a password alone).
+        // The rule is switched off only on purpose, with the word "none".
+        'required_roles' => (function (): array {
+            $configured = trim((string) env('ADMIN_2FA_REQUIRED_ROLES', ''));
+            $configured = $configured === '' ? (in_array(env('APP_ENV'), ['testing', 'e2e'], true) ? 'none' : 'super_admin,finance') : $configured;
+
+            return strtolower($configured) === 'none' ? [] : array_values(array_filter(array_map('trim', explode(',', $configured))));
+        })(),
+    ],
+
     // Requests per minute. Named limiters are registered in AppServiceProvider.
     'rate_limits' => [
         'admin' => (int) env('RATE_LIMIT_ADMIN', 300),             // per signed-in admin, every /admin page and action

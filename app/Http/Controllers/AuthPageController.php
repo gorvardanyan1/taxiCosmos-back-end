@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -9,7 +10,7 @@ use Inertia\Response;
 /**
  * GET screens for admin authentication. Fortify runs with views disabled and handles the
  * POSTs (login, forgot/reset password). A page's `submitUrl` stays null until its POST route
- * exists (P3-T2 two-factor, P3-T4 invitations).
+ * exists (P3-T4 invitations). The two-factor setup screen is TwoFactorSetupController.
  */
 class AuthPageController extends Controller
 {
@@ -37,13 +38,15 @@ class AuthPageController extends Controller
         return Inertia::render('Auth/AcceptInvitation', ['token' => $token, 'invitation' => null, 'submitUrl' => null]);
     }
 
-    public function twoFactorChallenge(): Response
+    /**
+     * Only after the password step: Fortify keeps the account in the session (login.id) until the code is right.
+     */
+    public function twoFactorChallenge(Request $request): Response|RedirectResponse
     {
-        return Inertia::render('Auth/TwoFactorChallenge', ['submitUrl' => null]);
-    }
+        if (! $request->session()->has('login.id')) {
+            return redirect()->route('login');
+        }
 
-    public function twoFactorSetup(): Response
-    {
-        return Inertia::render('Auth/TwoFactorSetup', ['setup' => null, 'submitUrl' => null]);
+        return Inertia::render('Auth/TwoFactorChallenge', ['submitUrl' => route('two-factor.login.store', absolute: false)]);
     }
 }

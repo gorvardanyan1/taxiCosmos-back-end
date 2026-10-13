@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Audit;
 
+use App\Enums\AdminRole;
 use App\Models\Audit\ActivityLogEntry;
 use App\Models\DriverBankAccount;
 use App\Models\DriverDocument;
@@ -13,6 +14,7 @@ use Database\Factories\ZoneFactory;
 use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
+use Tests\Support\InteractsWithTwoFactor;
 
 /**
  * Guard for docs/audit-log.md: every admin route that changes data is listed here with the audit
@@ -21,6 +23,8 @@ use Illuminate\Testing\TestResponse;
  */
 class AdminWritesAreAuditedTest extends AuditTestCase
 {
+    use InteractsWithTwoFactor;
+
     /**
      * route name => [expected audit action, performs the request as the admin].
      *
@@ -79,6 +83,22 @@ class AdminWritesAreAuditedTest extends AuditTestCase
                 'cancellation_fee' => 500, 'cancellation_free_seconds' => 120, 'booking_fee' => 0, 'tax_rate_bps' => 0, 'tax_inclusive' => false,
             ])],
             'admin.account.locale' => ['account.locale_changed', fn (User $admin) => $this->actingAs($admin)->patch('/admin/account/locale', ['locale' => $admin->locale === 'ru' ? 'hy' : 'ru'])],
+            'admin.account.two-factor.destroy' => ['admin.two_factor.disabled', function (User $admin) {
+                $this->enableTwoFactor($admin);
+
+                return $this->actingAs($admin)->delete('/admin/account/two-factor', ['password' => 'password']);
+            }],
+            'admin.account.two-factor.recovery-codes' => ['admin.two_factor.recovery_codes_regenerated', function (User $admin) {
+                $this->enableTwoFactor($admin);
+
+                return $this->actingAs($admin)->post('/admin/account/two-factor/recovery-codes', ['password' => 'password']);
+            }],
+            'admin.settings.users.two-factor.reset' => ['admin.two_factor.reset', function (User $admin) {
+                $target = User::factory()->admin(AdminRole::Support)->create();
+                $this->enableTwoFactor($target);
+
+                return $this->actingAs($admin)->post("/admin/settings/users/{$target->id}/two-factor/reset", ['password' => 'password', 'reason' => 'Lost phone']);
+            }],
         ];
     }
 

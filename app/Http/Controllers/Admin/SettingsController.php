@@ -33,6 +33,7 @@ class SettingsController extends Controller
                 'roles' => $user->roles->pluck('name')->values(),
                 'status' => $user->status->value,
                 'last_login_at' => $user->last_login_at?->toIso8601String(),
+                'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
             ]);
 
         $roles = Role::query()->whereIn('name', AdminRole::values())->with('permissions:id,name')->get();
@@ -41,7 +42,11 @@ class SettingsController extends Controller
             'users' => $users,
             'roles' => array_map(fn (AdminRole $role) => ['name' => $role->value, 'label' => $role->label()], AdminRole::cases()),
             'matrix' => $roles->mapWithKeys(fn (Role $role) => [$role->name => $role->permissions->pluck('name')->values()]),
-            'actions' => ['invite' => null, 'remove' => null],
+            'actions' => [
+                'invite' => null, 'remove' => null,
+                // Only a super admin: the route needs admins.manage and the service insists on a super admin.
+                'resetTwoFactor' => $request->user()->isSuperAdmin() ? str_replace('/users/0/', '/users/{id}/', route('admin.settings.users.two-factor.reset', 0, absolute: false)) : null,
+            ],
         ]);
     }
 
