@@ -144,6 +144,28 @@ class CachingGeoProviderTest extends TestCase
         $this->assertSame(2, $inner->calls['route']);
     }
 
+    public function test_the_same_origin_with_another_destination_is_another_entry(): void
+    {
+        $inner = $this->inner();
+        $cache = $this->cache($inner);
+        $a = new GeoPoint(40.18, 44.51);
+        $b = new GeoPoint(40.19, 44.52);
+        $c = new GeoPoint(40.25, 44.60);
+
+        $toB = $cache->getRoute($a, $b);
+        $toC = $cache->getRoute($a, $c);
+        $this->assertSame(2, $inner->calls['route'], 'a route to C is not the cached route to B');
+        $this->assertNotSame($toB->distanceMeters, $toC->distanceMeters);
+
+        $etaB = $cache->estimateEta($a, $b);
+        $etaC = $cache->estimateEta($a, $c);
+        $this->assertSame(2, $inner->calls['eta']);
+        $this->assertNotSame($etaB->durationSeconds, $etaC->durationSeconds);
+
+        $this->assertSame($toB->distanceMeters, $cache->getRoute($a, $b)->distanceMeters, 'each is still served from its own entry');
+        $this->assertSame(2, $inner->calls['route']);
+    }
+
     public function test_a_cached_route_keeps_every_field(): void
     {
         $cache = $this->cache($this->inner());
