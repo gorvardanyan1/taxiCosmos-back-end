@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/core';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import TwoFactorChallenge from '@/Pages/Auth/TwoFactorChallenge';
 
@@ -52,5 +53,28 @@ describe('Two-factor challenge', () => {
         render(<TwoFactorChallenge submitUrl={null} />);
 
         expect(screen.getByRole('button', { name: 'Verify code' })).toBeDisabled();
+    });
+
+    // QA regression: an authenticator app shows "123 456" and copies it with the space; the field cut that to "12345".
+    it.each([['123 456'], [' 123456'], ['123-456'], ['123456'], ['1234567']])('takes the six digits of a pasted %j', async (pasted) => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        const user = userEvent.setup();
+        render(<TwoFactorChallenge submitUrl="/two-factor-challenge" />);
+
+        await user.click(screen.getByLabelText('Authentication code'));
+        await user.paste(pasted);
+
+        expect((screen.getByLabelText('Authentication code') as HTMLInputElement).value).toBe('123456');
+        fireEvent.click(screen.getByRole('button', { name: 'Verify code' }));
+        expect(visit.mock.calls[0][1]).toMatchObject({ data: { code: '123456' } });
+    });
+
+    it('keeps only digits while typing and never more than six', async () => {
+        const user = userEvent.setup();
+        render(<TwoFactorChallenge submitUrl="/two-factor-challenge" />);
+
+        await user.type(screen.getByLabelText('Authentication code'), '12ab-34 5678');
+
+        expect((screen.getByLabelText('Authentication code') as HTMLInputElement).value).toBe('123456');
     });
 });

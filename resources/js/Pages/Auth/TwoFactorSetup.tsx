@@ -5,6 +5,7 @@ import AuthLayout from '@/Layouts/AuthLayout';
 import { field } from '@/lib/ui';
 import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import { t } from '@/lib/i18n';
+import { otpDigits } from '@/lib/otp';
 
 interface Props {
     /** Present while a setup is pending: the QR code, the secret to type in by hand, and the recovery codes. */
@@ -39,7 +40,7 @@ export default function TwoFactorSetup({ setup, required, startUrl, submitUrl }:
                     <p className="mt-2 text-center font-mono text-xs text-slate-500">{setup.secret}</p>
                     <p className="mt-4 mb-2 text-xs font-bold text-slate-700">{t('Recovery codes')}</p>
                     <RecoveryCodesList codes={setup.recovery_codes} />
-                    <input aria-label={t('Authentication code')} inputMode="numeric" autoComplete="one-time-code" maxLength={6} className={`${field} mt-4 text-center font-mono`} placeholder={t('Enter the 6-digit code')} value={confirm.data.code} onChange={(e) => confirm.setData('code', e.target.value.replace(/\D/g, ''))} />
+                    <input aria-label={t('Authentication code')} inputMode="numeric" autoComplete="one-time-code" className={`${field} mt-4 text-center font-mono`} placeholder={t('Enter the 6-digit code')} value={confirm.data.code} onChange={(e) => confirm.setData('code', otpDigits(e.target.value))} />
                     {confirm.errors.code && <p role="alert" className="mt-1.5 text-xs font-semibold text-red-600">{confirm.errors.code}</p>}
                     <label className="mt-4 block text-xs"><input type="checkbox" checked={confirm.data.confirmed_saved_codes} onChange={(e) => confirm.setData('confirmed_saved_codes', e.target.checked)} className="mr-2 accent-indigo-600" />{t('I have saved these codes')}</label>
                     {confirm.errors.confirmed_saved_codes && <p role="alert" className="mt-1.5 text-xs font-semibold text-red-600">{confirm.errors.confirmed_saved_codes}</p>}

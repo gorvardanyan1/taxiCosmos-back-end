@@ -5,6 +5,7 @@ import AuthLayout from '@/Layouts/AuthLayout';
 import { field } from '@/lib/ui';
 import { useSubmitOnce } from '@/lib/useSubmitOnce';
 import { t } from '@/lib/i18n';
+import { otpDigits } from '@/lib/otp';
 
 export default function TwoFactorChallenge({ submitUrl }: { submitUrl: string | null }) {
     const [recovery, setRecovery] = useState(false);
@@ -19,7 +20,7 @@ export default function TwoFactorChallenge({ submitUrl }: { submitUrl: string | 
                 {recovery ? (
                     <input aria-label={t('Recovery code')} className={`${field} font-mono`} placeholder="XXXX-XXXX" value={form.data.recovery_code} onChange={(e) => form.setData('recovery_code', e.target.value)} />
                 ) : (
-                    <input aria-label={t('Authentication code')} inputMode="numeric" autoComplete="one-time-code" maxLength={6} className={`${field} text-center font-mono text-lg font-bold tracking-[0.5em]`} placeholder="000000" value={form.data.code} onChange={(e) => form.setData('code', e.target.value.replace(/\D/g, ''))} />
+                    <input aria-label={t('Authentication code')} inputMode="numeric" autoComplete="one-time-code" className={`${field} text-center font-mono text-lg font-bold tracking-[0.5em]`} placeholder="000000" value={form.data.code} onChange={(e) => form.setData('code', otpDigits(e.target.value))} />
                 )}
                 {(form.errors.code ?? form.errors.recovery_code) && <p role="alert" className="mt-1.5 text-xs font-semibold text-red-600">{form.errors.code ?? form.errors.recovery_code}</p>}
                 <AuthSubmit label={t('Verify code')} url={submitUrl} processing={form.processing} className="mt-5" />
