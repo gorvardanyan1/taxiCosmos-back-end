@@ -89,6 +89,16 @@ describe('P5-T1 · Geo API', () => {
         geo('places/fake-abovyan-1').its('status').should('eq', 401);
     });
 
+    // Who may: a social account that has not added its phone yet holds a limited session, which cannot use the maps.
+    it('refuses a session that still has to add its phone number', () => {
+        cy.make('pending_mobile_session', { name: 'Geo Pending', email: 'cy-geo-pending@taxikosmos.test' }).then((pending) => {
+            expect(pending.needs_phone).to.equal(true);
+            for (const path of ['autocomplete?q=Abovyan', 'places/fake-abovyan-1', 'reverse?lat=40.18&lng=44.51', 'route?from=40.18,44.51&to=40.19,44.51']) {
+                geo(path, pending.access_token).its('status').should('eq', 403);
+            }
+        });
+    });
+
     // Validation: nothing malformed reaches the provider (it is billed per call).
     it('rejects malformed input with 422 and the field named', () => {
         geo('autocomplete', rider).then((r) => {

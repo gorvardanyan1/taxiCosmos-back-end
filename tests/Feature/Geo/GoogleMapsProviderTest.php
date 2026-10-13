@@ -74,6 +74,16 @@ class GoogleMapsProviderTest extends TestCase
         $this->assertArrayNotHasKey('locationBias', $request->data());
     }
 
+    public function test_the_bias_radius_never_exceeds_the_50_km_google_accepts(): void
+    {
+        config(['services.maps.bias_radius_meters' => 200000]);
+        Http::fake(['places.googleapis.com/*' => Http::response([])]);
+
+        $this->google->autocomplete('abovyan', new GeoPoint(40.18, 44.51));
+
+        $this->assertSame(50000.0, (float) $this->sentTo('https://places.googleapis.com/v1/places:autocomplete')['locationBias']['circle']['radius']);
+    }
+
     public function test_the_language_follows_the_app_locale(): void
     {
         Http::fake(['places.googleapis.com/*' => Http::response([])]);

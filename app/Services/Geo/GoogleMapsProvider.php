@@ -21,6 +21,9 @@ final class GoogleMapsProvider extends HttpGeoProvider
 
     private const GEOCODING = 'https://maps.googleapis.com/maps/api/geocode/json';
 
+    // Places API (New) rejects a location-bias circle larger than 50 km.
+    private const MAX_BIAS_RADIUS = 50000;
+
     private const ROUTES = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
     public function __construct(private readonly string $key) {}
@@ -37,7 +40,7 @@ final class GoogleMapsProvider extends HttpGeoProvider
             'sessionToken' => $sessionToken,
             'languageCode' => $this->language(),
             // Bias, not a restriction: a rider can still search for another city.
-            'locationBias' => $near === null ? null : ['circle' => ['center' => ['latitude' => $near->latitude, 'longitude' => $near->longitude], 'radius' => (float) config('services.maps.bias_radius_meters')]],
+            'locationBias' => $near === null ? null : ['circle' => ['center' => ['latitude' => $near->latitude, 'longitude' => $near->longitude], 'radius' => (float) min(self::MAX_BIAS_RADIUS, (int) config('services.maps.bias_radius_meters'))]],
         ], fn ($value) => $value !== null);
 
         $suggestions = $this->send('autocomplete', fn (PendingRequest $http) => $http->withHeaders($this->headers())->post(self::PLACES.'/places:autocomplete', $body))->json('suggestions', []);

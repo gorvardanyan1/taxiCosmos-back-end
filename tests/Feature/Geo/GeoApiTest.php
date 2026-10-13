@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Geo;
 
+use App\Exceptions\GeoException;
 use App\Models\User;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -334,6 +336,15 @@ class GeoApiTest extends TestCase
 
         $this->withHeader('Accept-Language', 'ru')->getJson('/api/v1/geo/places/fake-nowhere-1', ['Authorization' => 'Bearer '.$this->token()])
             ->assertNotFound()->assertJsonPath('code', 'place_not_found')->assertJsonPath('message', __('We could not find that place.', [], 'ru'));
+    }
+
+    public function test_a_miss_is_not_logged_as_an_error_but_an_outage_is(): void
+    {
+        $handler = app(ExceptionHandler::class);
+
+        $this->assertFalse($handler->shouldReport(GeoException::placeNotFound()));
+        $this->assertFalse($handler->shouldReport(GeoException::routeNotFound()));
+        $this->assertTrue($handler->shouldReport(GeoException::providerUnavailable()));
     }
 
     // ---- rate limit ----

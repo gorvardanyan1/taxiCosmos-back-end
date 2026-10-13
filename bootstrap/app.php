@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\ConflictException;
+use App\Exceptions\GeoException;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\EnsureMobileClient;
@@ -23,6 +24,7 @@ use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -62,6 +64,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // "No such place / route" is an ordinary answer, not an error worth a stack trace in the log; an outage (502) is still reported.
+        $exceptions->dontReportWhen(fn (Throwable $e) => $e instanceof GeoException && $e->status === 404);
 
         // An action the record's state does not allow (a reviewed document, an already inactive zone) is a conflict (409). The Inertia admin gets
         // it as a flash message on the page it came from.
