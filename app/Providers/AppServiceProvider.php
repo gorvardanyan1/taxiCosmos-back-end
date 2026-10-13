@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(fn () => Password::min(12)->mixedCase()->numbers()->symbols()->uncompromised());
 
         $this->mobileAuthRateLimits();
+        $this->generalRateLimits();
         $this->registerE2eTooling();
 
         Gate::before(function ($user) {
@@ -86,6 +87,31 @@ class AppServiceProvider extends ServiceProvider
 
         // Each estimate stores a quote, so it is limited per rider (not per address, which phones share).
         RateLimiter::for('fare-estimate', fn (Request $request) => Limit::perMinute(30)->by('fare-estimate:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+    }
+
+    /**
+     * The ceilings behind the specific limiters: one per surface, so a client that stays under every endpoint's own
+     * limit still cannot hammer the app. Keyed by the signed-in user where there is one (phones share carrier
+     * addresses), otherwise by IP. Ceilings come from config/security.php; documented in docs/rate-limits.md.
+     */
+    private function generalRateLimits(): void
+    {
+        $caller = fn (Request $request): string => (string) ($request->user()?->getAuthIdentifier() ?? $request->ip());
+
+        // Every /admin page and action, per signed-in admin.
+        RateLimiter::for('admin', fn (Request $request) => Limit::perMinute(config('security.rate_limits.admin'))->by('admin:'.$caller($request)));
+
+        // The admin sign-in endpoints Fortify registers (password reset, two-factor, ...), per address and endpoint.
+        // POST /login has its own, stricter limiter (FortifyServiceProvider), so it is left out here.
+        RateLimiter::for('admin-auth', fn (Request $request) => $request->is('login')
+            ? Limit::none()
+            : Limit::perMinute(config('security.rate_limits.admin_auth'))->by('admin-auth:'.$request->ip().'|'.$request->path()));
+
+        // Every authenticated /api/v1 call, per rider or driver.
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(config('security.rate_limits.api'))->by('api:'.$caller($request)));
+
+        // Payment endpoints (P6) attach this: card testing and double charges are attacks, not traffic.
+        RateLimiter::for('payment', fn (Request $request) => Limit::perMinute(config('security.rate_limits.payment'))->by('payment:'.$caller($request)));
     }
 
     /**

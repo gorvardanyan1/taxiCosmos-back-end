@@ -14,7 +14,7 @@ Route::prefix('auth')->group(function () {
         ->middleware('throttle:social-login');
     Route::post('refresh', [AuthController::class, 'refresh'])->middleware('throttle:auth-refresh');
 
-    Route::middleware(['auth:sanctum', 'mobile'])->group(function () {
+    Route::middleware(['auth:sanctum', 'mobile', 'throttle:api'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('logout-all', [AuthController::class, 'logoutAll']);
         // Only a session that still needs its phone number (social sign-in without one).
@@ -22,7 +22,7 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-Route::middleware(['auth:sanctum', 'mobile', 'ability:rider'])->prefix('trips')->group(function () {
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->prefix('trips')->group(function () {
     // What a trip would cost per vehicle class; returns the quote_id trip creation (P7-T6) refers to.
     Route::post('fare-estimate', FareEstimateController::class)->middleware('throttle:fare-estimate');
 });

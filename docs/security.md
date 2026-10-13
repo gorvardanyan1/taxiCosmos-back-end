@@ -98,3 +98,42 @@ lookups. Run `php artisan pii:reencrypt` after deploying the change.
   sandboxing Content-Security-Policy. No route, disk URL or Inertia prop exposes the stored path.
 - Reviewing (approve / reject) needs `drivers.verify`, is logged to the activity log (`driver-documents`) with
   the reviewer, the document and the rejection reason, and never logs the document number. All audit entries go through `AuditLogger`, which redacts sensitive values (see [audit-log.md](audit-log.md)).
+
+## Admin web surface hardening (P9-T3)
+
+Everything outside `/api` (the admin pages, the sign-in screens, redirects, error pages, unmatched URLs) is
+answered with these headers (`App\Http\Middleware\SecurityHeaders`, global middleware, `config/security.php`):
+
+| Header | Value |
+| --- | --- |
+| `Content-Security-Policy` | `default-src 'self'`; scripts only from the app (no inline, no eval); styles from the app, inline styles and Google Fonts; fonts from Google Fonts; `img-src` self, data:, blob:, https:; `connect-src 'self'`; `object-src 'none'`; `base-uri`, `form-action` self; **`frame-ancestors 'none'`**. While `npm run dev` runs, the Vite dev server is added and the inline React-refresh script gets a per-response nonce (never `'unsafe-inline'`). `SECURITY_CSP_REPORT_ONLY=true` sends it as `Content-Security-Policy-Report-Only` to trial changes. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`, on HTTPS responses only (`SECURITY_HSTS_MAX_AGE`, 0 = off). Not sent over plain HTTP, where browsers ignore it. |
+| `X-Frame-Options` | `DENY` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `same-origin` |
+| `Permissions-Policy` | accelerometer, camera, geolocation, gyroscope, microphone, payment and usb all denied |
+
+`/horizon` gets all of them except the CSP (Horizon's dashboard needs inline scripts). `/api/v1` responses are JSON and
+are left alone. A new external script, font or image host must be added to the policy in `SecurityHeaders` /
+`config/security.php` deliberately; the feature tests pin the exact policy.
+
+**Cookies.** The session cookie is `HttpOnly` and `SameSite=Lax` always, and `Secure` whenever `APP_ENV` is `staging` or
+`production` (override with `SESSION_SECURE_COOKIE=true|false`; a blank or invalid value falls back to the default).
+The `XSRF-TOKEN` cookie follows the same `Secure`/`SameSite` settings but is deliberately not `HttpOnly`: the page's
+JavaScript has to read it to send the CSRF header.
+
+**IP allowlist (optional).** `ADMIN_IP_ALLOWLIST` is a comma separated list of IPv4/IPv6 addresses or CIDR ranges
+(`203.0.113.7,10.0.0.0/8,2001:db8::/32`). When it is not empty, `/admin`, `/horizon` and the admin sign-in screens
+(`/login`, `/forgot-password`, `/reset-password`, `/accept-invitation`, `/two-factor-*`) answer `403` to every other
+address, before authentication, so a guest sees `403` and a signed-in admin loses access from outside the list.
+`/api/v1`, `/up` and `/` are never restricted. It is **off by default** (empty).
+
+**Reverse proxies.** The client address behind a proxy is only right when the proxy is trusted: set `TRUSTED_PROXIES`
+(addresses/CIDRs, or `*` when the proxy is the only thing that can reach the app). Without it every request appears to come
+from the proxy, which defeats the allowlist and pools every client into one rate-limit budget. HTTPS detection (HSTS,
+`Secure` cookies) depends on it as well.
+
+**Rate limits** are listed in `docs/rate-limits.md`.
+
+**Tests:** `tests/Feature/Security/` (headers, allowlist, cookies, rate-limit responses), `LoginRateLimitTest`, and the
+Cypress spec `cypress/e2e/p9-t3-rate-limits-security.cy.ts`.

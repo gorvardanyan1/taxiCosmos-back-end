@@ -50,6 +50,10 @@ when `APP_ENV` is `e2e` or `testing`, and refusing to run unless the database na
 | `cy.make(fixture, attrs)` | `e2e:make` | a named fixture from `tests/E2e/E2eFixtures.php` (admins, riders, drivers with documents, zones, drivers (with vehicles, bank account, trips), fare rules and fees, reset links, session ageing, status changes, …) through the real models |
 | `cy.sql(query, bindings)` | `e2e:sql` | one read-only `SELECT` (READ ONLY transaction) to assert what reached the database |
 
+Specs that need a different `.env` (the IP allowlist in `p9-t3-rate-limits-security.cy.ts`) start an extra app
+server with `cy.task('e2e:server:start', { port, env })` (ports 8002-8009 only, always `APP_ENV=e2e`) and stop it with
+`cy.task('e2e:server:stop')`; Cypress also stops any left over when the run ends.
+
 Other commands: `cy.loginAs(email)` (real login form, cached per spec with `cy.session`),
 `cy.api(method, path, body, token)` (JSON, never fails on status), `cy.adminRequest(method, path, body)`
 (same-session Inertia request with the CSRF token, for direct-URL permission checks) and

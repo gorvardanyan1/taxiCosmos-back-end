@@ -6,6 +6,8 @@ use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\EnsureMobileClient;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RejectNullBytes;
+use App\Http\Middleware\RestrictToAllowedIps;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use App\Support\Locales;
 use Illuminate\Foundation\Application;
@@ -30,6 +32,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind a reverse proxy the client address (rate limits, the admin IP allowlist) and the scheme (HSTS, Secure cookies)
+        // are only right when the proxy is trusted: TRUSTED_PROXIES is a comma separated list of addresses/CIDRs, or "*".
+        $middleware->trustProxies(at: env('TRUSTED_PROXIES') === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', ''))))));
+
+        // The headers wrap everything (outermost), so they also land on the 403 of the IP allowlist and on unmatched URLs.
+        // The allowlist runs after the framework's own global middleware, so it sees the client address TrustProxies resolved.
+        $middleware->prepend(SecurityHeaders::class);
+        $middleware->append(RestrictToAllowedIps::class);
         $middleware->web(prepend: [RejectNullBytes::class], append: [
             SetLocale::class,
             HandleInertiaRequests::class,
@@ -79,9 +89,18 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if (! config('app.debug') && in_array($status, [403, 404, 429, 500, 503], true)) {
                 // `locale` is for pages that never got the shared props (a URL that matched no route).
-                return Inertia::render('Errors/Show', ['status' => $status, 'locale' => App::getLocale()])
+                $page = Inertia::render('Errors/Show', ['status' => $status, 'locale' => App::getLocale()])
                     ->toResponse($request)
                     ->setStatusCode($status);
+
+                // A throttled client still needs to know when to come back.
+                foreach (['Retry-After', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'] as $header) {
+                    if ($response->headers->has($header)) {
+                        $page->headers->set($header, $response->headers->get($header));
+                    }
+                }
+
+                return $page;
             }
 
             return $response;

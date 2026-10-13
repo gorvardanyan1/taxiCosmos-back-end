@@ -4,7 +4,7 @@ Named rate limiters and other request throttles. Add every new limiter here (tas
 
 | Limiter / throttle | Applies to | Limit | Key | On limit | Defined in |
 | --- | --- | --- | --- | --- | --- |
-| `login` (`throttle:login`) | `POST /login` (admin sign-in) | 5 requests per minute — successful sign-ins count too | lower-cased email + IP | Redirect back with an `email` validation error: "Too many login attempts. Please try again in N seconds." | `App\Providers\FortifyServiceProvider` |
+| `login` (`throttle:login`) | `POST /login` (admin sign-in) | 5 requests per minute — successful sign-ins count too; **and** `RATE_LIMIT_LOGIN_IP` (30) per minute per address across all emails | lower-cased email + IP; IP alone | The sign-in page (an Inertia request) gets a redirect back with an `email` error: "Too many login attempts. Please try again in N seconds." Any other client gets a `429`. Both carry `Retry-After` | `App\Providers\FortifyServiceProvider` |
 | Fortify login lockout | `POST /login` | 5 **failed** attempts per minute | email + IP | Same `email` error | Fortify (`LoginRateLimiter`), on top of `throttle:login` |
 | Password-reset broker throttle | `POST /forgot-password` | 1 reset email per minute per admin | admin account | `email` error "Please wait before retrying." | `config/auth.php` → `passwords.admins.throttle` |
 | `otp-request` (`throttle:otp-request`) | `POST /api/v1/auth/otp/request` | 1 per minute per phone + IP; 5 per hour per phone; 30 per hour per IP | normalised E.164 phone (falls back to a hash of the raw input) and IP | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
@@ -13,11 +13,23 @@ Named rate limiters and other request throttles. Add every new limiter here (tas
 | `social-login` (`throttle:social-login`) | `POST /api/v1/auth/social/{provider}` | 20 per minute | IP | 429 JSON | `App\Providers\AppServiceProvider` |
 | `auth-refresh` (`throttle:auth-refresh`) | `POST /api/v1/auth/refresh` | 30 per minute | IP | 429 JSON | `App\Providers\AppServiceProvider` |
 | `bank-account-reveal` (`throttle:bank-account-reveal`) | `POST /admin/drivers/{id}/bank-accounts/{accountId}/reveal` | 10 per minute | admin | 429 | `App\Providers\AppServiceProvider` |
+| `admin` (`throttle:admin`) | every page and action under `/admin`, and `/two-factor-setup` | `RATE_LIMIT_ADMIN` (300) per minute | signed-in admin | 429 with `Retry-After` (the template's "Too many requests" card) | `App\Providers\AppServiceProvider` |
+| `admin-auth` (`throttle:admin-auth`) | every endpoint Fortify registers (`POST /forgot-password`, `/reset-password`, `/logout`, two-factor, …), except `POST /login` which has its own limiter | `RATE_LIMIT_ADMIN_AUTH` (30) per minute | IP + path | 429 with `Retry-After` | `config/fortify.php` → `App\Providers\AppServiceProvider` |
+| `api` (`throttle:api`) | every authenticated `/api/v1` route (the `auth:sanctum` groups: logout, phone verify, trips) | `RATE_LIMIT_API` (120) per minute | signed-in rider/driver (carrier NATs share addresses, so not the IP) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
+| `payment` (`throttle:payment`) | payment endpoints: **attach it to every charge, refund and payment-method route when P6 adds them** | `RATE_LIMIT_PAYMENT` (10) per minute | signed-in user (IP as fallback) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 | `fare-estimate` (`throttle:fare-estimate`) | `POST /api/v1/trips/fare-estimate` (every call stores a quote) | 30 per minute | rider (falls back to IP) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
+
+Every rate-limited response is a `429` with a `Retry-After` header (seconds). Browser pages render the template's
+"Too many requests" card (`Errors/Show`) and keep the header; the sign-in form shows the "Too many login attempts"
+banner instead. The `admin`, `api`, `payment`, `admin-auth` and `login` per-IP ceilings are tunable through `.env`
+(`RATE_LIMIT_*`, see `config/security.php`); the endpoint-specific limiters above are fixed in code.
+
+Behind a reverse proxy set `TRUSTED_PROXIES`, or every client shares the proxy's address and one noisy visitor
+exhausts the per-IP budgets for all of them.
 
 Notes:
 
 - Unknown or non-admin emails on `POST /forgot-password` never send mail and get the same success
   message as a real admin, so the endpoint cannot be used to discover accounts.
 - The OTP request and verify limits are separate on purpose: asking for codes cannot use up (or hide) the
-  guessing budget. Other mobile limiters (location pings, payments) are added by their tasks (P8-T2, P9-T3).
+  guessing budget. Location pings get their limiter in P8-T2; payment routes attach `throttle:payment` in P6.
