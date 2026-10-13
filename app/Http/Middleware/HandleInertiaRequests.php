@@ -5,9 +5,11 @@ namespace App\Http\Middleware;
 use App\Enums\AdminPermission;
 use App\Enums\AdminRole;
 use App\Models\User;
+use App\Services\Admin\NavigationBadges;
 use App\Support\AdminFixtures;
 use App\Support\Locales;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -60,7 +62,13 @@ class HandleInertiaRequests extends Middleware
                 'currencies' => config('taxikosmos.currencies'),
                 'baseCurrency' => config('taxikosmos.base_currency'),
             ],
-            'navigation' => fn () => $admin === null ? null : app(AdminFixtures::class)->get('navigation'),
+            // Badges are real counts (cached 60 s, only for pages the admin may open); notifications are still fixtures (P13-T6).
+            'navigation' => fn () => $admin === null ? null : [
+                ...app(AdminFixtures::class)->get('navigation'),
+                'badges' => app(NavigationBadges::class)->forAdmin($admin),
+                // The sidebar's Queue Monitor link: only for who the Horizon gate lets in.
+                'queueMonitor' => Gate::forUser($admin)->allows('viewHorizon'),
+            ],
         ];
     }
 

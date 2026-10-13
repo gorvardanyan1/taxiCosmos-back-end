@@ -36,7 +36,7 @@ const EXPIRY_DAYS = [7, 14, 30, 60, 90] as const;
 const setFilter = (key: string, value: string) => visitQuery({ [filterKey(key)]: value }, { resetPage: true });
 
 export default function DriversIndex({ drivers, filters, sort = null, verificationStatuses, availabilities, vehicleClasses, zones, totalRegistered, actions }: Props) {
-    const { money } = useShared();
+    const { money, can } = useShared();
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
     const [acting, setActing] = useState<DriverRow | null>(null);
     const reactivating = acting?.status === 'suspended';
@@ -50,7 +50,7 @@ export default function DriversIndex({ drivers, filters, sort = null, verificati
                 actions={
                     <>
                         <ActionButton url={actions.export} className={ghost}><Download size={14} /> {t('Export')}</ActionButton>
-                        <ActionButton url={actions.create} className={primary}>{t('+ Add Driver')}</ActionButton>
+                        {can('drivers.edit') && <ActionButton url={actions.create} className={primary}>{t('+ Add Driver')}</ActionButton>}
                     </>
                 }
             />
@@ -111,7 +111,7 @@ export default function DriversIndex({ drivers, filters, sort = null, verificati
                                             <button onClick={() => router.visit(`/admin/drivers/${driver.id}`)} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-slate-50" style={{ color: '#374151', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
                                                 <Eye size={13} /> {t('View Detail')}
                                             </button>
-                                            {(driver.status === 'active' || driver.status === 'suspended') && actions.suspend !== null && (
+                                            {can('drivers.suspend') && (driver.status === 'active' || driver.status === 'suspended') && actions.suspend !== null && (
                                                 <button onClick={() => { setActing(driver); setMenuOpen(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-red-50" style={{ color: driver.status === 'suspended' ? '#4f46e5' : '#ef4444', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
                                                     <UserX size={13} /> {driver.status === 'suspended' ? t('Reactivate') : t('Suspend')}
                                                 </button>

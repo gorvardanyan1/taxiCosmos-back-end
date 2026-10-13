@@ -9,6 +9,7 @@ import RidersIndex from '@/Pages/Riders/Index';
 import { loadLocale, setDictionary } from '@/lib/i18n';
 import { label } from '@/lib/labels';
 import { pageLabel } from '@/lib/navigation';
+import { PERMISSIONS } from '@/lib/permissions';
 import { page, setLocation, sharedProps } from '@/test/inertia';
 import type { Paginated, RiderRow } from '@/types';
 
@@ -81,7 +82,7 @@ describe('shared components in Russian and Armenian', () => {
 
     it('translates the sidebar groups and items and the page title in the top bar', async () => {
         await loadLocale('hy');
-        page.props = sharedProps({ auth: { user: { id: 1, name: 'Sky', email: 's@x.test', role: 'super_admin', roleLabel: 'Super admin' }, permissions: [] } });
+        page.props = sharedProps({ auth: { user: { id: 1, name: 'Sky', email: 's@x.test', role: 'super_admin', roleLabel: 'Super admin' }, permissions: [...PERMISSIONS] } });
         render(<Sidebar collapsed={false} />);
 
         const nav = screen.getByRole('navigation', { name: 'Գլխավոր' });

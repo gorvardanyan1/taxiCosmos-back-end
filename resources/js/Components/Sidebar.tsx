@@ -3,12 +3,17 @@ import { ChevronRight, ExternalLink, Radio, Zap } from 'lucide-react';
 import { initials } from '@/lib/format';
 import { activeNavKey, navGroups } from '@/lib/navigation';
 import { t } from '@/lib/i18n';
+import { useShared } from '@/lib/useShared';
 
 export default function Sidebar({ collapsed }: { collapsed: boolean }) {
     const { url, props } = usePage();
     const current = activeNavKey(url);
     const user = props.auth.user;
     const badges = props.navigation?.badges ?? {};
+    const { can } = useShared();
+    const canOpenHorizon = props.navigation?.queueMonitor ?? false;
+    // Only the pages this admin may open; a group left empty disappears with them.
+    const groups = navGroups.map((group) => ({ ...group, items: group.items.filter((item) => can(item.permission)) })).filter((group) => group.items.length > 0);
 
     return (
         <aside
@@ -36,7 +41,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
             </div>
 
             <nav className="sidebar-nav flex-1 overflow-y-auto py-4" style={{ overflowX: 'hidden' }} aria-label={t('Main')}>
-                {navGroups.map((group) => (
+                {groups.map((group) => (
                     <div key={group.label} className="mb-5">
                         {!collapsed && (
                             <p className="mb-1.5 px-4 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.35)', fontFamily: 'var(--font-display)' }}>
@@ -73,7 +78,7 @@ export default function Sidebar({ collapsed }: { collapsed: boolean }) {
                 ))}
             </nav>
 
-            {!collapsed && (
+            {!collapsed && canOpenHorizon && (
                 <a href="/horizon" target="_blank" rel="noreferrer" className="mx-3 mb-3 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-400 hover:bg-white/5 hover:text-slate-200">
                     <Radio size={14} /> {t('Queue Monitor')} <ExternalLink size={11} className="ml-auto" />
                 </a>

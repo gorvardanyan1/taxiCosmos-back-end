@@ -35,7 +35,7 @@ const gatewayStyle: Record<string, { bg: string; color: string }> = {
 const primaryButton = { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontFamily: 'var(--font-display)' } as const;
 
 export default function TransactionsIndex({ summary, transactions, filters, selected, gateways, actions }: Props) {
-    const { money, currencies, timezone } = useShared();
+    const { money, currencies, timezone, can } = useShared();
     const [recording, setRecording] = useState(false);
     const [refunding, setRefunding] = useState<TransactionRow | null>(null);
 
@@ -75,7 +75,7 @@ export default function TransactionsIndex({ summary, transactions, filters, sele
             <PageHeader
                 title={t('Payments & Transactions')}
                 description={t('Financial activity across all gateways')}
-                actions={<button onClick={openManual} className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold hover:opacity-90" style={primaryButton}><Plus size={14} /> {t('Record Manual Payment')}</button>}
+                actions={can('payments.manual') && <button onClick={openManual} className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold hover:opacity-90" style={primaryButton}><Plus size={14} /> {t('Record Manual Payment')}</button>}
             />
 
             <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -114,10 +114,10 @@ export default function TransactionsIndex({ summary, transactions, filters, sele
                     {
                         key: 'actions', header: '', render: (tx) => (
                             <div onClick={(e) => e.stopPropagation()}>
-                                {tx.status === 'completed' && (tx.type === 'charge' || tx.type === 'capture') && (
+                                {can('payments.refund') && tx.status === 'completed' && (tx.type === 'charge' || tx.type === 'capture') && (
                                     <button onClick={() => openRefund(tx)} className="flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#fffbeb', color: '#b45309', fontFamily: 'var(--font-display)' }}><RefreshCcw size={11} /> {t('Refund')}</button>
                                 )}
-                                {tx.status === 'pending' && (
+                                {can('payments.manual') && tx.status === 'pending' && (
                                     <div className="flex gap-1.5">
                                         <ActionButton url={withId(actions.confirmManual, tx.id)} className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">{t('Confirm')}</ActionButton>
                                         <ActionButton url={withId(actions.rejectManual, tx.id)} className="rounded-lg bg-red-50 px-2 py-1 text-[10px] font-bold text-red-600">{t('Reject')}</ActionButton>

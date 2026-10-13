@@ -367,7 +367,7 @@ describe('P4-T2 · Driver management', () => {
             cy.loginAs('cy-drivers-support@taxikosmos.test');
             cy.visit(`/admin/drivers/${driver.driver_id}?tab=bank-accounts`);
             cy.contains('•••• 4821').should('be.visible');
-            cy.findByRole('button', { name: /Reveal account/ }).should('be.disabled');
+            cy.findByRole('button', { name: /Reveal account/ }).should('not.exist');
             cy.get('body').invoke('html').should('not.contain', '12345678');
             cy.sql('select id from driver_bank_accounts where driver_id = ?', [driver.driver_id]).its('0.id').then((accountId) => {
                 cy.adminRequest('POST', `/admin/drivers/${driver.driver_id}/bank-accounts/${accountId}/reveal`).its('status').should('eq', 403);
@@ -435,11 +435,11 @@ describe('P4-T2 · Driver management', () => {
         cy.make<DriverFixture>('driver', { name: 'Vio View', vehicles: [{ make: 'Kia', model: 'Rio', plate: 'VIO1', primary: true }] }).then((driver) => {
             cy.loginAs('cy-drivers-dispatch@taxikosmos.test');
             cy.visit(`/admin/drivers/${driver.driver_id}`);
-            cy.findByRole('button', { name: 'Edit' }).should('be.disabled');
+            cy.findByRole('button', { name: 'Edit' }).should('not.exist');
             cy.findByRole('button', { name: /^(Suspend|Reactivate)$/ }).should('not.exist');
             cy.visit(`/admin/drivers/${driver.driver_id}?tab=vehicles`);
-            cy.findByRole('button', { name: '+ Add vehicle' }).should('be.disabled');
-            cy.findByRole('button', { name: 'Edit Kia Rio' }).should('be.disabled');
+            cy.findByRole('button', { name: '+ Add vehicle' }).should('not.exist');
+            cy.findByRole('button', { name: 'Edit Kia Rio' }).should('not.exist');
             cy.visit('/admin/drivers?filter[search]=Vio View');
             cy.findByLabelText('Actions for Vio View').click();
             cy.findByRole('button', { name: /View Detail/ }).should('be.visible');

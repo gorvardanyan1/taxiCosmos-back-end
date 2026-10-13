@@ -20,7 +20,7 @@ interface Props {
 }
 
 export default function RiderShow({ rider, tab, tabs, locales, actions }: Props) {
-    const { money, timezone } = useShared();
+    const { money, timezone, can } = useShared();
     const [acting, setActing] = useState(false);
     const [editing, setEditing] = useState(false);
     const suspended = rider.status === 'suspended';
@@ -41,8 +41,8 @@ export default function RiderShow({ rider, tab, tabs, locales, actions }: Props)
                     </div>
                     <div className="ml-4"><StatusBadge status={rider.status} /></div>
                     <div className="ml-auto flex gap-2">
-                        <button onClick={() => setEditing(true)} disabled={actions.edit === null} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 disabled:opacity-40">{t('Edit')}</button>
-                        {canToggle && (
+                        {can('riders.edit') && <button onClick={() => setEditing(true)} disabled={actions.edit === null} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 disabled:opacity-40">{t('Edit')}</button>}
+                        {canToggle && can('riders.suspend') && (
                             <button onClick={() => setActing(true)} className={`rounded-xl px-4 py-2 text-sm font-bold ${suspended ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>{suspended ? t('Reactivate') : t('Suspend')}</button>
                         )}
                     </div>

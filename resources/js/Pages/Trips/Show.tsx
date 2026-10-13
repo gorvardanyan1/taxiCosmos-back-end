@@ -26,7 +26,7 @@ const doneSteps: Record<string, number> = { requested: 1, matched: 2, arrived: 2
 const tile = { background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' } as const;
 
 export default function TripShow({ trip, actions }: Props) {
-    const { money, timezone } = useShared();
+    const { money, timezone, can } = useShared();
     const [cancelling, setCancelling] = useState(false);
     const done = doneSteps[trip.status] ?? 1;
 
@@ -87,14 +87,16 @@ export default function TripShow({ trip, actions }: Props) {
                         })}
                     </div>
 
-                    <div className="rounded-2xl p-4" style={tile}>
-                        <p className="mb-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{t('Admin Actions')}</p>
-                        <div className="flex flex-wrap gap-2">
-                            <button onClick={() => setCancelling(true)} className="rounded-xl px-3 py-2 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#fef2f2', color: '#dc2626', fontFamily: 'var(--font-display)' }}>{t('Force Cancel')}</button>
-                            <ActionButton url={actions.adjustFare} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#fffbeb', color: '#b45309', fontFamily: 'var(--font-display)' }}>{t('Adjust Fare')}</ActionButton>
-                            <ActionButton url={actions.reassignDriver} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#eef2ff', color: '#4f46e5', fontFamily: 'var(--font-display)' }}>{t('Reassign Driver')}</ActionButton>
+                    {(can('trips.force_cancel') || can('trips.adjust_fare')) && (
+                        <div className="rounded-2xl p-4" style={tile}>
+                            <p className="mb-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8', fontFamily: 'var(--font-display)' }}>{t('Admin Actions')}</p>
+                            <div className="flex flex-wrap gap-2">
+                                {can('trips.force_cancel') && <button onClick={() => setCancelling(true)} className="rounded-xl px-3 py-2 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: '#fef2f2', color: '#dc2626', fontFamily: 'var(--font-display)' }}>{t('Force Cancel')}</button>}
+                                {can('trips.adjust_fare') && <ActionButton url={actions.adjustFare} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#fffbeb', color: '#b45309', fontFamily: 'var(--font-display)' }}>{t('Adjust Fare')}</ActionButton>}
+                                {can('trips.force_cancel') && <ActionButton url={actions.reassignDriver} className="rounded-xl px-3 py-2 text-xs font-bold" style={{ background: '#eef2ff', color: '#4f46e5', fontFamily: 'var(--font-display)' }}>{t('Reassign Driver')}</ActionButton>}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
             <ReasonModal

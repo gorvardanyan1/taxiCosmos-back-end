@@ -30,7 +30,7 @@ interface Props {
 const setFilter = (key: string, value: string) => visitQuery({ [filterKey(key)]: value }, { resetPage: true });
 
 export default function RidersIndex({ riders, filters, sort, statuses, totalRegistered, actions }: Props) {
-    const { timezone } = useShared();
+    const { timezone, can } = useShared();
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
     const [acting, setActing] = useState<RiderRow | null>(null);
     const reactivating = acting?.status === 'suspended';
@@ -103,7 +103,7 @@ export default function RidersIndex({ riders, filters, sort, statuses, totalRegi
                                             <button onClick={() => router.visit(`/admin/riders/${rider.id}`)} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-slate-50" style={{ color: '#374151', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
                                                 <Eye size={13} /> {t('View Profile')}
                                             </button>
-                                            {(rider.status === 'active' || rider.status === 'suspended') && (
+                                            {can('riders.suspend') && (rider.status === 'active' || rider.status === 'suspended') && (
                                                 <button onClick={() => { setActing(rider); setMenuOpen(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors hover:bg-red-50" style={{ color: rider.status === 'suspended' ? '#4f46e5' : '#ef4444', fontFamily: 'var(--font-display)', fontWeight: 500 }}>
                                                     <UserX size={13} /> {rider.status === 'suspended' ? t('Reactivate') : t('Suspend')}
                                                 </button>
