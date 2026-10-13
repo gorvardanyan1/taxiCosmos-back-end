@@ -18,7 +18,8 @@ interface Props {
     zones: NamedOption[];
     filters: { zone: number | null };
     metrics: { key: MetricKey; value: number | Money; change: string; trend: 'up' | 'down' }[];
-    alerts: { stuck_trips: number; failed_payments: number; urgent_tickets: number };
+    /** Only the alerts whose page the admin may open (the server leaves the others out). */
+    alerts: Partial<{ stuck_trips: number; failed_payments: number; urgent_tickets: number }>;
     revenue_trend: { change_bp: number; points: { date: string; revenue: Money }[] };
     trip_status: { status: string; count: number }[];
     map: { active_count: number; pins: { x: number; y: number; state: 'en_route' | 'in_trip' }[] };
@@ -35,16 +36,18 @@ const metricStyle: Record<MetricKey, { title: string; icon: ReactNode; gradient:
 };
 
 const alertStyle = [
-    { key: 'stuck_trips', label: tk('Stuck trips'), href: '/admin/trips?filter[status]=in_progress', bg: '#fffbeb', color: '#b45309' },
-    { key: 'failed_payments', label: tk('Failed payments'), href: '/admin/transactions?filter[status]=failed', bg: '#fef2f2', color: '#dc2626' },
-    { key: 'urgent_tickets', label: tk('Urgent tickets'), href: '/admin/support-tickets?filter[priority]=urgent', bg: '#f5f3ff', color: '#7c3aed' },
+    { key: 'stuck_trips', label: tk('Stuck trips'), href: '/admin/trips?filter[status]=in_progress', bg: '#fffbeb', color: '#b45309', permission: 'trips.view' },
+    { key: 'failed_payments', label: tk('Failed payments'), href: '/admin/transactions?filter[status]=failed', bg: '#fef2f2', color: '#dc2626', permission: 'payments.view' },
+    { key: 'urgent_tickets', label: tk('Urgent tickets'), href: '/admin/support-tickets?filter[priority]=urgent', bg: '#f5f3ff', color: '#7c3aed', permission: 'support.manage' },
 ] as const;
 
 const statusColors: Record<string, string> = { completed: '#6366f1', in_progress: '#22c55e', cancelled: '#f87171', requested: '#fbbf24' };
 const activityColors: Record<string, string> = { signup: '#6366f1', trip: '#22c55e', flag: '#ef4444', cancel: '#f59e0b' };
 
 export default function Dashboard({ as_of, zones, filters, metrics, alerts, revenue_trend, trip_status, map, activity }: Props) {
-    const { money, currencies, timezone } = useShared();
+    const { money, currencies, timezone, can } = useShared();
+    // An alert card links to a page: no card for a page the admin cannot open.
+    const visibleAlerts = alertStyle.filter((alert) => can(alert.permission) && alerts[alert.key] !== undefined);
     const display = (metric: Props['metrics'][number]) =>
         typeof metric.value === 'object' ? money(metric.value, { compact: true }) : metric.key === 'cancellation_rate' ? formatBasisPoints(metric.value) : formatNumber(metric.value);
     const chart = revenue_trend.points.map((point) => ({ day: formatDate(point.date, timezone).replace(/, \d{4}$/, ''), rev: toMajorUnits(point.revenue, currencies), money: point.revenue }));
@@ -84,8 +87,8 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                 })}
             </div>
 
-            <div className="mb-7 grid grid-cols-1 gap-3 md:grid-cols-3">
-                {alertStyle.map((alert) => (
+            {visibleAlerts.length > 0 && <div data-testid="dashboard-alerts" className="mb-7 grid grid-cols-1 gap-3 md:grid-cols-3">
+                {visibleAlerts.map((alert) => (
                     <div key={alert.key} className="flex items-center rounded-2xl px-4 py-3" style={{ background: alert.bg, border: `1px solid ${alert.color}18` }}>
                         <div>
                             <p className="text-xs font-bold" style={{ color: alert.color }}>{t(alert.label)}</p>
@@ -94,7 +97,7 @@ export default function Dashboard({ as_of, zones, filters, metrics, alerts, reve
                         <Link href={alert.href} className="ml-auto text-xs font-bold" style={{ color: alert.color }}>{t('View →')}</Link>
                     </div>
                 ))}
-            </div>
+            </div>}
 
             <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
                 <div className="rounded-2xl p-5 lg:col-span-2" style={shadowCard}>

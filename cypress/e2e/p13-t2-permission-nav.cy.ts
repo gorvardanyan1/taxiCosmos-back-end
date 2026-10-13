@@ -78,6 +78,24 @@ describe('P13-T2 · Permission-aware navigation & actions', () => {
         status('/admin/riders').should('eq', 200);
     });
 
+    // Criterion: nothing in the UI leads a role to a page it cannot open - the dashboard's alert cards included.
+    it('shows each dashboard alert only to roles that may open its page, and every link it shows works', () => {
+        const cards = { dispatcher: ['Stuck trips'], finance: ['Stuck trips', 'Failed payments'], support: ['Stuck trips', 'Failed payments', 'Urgent tickets'] } as const;
+        const all = ['Stuck trips', 'Failed payments', 'Urgent tickets'];
+
+        (Object.keys(cards) as (keyof typeof cards)[]).forEach((role) => {
+            cy.loginAs(roles[role]);
+            cy.visit('/admin');
+            cy.findByTestId('dashboard-alerts').within(() => {
+                cards[role].forEach((label) => cy.findByText(label).should('be.visible'));
+                all.filter((label) => !(cards[role] as readonly string[]).includes(label)).forEach((label) => cy.findByText(label).should('not.exist'));
+                cy.findAllByRole('link', { name: /View →/ }).should('have.length', cards[role].length).each(($link) => {
+                    cy.request({ url: $link.attr('href') as string, failOnStatusCode: false }).its('status').should('eq', 200);
+                });
+            });
+        });
+    });
+
     it('sends a guest to the login page from every page, with no navigation data', () => {
         cy.clearAllCookies();
         cy.visit('/admin/payouts');
