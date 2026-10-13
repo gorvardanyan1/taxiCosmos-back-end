@@ -12,6 +12,7 @@ use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Models\CommissionRule;
 use App\Models\DriverBankAccount;
 use App\Models\DriverDocument;
+use App\Models\DriverLocationPing;
 use App\Models\DriverProfile;
 use App\Models\FareFee;
 use App\Models\FareRule;
@@ -23,6 +24,8 @@ use App\Realtime\RealtimeEventType;
 use App\Realtime\StreamClient;
 use App\Services\Audit\AuditLogger;
 use App\Services\Commission\TripCommission;
+use App\Services\Drivers\DriverLocationStore;
+use App\Services\Drivers\StaleDriverSweeper;
 use App\Services\Fares\FareCalculator;
 use App\Services\MobileAuth\MobileSessionService;
 use App\Support\BlindIndex;
@@ -81,6 +84,9 @@ final class E2eFixtures
             'expire_otp' => $this->expireOtp($a),
             'expire_access_token' => $this->expireAccessToken($a),
             'stream' => $this->stream($a),
+            'driver_location_state' => $this->driverLocationState($a),
+            'age_driver_ping' => $this->ageDriverPing($a),
+            'sweep_stale_drivers' => $this->sweepStaleDrivers(),
             'clear_rate_limits' => $this->clearRateLimits(),
             default => throw new InvalidArgumentException("Unknown e2e fixture \"{$fixture}\"."),
         };
@@ -481,6 +487,45 @@ final class E2eFixtures
 
             return ['id' => $id, 'fields' => $fields];
         }, $entries);
+    }
+
+    /**
+     * Where Redis and MongoDB say a driver is: position [lng, lat] and ping time from the geo / last-seen sets, and the history
+     * pings kept in MongoDB (newest first). Read-only. {driver_user_id}
+     */
+    private function driverLocationState(array $a): array
+    {
+        $id = (string) (int) $a['driver_user_id'];
+        $redis = app(StreamClient::class);
+        $store = app(DriverLocationStore::class);
+        $position = $redis->raw(['GEOPOS', $store->locationsKey(), $id])[0] ?? null;
+        $score = $redis->raw(['ZSCORE', $store->lastSeenKey(), $id]);
+
+        return [
+            'position' => $position ? [(float) $position[0], (float) $position[1]] : null,
+            'last_seen' => ($score === false || $score === null) ? null : (int) $score,
+            'pings' => DriverLocationPing::query()->where('driver_user_id', (int) $id)->orderByDesc('recorded_at')->get()
+                ->map(fn ($p) => ['coordinates' => array_map('floatval', (array) $p->location['coordinates']), 'heading' => $p->heading, 'speed' => $p->speed, 'accuracy' => $p->accuracy, 'source' => $p->source, 'recorded_at' => $p->recorded_at->utc()->format('Y-m-d\TH:i:s.v\Z')])->all(),
+        ];
+    }
+
+    /**
+     * Make a driver's last ping older, as if the app had gone quiet. {driver_user_id, seconds}
+     */
+    private function ageDriverPing(array $a): array
+    {
+        $at = now()->subSeconds((int) $a['seconds'])->getTimestamp();
+        app(StreamClient::class)->raw(['ZADD', app(DriverLocationStore::class)->lastSeenKey(), (string) $at, (string) (int) $a['driver_user_id']]);
+
+        return ['last_seen' => $at];
+    }
+
+    /**
+     * Run the scheduled sweep once (drivers:mark-stale-offline).
+     */
+    private function sweepStaleDrivers(): array
+    {
+        return app(StaleDriverSweeper::class)->sweep();
     }
 
     /**

@@ -804,5 +804,12 @@
     "×:value / max ×:max": "×:value / макс. ×:max",
     "← Drivers": "← Водители",
     "← Riders": "← Пассажиры",
-    "← Trips": "← Поездки"
+    "← Trips": "← Поездки",
+    "Your account is suspended.": "Ваш аккаунт заблокирован.",
+    "Your driver profile has not been approved yet.": "Ваш профиль водителя ещё не одобрен.",
+    "One of your documents has expired. Upload a new one to continue.": "Срок действия одного из ваших документов истёк. Загрузите новый, чтобы продолжить.",
+    "Add an approved primary vehicle to go online.": "Добавьте одобренный основной автомобиль, чтобы выйти на линию.",
+    "Go online before sending your location.": "Выйдите на линию, прежде чем отправлять местоположение.",
+    "You cannot go offline during a trip.": "Нельзя уйти с линии во время поездки.",
+    "Your location could not be saved. Please try again.": "Не удалось сохранить ваше местоположение. Попробуйте ещё раз."
 }

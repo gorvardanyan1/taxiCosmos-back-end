@@ -23,6 +23,8 @@
         <env name="MAPS_PROVIDER" value="fake"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="REALTIME_STREAM_PREFIX" value="test:events:"/>
+        <env name="REALTIME_GEO_KEY" value="test:drivers:locations"/>
+        <env name="REALTIME_LAST_SEEN_KEY" value="test:drivers:last_seen"/>
         <env name="BLIND_INDEX_KEY" value="testing-blind-index-key-not-for-production"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>

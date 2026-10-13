@@ -48,6 +48,30 @@ final class VerificationResolver
         };
     }
 
+    /**
+     * Whether a required document the driver has uploaded has run out (by date or status) without a valid replacement of the
+     * same type. The stored verification status can lag behind a document's expiry date until the expiry job runs, so the
+     * places that must be strict (going online) ask this directly. A type with no upload at all is not "expired".
+     */
+    public function hasExpiredDocument(DriverProfile $profile): bool
+    {
+        $documents = $profile->documents()->orderByDesc('id')->get()->groupBy(fn (DriverDocument $d) => $d->type->value);
+
+        foreach ($this->required->types() as $type) {
+            $ofType = $documents->get($type->value, collect());
+
+            if ($ofType->isEmpty() || $ofType->contains(fn (DriverDocument $d) => $this->isValid($d))) {
+                continue;
+            }
+
+            if ($this->isExpired($ofType->first())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function isValid(DriverDocument $document): bool
     {
         return $document->status === DriverDocumentStatus::Approved && ! $document->isPastExpiry();

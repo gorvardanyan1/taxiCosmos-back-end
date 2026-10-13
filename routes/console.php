@@ -16,5 +16,8 @@ Schedule::command('activitylog:clean --force')->dailyAt('03:15')->withoutOverlap
 Schedule::command('sanctum:prune-expired --hours=24')->dailyAt('03:30')->withoutOverlapping()->onOneServer();
 Schedule::command('mobile-auth:prune')->dailyAt('03:40')->withoutOverlapping()->onOneServer();
 
+// Drivers: an online driver with no ping for 5 minutes goes offline, and stale positions leave Redis (P8-T2).
+Schedule::command('drivers:mark-stale-offline')->everyMinute()->withoutOverlapping()->onOneServer();
+
 // Fare quotes are useful for minutes; the expired ones are deleted a day later.
 Schedule::command('model:prune', ['--model' => [FareQuote::class]])->dailyAt('03:50')->withoutOverlapping()->onOneServer();

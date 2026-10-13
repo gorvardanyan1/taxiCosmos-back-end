@@ -6,9 +6,9 @@ use App\Realtime\RealtimeEventType;
 use Carbon\CarbonInterface;
 
 /**
- * Placeholder for P8-T2. Live positions normally go through Redis GEOADD / pub-sub (a missed
- * ping is harmless); this stream exists so the contract is complete and a consumer can subscribe
- * to coarse position changes if that task decides to publish them.
+ * A position reported through POST /api/v1/driver/location (P8-T2), published after it is stored in Redis. Pings the Node
+ * service receives itself are written straight to Redis; this event lets the fallback pings reach the same riders and admin map.
+ * A missed ping is harmless: the next one replaces it.
  */
 class DriverLocationUpdated extends RealtimeDomainEvent
 {
