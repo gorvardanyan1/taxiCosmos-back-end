@@ -22,6 +22,7 @@ Named rate limiters and other request throttles. Add every new limiter here (tas
 | `api` (`throttle:api`) | every authenticated `/api/v1` route (the `auth:sanctum` groups: logout, phone verify, trips) | `RATE_LIMIT_API` (120) per minute | signed-in rider/driver (carrier NATs share addresses, so not the IP) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 | `payment` (`throttle:payment`) | payment endpoints: **attach it to every charge, refund and payment-method route when P6 adds them** | `RATE_LIMIT_PAYMENT` (10) per minute | signed-in user (IP as fallback) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 | `fare-estimate` (`throttle:fare-estimate`) | `POST /api/v1/trips/fare-estimate` (every call stores a quote) | 30 per minute | rider (falls back to IP) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
+| `geo` (`throttle:geo`) | `GET /api/v1/geo/autocomplete`, `/places/{id}`, `/reverse`, `/route` (each call that misses the cache is billed by the maps provider) | `RATE_LIMIT_GEO` (60) per minute, all four endpoints share it (after `throttle:api`) | signed-in rider/driver (IP as fallback) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 
 Every rate-limited response is a `429` with a `Retry-After` header (seconds). Browser pages render the template's
 "Too many requests" card (`Errors/Show`) and keep the header; the sign-in form shows the "Too many login attempts"

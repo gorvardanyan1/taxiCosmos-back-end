@@ -17,6 +17,7 @@ spec in `cypress/e2e/<task-id>-<name>.cy.ts` (see `.claude/commands/task.md`, se
 | Sessions | redis | database |
 | Queue | redis | sync |
 | Mail / SMS | log | log, to `storage/logs/e2e.log` |
+| Maps (`MAPS_PROVIDER`) | `google` | `fake` (keyless, deterministic; no call leaves the machine) |
 | OTP | random | fixed `123456` for `+37491770001…39` |
 | Language | per admin / browser | same; admin fixtures default to English (`locale` option) |
 | Debug pages | on | off (the template error pages render) |

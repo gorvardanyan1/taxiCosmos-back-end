@@ -2,12 +2,18 @@
 
 namespace App\Providers;
 
+use App\Contracts\GeoProvider;
 use App\Contracts\SmsSender;
 use App\Models\User;
+use App\Services\Geo\CachingGeoProvider;
+use App\Services\Geo\FakeGeoProvider;
+use App\Services\Geo\GoogleMapsProvider;
+use App\Services\Geo\TwoGisProvider;
 use App\Services\Sms\LogSmsSender;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -27,6 +33,22 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(BlindIndex::class, fn () => BlindIndex::fromConfig());
+
+        // The maps provider: MAPS_PROVIDER picks the implementation, the cache sits in front of it. Callers ask for GeoProvider.
+        $this->app->bind(GeoProvider::class, function ($app) {
+            $name = (string) config('services.maps.provider');
+
+            $inner = match ($name) {
+                'google' => new GoogleMapsProvider((string) config('services.maps.google.key')),
+                '2gis' => new TwoGisProvider((string) config('services.maps.2gis.key')),
+                'fake' => $app->environment(['local', 'testing', 'e2e'])
+                    ? $app->make(FakeGeoProvider::class)
+                    : throw new RuntimeException('MAPS_PROVIDER=fake is only for local, testing and e2e environments.'),
+                default => throw new RuntimeException("Unknown MAPS_PROVIDER \"{$name}\" (use google or 2gis)."),
+            };
+
+            return new CachingGeoProvider($inner, $name, $app->make(CacheRepository::class));
+        });
 
         $this->app->bind(SmsSender::class, fn () => match (config('sms.driver')) {
             'log' => new LogSmsSender,
@@ -116,6 +138,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Every authenticated /api/v1 call, per rider or driver.
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(config('security.rate_limits.api'))->by('api:'.$caller($request)));
+
+        // The maps endpoints (/api/v1/geo/*): every call that misses the cache costs money, so each rider or driver gets a budget.
+        RateLimiter::for('geo', fn (Request $request) => Limit::perMinute(config('security.rate_limits.geo'))->by('geo:'.$caller($request)));
 
         // Payment endpoints (P6) attach this: card testing and double charges are attacks, not traffic.
         RateLimiter::for('payment', fn (Request $request) => Limit::perMinute(config('security.rate_limits.payment'))->by('payment:'.$caller($request)));

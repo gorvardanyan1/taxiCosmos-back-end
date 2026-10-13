@@ -42,6 +42,7 @@ return [
         'admin_auth' => (int) env('RATE_LIMIT_ADMIN_AUTH', 30),     // per IP and path, the admin auth POSTs (reset, 2FA, ...)
         'login_ip' => (int) env('RATE_LIMIT_LOGIN_IP', 30),         // per IP, POST /login across all emails
         'api' => (int) env('RATE_LIMIT_API', 120),                 // per signed-in rider/driver, every authenticated /api/v1 call
+        'geo' => (int) env('RATE_LIMIT_GEO', 60),                   // per signed-in rider/driver, the four /api/v1/geo endpoints together
         'payment' => (int) env('RATE_LIMIT_PAYMENT', 10),           // per signed-in user, payment endpoints (P6)
     ],
 
