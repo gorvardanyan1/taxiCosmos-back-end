@@ -135,6 +135,9 @@ class AppServiceProvider extends ServiceProvider
         // A device registration is a login-time write of a token chosen by the client.
         RateLimiter::for('devices', fn (Request $request) => Limit::perMinute(config('security.rate_limits.devices'))->by('devices:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Opening a ticket and writing on one: per person, generous for a conversation but not for flooding the staff.
+        RateLimiter::for('support-tickets', fn (Request $request) => Limit::perMinute(config('security.rate_limits.support_tickets'))->by('support-tickets:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         // Pings come every few seconds from a working driver, so the budget is per driver and generous; the toggle is not.
         RateLimiter::for('driver-location', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_location'))->by('driver-location:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('driver-availability', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_availability'))->by('driver-availability:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));

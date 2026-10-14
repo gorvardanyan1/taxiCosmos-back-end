@@ -92,7 +92,7 @@ class NavigationBadgesTest extends AdminTestCase
         $this->assertSame(['drivers' => 1, 'support-tickets' => 0, 'transactions' => 0, 'payouts' => 0], Cache::get(NavigationBadges::CACHE_KEY));
     }
 
-    public function test_the_ticket_payment_and_payout_badges_stay_empty_until_their_tables_exist(): void
+    public function test_the_ticket_badge_is_empty_without_urgent_tickets_and_payment_and_payout_badges_stay_empty_until_their_tables_exist(): void
     {
         $this->assertSame(['drivers' => 0, 'support-tickets' => 0, 'transactions' => 0, 'payouts' => 0], app(NavigationBadges::class)->counts());
     }

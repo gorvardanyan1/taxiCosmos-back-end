@@ -55,6 +55,7 @@ are handled too. Failed sign-ins store the email that was typed, never the passw
 | `commission_rule.created` (first rule of a zone and class), `commission_rule.versioned` (old and new values of what changed; `context` = zone code, class or `all`, previous rule id) | `CommissionRuleService` (see [commission.md](commission.md)) |
 | `fare_rule.created` (first rule of a class), `fare_rule.versioned` (a price change: old and new values of what changed, `context` = zone code, class, previous rule id) | `FareRuleService` (see [fares.md](fares.md)) |
 | `rider.updated`, `rider.suspended`, `rider.reactivated` | `RiderService` (see [riders.md](riders.md)); a reason is required |
+| `support_ticket.assigned` (old and new assignee and status), `support_ticket.replied` (status change; never the text), `support_ticket.note_added` (never the text), `support_ticket.resolved` (the resolution is the reason, required), `support_ticket.reopened` | `SupportTicketService` (see [support-tickets.md](support-tickets.md)) |
 | `account.locale_changed` | `AccountLocaleController` (My Account → Language; old and new language, no reason) |
 | `account.profile_updated` (old and new name and timezone), `account.password_changed` (no values, no hashes), `account.other_sessions_ended` (`context.sessions` = how many were ended) | `AdminAccountService` (My Account → Profile and Security, see [security.md](security.md)) |
 

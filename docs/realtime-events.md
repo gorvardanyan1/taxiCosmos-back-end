@@ -107,7 +107,7 @@ Content-Type: application/json
 | `driver.availability_changed` | `taxikosmos:events:driver.availability_changed` | 1 | `driver_user_id`, `driver_profile_id`, `from_availability`, `to_availability` | wired now — `DriverProfileObserver` | the driver (and the admin live map) |
 | `user.suspended` | `taxikosmos:events:user.suspended` | 1 | `user_id`, `status` | wired now — `UserObserver` | that user |
 | `surge.changed` | `taxikosmos:events:surge.changed` | 1 | `surge_id`, `zone_id`, `vehicle_class`, `multiplier`, `active`, `starts_at`, `ends_at` | P5-T4 | all drivers/riders in the zone |
-| `support_ticket.updated` | `taxikosmos:events:support_ticket.updated` | 1 | `ticket_id`, `ticket_code`, `status`, `requester_user_id`, `change` | P7-T5 | the requester |
+| `support_ticket.updated` | `taxikosmos:events:support_ticket.updated` | 1 | `ticket_id`, `ticket_code`, `status`, `requester_user_id`, `change` | wired now — `SupportTicketService` (P7-T5) | the requester |
 | `driver.location_updated` | `taxikosmos:events:driver.location_updated` | 1 | `driver_user_id`, `latitude`, `longitude`, `heading`, `recorded_at` | wired now — `POST /api/v1/driver/location` (P8-T2) | admin live map / the rider of the active trip |
 
 ### `trip.offer`

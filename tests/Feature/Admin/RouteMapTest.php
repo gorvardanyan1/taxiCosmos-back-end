@@ -29,7 +29,7 @@ class RouteMapTest extends AdminTestCase
                 ->where('drivers.total', 0)->where('drivers.data', [])->where('verificationStatuses', ['pending', 'approved', 'rejected', 'expired'])->where('availabilities', ['offline', 'online', 'on_trip'])->where('totalRegistered', 0)->has('zones', 0)],
             'trips' => ['/admin/trips', 'Trips/Index', fn (Assert $p) => $p->where('trips.total', 8)->where('trips.data.0.code', 'TK-8F3K2')->has('statuses', 7)],
             'trip detail' => ['/admin/trips/4', 'Trips/Show', fn (Assert $p) => $p->where('trip.code', 'TK-58200')->where('trip.status', 'in_progress')->where('trip.fare', null)],
-            'support tickets' => ['/admin/support-tickets', 'SupportTickets/Index', fn (Assert $p) => $p->where('tickets.total', 4)->where('selected.code', 'TKT-2941')->has('selected.messages', 3)],
+            'support tickets' => ['/admin/support-tickets', 'SupportTickets/Index', fn (Assert $p) => $p->where('tickets.total', 0)->where('selected', null)->has('assignees')->where('actions.reopen', '/admin/support-tickets/{id}/reopen')],
             'ratings' => ['/admin/ratings', 'Ratings/Index', fn (Assert $p) => $p->where('ratings.total', 3)->where('lowRatedDrivers', 12)],
             'transactions' => ['/admin/transactions', 'Transactions/Index', fn (Assert $p) => $p->where('transactions.total', 7)->where('summary.refunds_today.amount', 84500)->where('selected', null)],
             'payouts' => ['/admin/payouts', 'Payouts/Index', fn (Assert $p) => $p->where('payouts.total', 3)->where('summary.drivers_in_batch', 284)->has('skipped', 2)],

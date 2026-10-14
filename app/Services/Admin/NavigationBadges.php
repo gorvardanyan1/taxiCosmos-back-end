@@ -4,7 +4,10 @@ namespace App\Services\Admin;
 
 use App\Enums\AdminPermission;
 use App\Enums\DriverVerificationStatus;
+use App\Enums\SupportPriority;
+use App\Enums\SupportStatus;
 use App\Models\DriverProfile;
+use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Contracts\Cache\Repository;
 
@@ -67,10 +70,10 @@ final class NavigationBadges
         return DriverProfile::query()->where('verification_status', DriverVerificationStatus::Pending->value)->count();
     }
 
-    /** No tickets table until the support tickets task (P7-T5) adds it; replace this with its "open and urgent" count there. */
+    /** Urgent tickets still being worked on (open, in progress or waiting on the requester). */
     private function openUrgentTickets(): int
     {
-        return 0;
+        return SupportTicket::query()->where('priority', SupportPriority::Urgent->value)->whereIn('status', SupportStatus::activeValues())->count();
     }
 
     /** No payments table until the manual payment task (P6-T5) adds it; replace this with the "awaiting confirmation" count there. */

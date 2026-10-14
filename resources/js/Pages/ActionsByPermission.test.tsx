@@ -261,21 +261,26 @@ describe('Payouts', () => {
 
 describe('Support tickets', () => {
     const ticket: TicketDetail = {
-        id: 1, code: 'TKT-1', subject: 'Overcharged', priority: 'urgent', status: 'open', requester: { name: 'Ana', type: 'rider', code: 'R-1' }, created_at: '2026-10-05T14:16:00Z',
-        messages: [{ id: 1, kind: 'requester', body: 'Too much' }], linked_trip: { id: 4, code: 'TK-58200' },
+        id: 1, code: 'TKT-1', subject: 'Overcharged', category: 'fare', priority: 'urgent', status: 'open', assignee: null, requester: { name: 'Ana', type: 'rider', code: 'R-1' }, created_at: '2026-10-05T14:16:00Z', last_message_at: '2026-10-05T14:16:00Z',
+        resolution: null, resolved_at: null, messages: [{ id: 1, kind: 'requester', author: 'Ana', body: 'Too much', created_at: '2026-10-05T14:16:00Z' }], linked_trip: { id: 4, code: 'TK-58200' },
     };
-    const props = { tickets: paginator([ticket], '/admin/support-tickets'), filters: {}, selected: ticket, actions: { assign: null, resolve: null, reply: null, refund: '/admin/support-tickets/{id}/refund' } };
+    const props = {
+        tickets: paginator([ticket], '/admin/support-tickets'), filters: {}, selected: ticket, statuses: [], categories: [], priorities: [], assignees: [], me: 1,
+        actions: { assign: null, resolve: null, reply: null, reopen: null, refund: '/admin/support-tickets/{id}/refund', adjustFare: '/admin/support-tickets/{id}/adjust-fare' },
+    };
 
     it('"Issue refund" from a ticket needs payments.refund on top of support.manage', () => {
         grant(['support.manage']);
         const support = render(<SupportTicketsIndex {...props} />);
         expect(screen.getByText('TK-58200')).toBeInTheDocument();
         expect(button(/Issue refund/)).toBeNull();
+        expect(button(/Adjust fare/)).toBeNull();
         support.unmount();
 
-        grant(['support.manage', 'payments.refund']);
+        grant(['support.manage', 'payments.refund', 'trips.adjust_fare']);
         render(<SupportTicketsIndex {...props} />);
         expect(button(/Issue refund/)).toBeInTheDocument();
+        expect(button(/Adjust fare/)).toBeInTheDocument();
     });
 });
 

@@ -184,18 +184,25 @@ export interface TripRow {
     requested_at: string;
 }
 
+export type TicketStatus = 'open' | 'in_progress' | 'waiting_on_customer' | 'resolved' | 'closed';
+
 export interface TicketRow {
     id: number;
     code: string;
     subject: string;
+    category: 'fare' | 'lost_item' | 'safety' | 'driver_behavior' | 'rider_behavior' | 'app_issue' | 'other';
     priority: 'urgent' | 'high' | 'normal' | 'low';
-    status: 'open' | 'in_progress' | 'waiting' | 'resolved';
+    status: TicketStatus;
+    assignee: { id: number; name: string } | null;
     requester: { name: string; type: 'rider' | 'driver'; code: string };
     created_at: string;
+    last_message_at: string | null;
 }
 
 export interface TicketDetail extends TicketRow {
-    messages: { id: number; kind: 'requester' | 'staff' | 'internal'; body: string }[];
+    resolution: string | null;
+    resolved_at: string | null;
+    messages: { id: number; kind: 'requester' | 'staff' | 'internal'; author: string; body: string; created_at: string }[];
     linked_trip: { id: number; code: string } | null;
 }
 

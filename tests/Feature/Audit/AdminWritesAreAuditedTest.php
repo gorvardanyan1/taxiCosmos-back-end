@@ -3,10 +3,12 @@
 namespace Tests\Feature\Audit;
 
 use App\Enums\AdminRole;
+use App\Enums\SupportStatus;
 use App\Models\Audit\ActivityLogEntry;
 use App\Models\DriverBankAccount;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
+use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\Zone;
@@ -82,6 +84,10 @@ class AdminWritesAreAuditedTest extends AuditTestCase
                 'vehicle_class' => 'economy', 'base_fare' => 500, 'per_km' => 150, 'per_minute' => 20, 'min_fare' => 800, 'waiting_free_minutes' => 3, 'waiting_per_minute' => 30,
                 'cancellation_fee' => 500, 'cancellation_free_seconds' => 120, 'booking_fee' => 0, 'tax_rate_bps' => 0, 'tax_inclusive' => false,
             ])],
+            'admin.support-tickets.assign' => ['support_ticket.assigned', fn (User $admin) => $this->actingAs($admin)->post('/admin/support-tickets/'.SupportTicket::factory()->create()->id.'/assign', ['assignee_id' => $admin->id])],
+            'admin.support-tickets.messages.store' => ['support_ticket.replied', fn (User $admin) => $this->actingAs($admin)->post('/admin/support-tickets/'.SupportTicket::factory()->create()->id.'/messages', ['body' => 'Hello'])],
+            'admin.support-tickets.resolve' => ['support_ticket.resolved', fn (User $admin) => $this->actingAs($admin)->post('/admin/support-tickets/'.SupportTicket::factory()->create()->id.'/resolve', ['resolution' => 'Fixed it.'])],
+            'admin.support-tickets.reopen' => ['support_ticket.reopened', fn (User $admin) => $this->actingAs($admin)->post('/admin/support-tickets/'.SupportTicket::factory()->status(SupportStatus::Resolved)->create()->id.'/reopen')],
             'admin.account.locale' => ['account.locale_changed', fn (User $admin) => $this->actingAs($admin)->patch('/admin/account/locale', ['locale' => $admin->locale === 'ru' ? 'hy' : 'ru'])],
             'admin.account.profile' => ['account.profile_updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/account/profile', ['name' => 'Renamed '.uniqid(), 'timezone' => 'Asia/Yerevan'])],
             'admin.account.password' => ['account.password_changed', fn (User $admin) => $this->actingAs($admin)->put('/admin/account/password', ['current_password' => 'password', 'password' => 'Brand-New-Pass!2026', 'password_confirmation' => 'Brand-New-Pass!2026'])],

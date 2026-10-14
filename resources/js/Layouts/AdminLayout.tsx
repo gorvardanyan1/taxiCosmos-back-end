@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Sidebar collapsed={collapsed} />
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <TopBar onToggleSidebar={() => setCollapsed(!collapsed)} />
-                <main className="flex-1 overflow-y-auto p-6">{children}</main>
+                <main scroll-region="" className="flex-1 overflow-y-auto p-6">{children}</main>
             </div>
             <Toast toasts={toasts} onRemove={removeToast} />
         </div>
