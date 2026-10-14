@@ -200,6 +200,15 @@ class SocketAuthTest extends TestCase
         $this->ask(['token' => $rider->createToken('y', ['*'])->plainTextToken])->assertUnauthorized();
     }
 
+    public function test_an_admin_account_that_also_carries_a_rider_flag_is_refused(): void
+    {
+        $admin = User::factory()->admin(AdminRole::Admin)->create();
+        $admin->forceFill(['is_rider' => true])->save();
+        $token = $admin->createToken('rider:install', ['rider'])->plainTextToken;
+
+        $this->ask(['token' => $token])->assertUnauthorized()->assertJsonMissingPath('user_id');
+    }
+
     public function test_the_body_is_validated(): void
     {
         $this->ask([])->assertUnprocessable()->assertJsonValidationErrors(['token', 'ticket']);
