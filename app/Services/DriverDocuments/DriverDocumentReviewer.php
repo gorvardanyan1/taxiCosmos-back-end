@@ -3,6 +3,7 @@
 namespace App\Services\DriverDocuments;
 
 use App\Enums\DriverDocumentStatus;
+use App\Events\DriverDocumentReviewed;
 use App\Exceptions\DocumentReviewException;
 use App\Models\DriverDocument;
 use App\Models\User;
@@ -73,6 +74,9 @@ final class DriverDocumentReviewer
             );
 
             $this->verification->sync($locked->driver, $reviewer);
+
+            // After the commit: the driver is told with a push (P8-T4).
+            DriverDocumentReviewed::dispatch($locked->driver->user_id, $locked->getKey(), $decision);
 
             return $locked;
         });

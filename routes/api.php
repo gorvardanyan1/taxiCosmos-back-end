@@ -2,6 +2,7 @@
 
 use App\Enums\SocialProvider;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DriverAvailabilityController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
 use App\Http\Controllers\Api\V1\FareEstimateController;
@@ -28,6 +29,13 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->prefix('trips')->group(function () {
     // What a trip would cost per vehicle class; returns the quote_id trip creation (P7-T6) refers to.
     Route::post('fare-estimate', FareEstimateController::class)->middleware('throttle:fare-estimate');
+});
+
+// Push tokens (P8-T4): the apps register on sign-in and token refresh and deregister on logout. Either app, signed in fully
+// (a session that still has to add its phone has nothing to be pushed about).
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driver', 'throttle:devices'])->prefix('devices')->group(function () {
+    Route::post('/', [DeviceController::class, 'store']);
+    Route::delete('{device}', [DeviceController::class, 'destroy'])->whereNumber('device');
 });
 
 // The driver's own state (P8-T2): where they are and whether they take trips. Driver app only.

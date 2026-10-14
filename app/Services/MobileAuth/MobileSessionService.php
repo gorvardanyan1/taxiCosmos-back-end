@@ -6,6 +6,7 @@ use App\Data\MobileSession;
 use App\Enums\AppClient;
 use App\Models\RefreshToken;
 use App\Models\User;
+use App\Services\Push\DeviceRegistry;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -16,6 +17,8 @@ use Laravel\Sanctum\PersonalAccessToken;
  */
 final class MobileSessionService
 {
+    public function __construct(private readonly DeviceRegistry $devices) {}
+
     /**
      * A new pair for a login. Signing in again on the same device ends that device's previous session
      * (other devices are untouched). A user without a phone gets a pending session: its token can
@@ -26,6 +29,8 @@ final class MobileSessionService
         return DB::transaction(function () use ($user, $app, $deviceId, $familyId) {
             if ($familyId === null) {
                 $this->revokeDevice($user, $app, $deviceId);
+                // Whoever was registered for pushes on this install is no longer the one holding it.
+                $this->devices->revokeOthersOnInstall($user, $app, $deviceId);
             }
 
             $needsPhone = $user->phone === null;
@@ -96,13 +101,19 @@ final class MobileSessionService
     }
 
     /**
-     * Sign out every device ("log out everywhere", suspension).
+     * Sign out every device ("log out everywhere", suspension, deletion). Push registrations end with the sessions, except
+     * when `$keepPushDevices` is set: a suspended person still gets the one push that says so, and a later login on the same
+     * phone moves the token to its new owner anyway.
      */
-    public function revokeAll(User $user): void
+    public function revokeAll(User $user, bool $keepPushDevices = false): void
     {
-        DB::transaction(function () use ($user) {
+        DB::transaction(function () use ($user, $keepPushDevices) {
             $user->tokens()->delete();
             RefreshToken::query()->where('user_id', $user->getKey())->whereNull('revoked_at')->update(['revoked_at' => now()]);
+
+            if (! $keepPushDevices) {
+                $this->devices->revokeAllOf($user->getKey());
+            }
         });
     }
 
@@ -116,6 +127,10 @@ final class MobileSessionService
 
     public function revokeFamily(string $familyId): void
     {
+        // The installs this family signed in on stop receiving pushes for this person.
+        RefreshToken::query()->where('family_id', $familyId)->get(['user_id', 'app', 'device_id'])->unique(fn (RefreshToken $row) => "{$row->user_id}:{$row->app->value}:{$row->device_id}")
+            ->each(fn (RefreshToken $row) => $this->devices->revokeInstall($row->user_id, $row->app, $row->device_id));
+
         $tokenIds = RefreshToken::query()->where('family_id', $familyId)->whereNotNull('access_token_id')->pluck('access_token_id');
 
         PersonalAccessToken::query()->whereKey($tokenIds)->delete();

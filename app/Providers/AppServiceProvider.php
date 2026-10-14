@@ -3,18 +3,28 @@
 namespace App\Providers;
 
 use App\Contracts\GeoProvider;
+use App\Contracts\PushSender;
 use App\Contracts\SmsSender;
+use App\Events\DriverDocumentReviewed;
+use App\Events\Realtime\SupportTicketUpdated;
+use App\Events\Realtime\TripOffer;
+use App\Events\Realtime\TripStatusChanged;
+use App\Events\Realtime\UserSuspended;
+use App\Listeners\NotifyByPush;
 use App\Models\User;
 use App\Services\Geo\CachingGeoProvider;
 use App\Services\Geo\FakeGeoProvider;
 use App\Services\Geo\GoogleMapsProvider;
 use App\Services\Geo\TwoGisProvider;
+use App\Services\Push\ExpoPushSender;
+use App\Services\Push\LogPushSender;
 use App\Services\Sms\LogSmsSender;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -50,6 +60,14 @@ class AppServiceProvider extends ServiceProvider
             return new CachingGeoProvider($inner, $name, $app->make(CacheRepository::class));
         });
 
+        // Push delivery (P8-T4): PUSH_DRIVER picks expo (real) or log (nothing is sent). The default outside production is log, so
+        // local and staging never push unless it is switched on explicitly; production has no default and must choose.
+        $this->app->bind(PushSender::class, fn () => match (config('services.push.driver')) {
+            'expo' => new ExpoPushSender(config('services.push.expo.access_token')),
+            'log' => new LogPushSender,
+            default => throw new RuntimeException('PUSH_DRIVER must be set to expo or log (got "'.config('services.push.driver').'").'),
+        });
+
         $this->app->bind(SmsSender::class, fn () => match (config('sms.driver')) {
             'log' => new LogSmsSender,
             default => throw new RuntimeException('Unknown SMS_DRIVER "'.config('sms.driver').'".'),
@@ -61,6 +79,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Push notifications (P8-T4) follow the domain events; the events fire after commit.
+        Event::listen(TripOffer::class, [NotifyByPush::class, 'tripOffer']);
+        Event::listen(TripStatusChanged::class, [NotifyByPush::class, 'tripStatusChanged']);
+        Event::listen(UserSuspended::class, [NotifyByPush::class, 'userSuspended']);
+        Event::listen(SupportTicketUpdated::class, [NotifyByPush::class, 'supportTicketUpdated']);
+        Event::listen(DriverDocumentReviewed::class, [NotifyByPush::class, 'documentReviewed']);
+
         // super_admin passes every Gate/permission check; returning null defers to normal checks.
         // Admin passwords: 12+ characters with mixed case, a number and a symbol, and not found in
         // known breaches (haveibeenpwned k-anonymity API).
@@ -106,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Revealing a bank account number is logged every time; the limit stops a stolen session from harvesting numbers.
         RateLimiter::for('bank-account-reveal', fn (Request $request) => Limit::perMinute(10)->by('bank-account-reveal:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        // A device registration is a login-time write of a token chosen by the client.
+        RateLimiter::for('devices', fn (Request $request) => Limit::perMinute(config('security.rate_limits.devices'))->by('devices:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Pings come every few seconds from a working driver, so the budget is per driver and generous; the toggle is not.
         RateLimiter::for('driver-location', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_location'))->by('driver-location:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));

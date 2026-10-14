@@ -24,8 +24,9 @@ class UserObserver
     public function updated(User $user): void
     {
         if ($user->wasChanged('status') && $user->status !== UserStatus::Active) {
-            // Every device loses its session at once: access tokens and the refresh tokens behind them.
-            app(MobileSessionService::class)->revokeAll($user);
+            // Every device loses its session at once: access tokens and the refresh tokens behind them. The push devices stay
+            // (until a login moves them) so the suspension itself can be announced.
+            app(MobileSessionService::class)->revokeAll($user, keepPushDevices: true);
 
             UserSuspended::dispatch($user->getKey(), $user->status->value);
         }

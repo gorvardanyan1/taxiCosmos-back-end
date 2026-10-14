@@ -19,5 +19,8 @@ Schedule::command('mobile-auth:prune')->dailyAt('03:40')->withoutOverlapping()->
 // Drivers: an online driver with no ping for 5 minutes goes offline, and stale positions leave Redis (P8-T2).
 Schedule::command('drivers:mark-stale-offline')->everyMinute()->withoutOverlapping()->onOneServer();
 
+// Push receipts (P8-T4): Expo reports tokens that are no longer registered there; those devices are revoked.
+Schedule::command('push:check-receipts')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+
 // Fare quotes are useful for minutes; the expired ones are deleted a day later.
 Schedule::command('model:prune', ['--model' => [FareQuote::class]])->dailyAt('03:50')->withoutOverlapping()->onOneServer();

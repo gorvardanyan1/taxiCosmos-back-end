@@ -45,6 +45,7 @@ return [
         'geo' => (int) env('RATE_LIMIT_GEO', 60),                   // per signed-in rider/driver, the four /api/v1/geo endpoints together
         'payment' => (int) env('RATE_LIMIT_PAYMENT', 10),           // per signed-in user, payment endpoints (P6)
         'driver_location' => (int) env('RATE_LIMIT_DRIVER_LOCATION', 30),         // per driver, POST /api/v1/driver/location (the REST fallback for pings)
+        'devices' => (int) env('RATE_LIMIT_DEVICES', 30),                          // per signed-in user, POST/DELETE /api/v1/devices (push tokens)
         'driver_availability' => (int) env('RATE_LIMIT_DRIVER_AVAILABILITY', 10), // per driver, POST /api/v1/driver/availability (going online/offline)
     ],
 
