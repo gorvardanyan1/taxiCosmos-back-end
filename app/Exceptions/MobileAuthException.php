@@ -6,13 +6,14 @@ use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
 /**
- * A refused mobile sign-in or token operation. Renders itself as the JSON error the apps switch on.
+ * A refused mobile sign-in or token operation. Renders itself as the JSON error the apps switch on; a refusal the app
+ * must react to with a screen of its own (a suspended account) also carries a machine-readable `code`.
  * Messages never say which of "no such account" / "wrong code" applied, so they cannot be used to
  * discover who has an account.
  */
 class MobileAuthException extends RuntimeException
 {
-    private function __construct(string $message, public readonly int $status, public readonly ?string $field = null)
+    private function __construct(string $message, public readonly int $status, public readonly ?string $field = null, public readonly ?string $reason = null)
     {
         parent::__construct($message);
     }
@@ -34,17 +35,17 @@ class MobileAuthException extends RuntimeException
 
     public static function accountSuspended(): self
     {
-        return new self(__('This account is suspended.'), 403);
+        return new self(__('This account is suspended.'), 403, reason: 'account_suspended');
     }
 
     public static function accountUnavailable(): self
     {
-        return new self(__('This account is not available.'), 403);
+        return new self(__('This account is not available.'), 403, reason: 'account_unavailable');
     }
 
     public static function adminAccount(): self
     {
-        return new self(__('Admin accounts cannot sign in to the apps.'), 403);
+        return new self(__('Admin accounts cannot sign in to the apps.'), 403, reason: 'admin_account');
     }
 
     public static function phoneTaken(): self
@@ -62,6 +63,11 @@ class MobileAuthException extends RuntimeException
         return new self(__('This session does not need a phone number.'), 409);
     }
 
+    public static function phoneUnchanged(): self
+    {
+        return new self(__('This is already your phone number.'), 422, 'phone');
+    }
+
     public static function smsUnavailable(): self
     {
         return new self(__('The code could not be sent. Please try again shortly.'), 503);
@@ -75,6 +81,10 @@ class MobileAuthException extends RuntimeException
     public function render(): JsonResponse
     {
         $body = ['message' => $this->getMessage()];
+
+        if ($this->reason !== null) {
+            $body['code'] = $this->reason;
+        }
 
         if ($this->field !== null) {
             $body['errors'] = [$this->field => [$this->getMessage()]];

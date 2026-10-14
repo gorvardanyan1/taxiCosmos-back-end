@@ -1,0 +1,33 @@
+{
+    "user": {
+        "id": 1,
+        "name": "Gor Petrosyan",
+        "phone": "+374*****002",
+        "email": "gor@example.com",
+        "email_verified": true,
+        "locale": "en",
+        "timezone": "UTC",
+        "status": "active",
+        "modes": {
+            "is_rider": false,
+            "is_driver": true
+        },
+        "driver": {
+            "verification_status": "approved",
+            "availability": "online",
+            "documents": [],
+            "primary_vehicle": {
+                "id": 1,
+                "make": "Hyundai",
+                "model": "Elantra",
+                "year": 2022,
+                "plate_number": "77 CD 777",
+                "color": "black",
+                "vehicle_class": "economy",
+                "status": "active"
+            },
+            "debt_limit_reached": false
+        },
+        "rider": null
+    }
+}

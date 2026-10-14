@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\V1\DriverAvailabilityController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
 use App\Http\Controllers\Api\V1\FareEstimateController;
 use App\Http\Controllers\Api\V1\GeoController;
+use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\SavedPlaceController;
 use Illuminate\Support\Facades\Route;
 
 // Mobile surface (rider and driver apps): JSON, Sanctum bearer tokens only, never a session.
@@ -19,11 +21,30 @@ Route::prefix('auth')->group(function () {
     Route::post('refresh', [AuthController::class, 'refresh'])->middleware('throttle:auth-refresh');
 
     Route::middleware(['auth:sanctum', 'mobile', 'throttle:api'])->group(function () {
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('logout-all', [AuthController::class, 'logoutAll']);
+        Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::post('logout-all', [AuthController::class, 'logoutAll'])->name('auth.logout-all');
         // Only a session that still needs its phone number (social sign-in without one).
         Route::post('phone/verify', [AuthController::class, 'verifyPhone'])->middleware(['ability:pending-phone:rider,pending-phone:driver', 'throttle:otp-verify']);
     });
+});
+
+// The signed-in person's own account (P3-T5). GET /me is also open to a session that still has to add its phone, and to a
+// blocked (suspended) account: it is how the apps decide which screen to show. Everything else needs a full session.
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driver,pending-phone:rider,pending-phone:driver'])->get('me', [MeController::class, 'show'])->name('me.show');
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driver'])->prefix('me')->group(function () {
+    Route::patch('/', [MeController::class, 'update']);
+    // A code goes to the new number, then comes back; both calls are limited like sign-in (SMS cost, guessing).
+    Route::post('phone/request', [MeController::class, 'requestPhone'])->middleware('throttle:otp-request');
+    Route::post('phone/verify', [MeController::class, 'verifyPhone'])->middleware('throttle:otp-verify');
+});
+
+// The rider app's saved places (home, work, others).
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->prefix('saved-places')->group(function () {
+    Route::get('/', [SavedPlaceController::class, 'index']);
+    Route::post('/', [SavedPlaceController::class, 'store']);
+    Route::get('{place}', [SavedPlaceController::class, 'show'])->whereNumber('place');
+    Route::patch('{place}', [SavedPlaceController::class, 'update'])->whereNumber('place');
+    Route::delete('{place}', [SavedPlaceController::class, 'destroy'])->whereNumber('place');
 });
 
 Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->prefix('trips')->group(function () {

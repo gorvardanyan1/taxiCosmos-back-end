@@ -67,6 +67,11 @@ return [
         'route_average_speed_kmh' => (int) env('FARE_ROUTE_AVERAGE_SPEED_KMH', 30),
     ],
 
+    // Saved places a rider may keep (home, work, others).
+    'saved_places' => [
+        'max' => (int) env('SAVED_PLACES_MAX', 20),
+    ],
+
     'mobile_auth' => [
         // Access token lifetime (Sanctum personal access token) and refresh token lifetime.
         'access_ttl_minutes' => (int) env('MOBILE_ACCESS_TTL_MINUTES', 60),

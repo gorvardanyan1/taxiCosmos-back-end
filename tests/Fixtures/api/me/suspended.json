@@ -1,0 +1,28 @@
+{
+    "user": {
+        "id": 1,
+        "name": "Suren Avetisyan",
+        "phone": "+374*****443",
+        "email": "suren@example.com",
+        "email_verified": true,
+        "locale": "en",
+        "timezone": "UTC",
+        "status": "suspended",
+        "modes": {
+            "is_rider": true,
+            "is_driver": false
+        },
+        "driver": null,
+        "rider": {
+            "rating": {
+                "average": null,
+                "count": 0
+            },
+            "outstanding_balance": {
+                "amount": 0,
+                "currency": "AMD"
+            },
+            "default_payment_method": null
+        }
+    }
+}

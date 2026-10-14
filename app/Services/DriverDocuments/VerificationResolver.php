@@ -2,7 +2,9 @@
 
 namespace App\Services\DriverDocuments;
 
+use App\Enums\DocumentRequirementState;
 use App\Enums\DriverDocumentStatus;
+use App\Enums\DriverDocumentType;
 use App\Enums\DriverVerificationStatus;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
@@ -46,6 +48,38 @@ final class VerificationResolver
             $expired => DriverVerificationStatus::Expired,
             default => DriverVerificationStatus::Pending,
         };
+    }
+
+    /**
+     * The required documents that are not yet covered by a valid approved one, with where each stands: nothing uploaded,
+     * waiting for review, rejected (with the reviewer's reason) or run out. Empty when the driver is fully covered.
+     *
+     * @return list<array{type: DriverDocumentType, state: DocumentRequirementState, reason: ?string}>
+     */
+    public function outstanding(DriverProfile $profile): array
+    {
+        $documents = $profile->documents()->orderByDesc('id')->get()->groupBy(fn (DriverDocument $d) => $d->type->value);
+        $outstanding = [];
+
+        foreach ($this->required->types() as $type) {
+            $ofType = $documents->get($type->value, collect());
+
+            if ($ofType->contains(fn (DriverDocument $d) => $this->isValid($d))) {
+                continue;
+            }
+
+            $newest = $ofType->first();
+            $state = match (true) {
+                $newest === null => DocumentRequirementState::Missing,
+                $newest->status === DriverDocumentStatus::Rejected => DocumentRequirementState::Rejected,
+                $this->isExpired($newest) => DocumentRequirementState::Expired,
+                default => DocumentRequirementState::Pending,
+            };
+
+            $outstanding[] = ['type' => $type, 'state' => $state, 'reason' => $state === DocumentRequirementState::Rejected ? $newest->rejection_reason : null];
+        }
+
+        return $outstanding;
     }
 
     /**

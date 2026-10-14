@@ -157,6 +157,21 @@ class SocialLoginTest extends TestCase
         $this->assertNull(User::query()->findOrFail($body['user']['id'])->email);
     }
 
+    public function test_an_address_typed_into_a_profile_never_hands_that_account_to_the_real_owner_of_the_address(): void
+    {
+        // An attacker puts someone else's address on their own account (PATCH /me never marks it verified) ...
+        $attacker = User::factory()->rider()->withPhone(self::PHONE)->create(['email' => 'victim@example.com']);
+        $attacker->forceFill(['email_verified_at' => null])->save();
+        $this->google(id: 'victim-google', email: 'victim@example.com');
+
+        // ... and the victim later signs in with Google using that (verified) address.
+        $body = $this->social('google')->assertOk()->json();
+
+        $this->assertNotSame($attacker->id, $body['user']['id'], 'the victim must not land in the attacker\'s account');
+        $this->assertNull(User::query()->findOrFail($body['user']['id'])->email, 'and the address stays with the account that already holds it');
+        $this->assertSame(2, User::query()->count());
+    }
+
     public function test_facebook_emails_never_link_even_if_they_match(): void
     {
         $victim = User::factory()->rider()->create(['email' => 'ann@example.com']);
@@ -256,7 +271,7 @@ class SocialLoginTest extends TestCase
             ->assertOk()->json();
 
         $this->assertFalse($body['needs_phone']);
-        $this->assertSame(self::PHONE, $body['user']['phone']);
+        $this->assertSame('+374*****221', $body['user']['phone']);
         $this->assertSame($pending['user']['id'], $body['user']['id']);
         $this->assertSame(self::PHONE, User::query()->findOrFail($pending['user']['id'])->phone);
         $this->assertSame(['rider'], PersonalAccessToken::findToken($body['access_token'])->abilities);

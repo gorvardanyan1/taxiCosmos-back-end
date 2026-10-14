@@ -437,7 +437,14 @@ final class E2eFixtures
     private function setUserStatus(array $a): array
     {
         $user = $this->findUser($a);
-        $user->forceFill(['status' => UserStatus::from($a['status'])])->save();
+
+        if ($a['silent'] ?? false) {
+            // Straight to the row, past the observer that ends the sessions: an account blocked while its token is still open.
+            User::query()->whereKey($user->getKey())->update(['status' => UserStatus::from($a['status'])->value]);
+            $user->refresh();
+        } else {
+            $user->forceFill(['status' => UserStatus::from($a['status'])])->save();
+        }
 
         return ['id' => $user->id, 'status' => $user->status->value];
     }

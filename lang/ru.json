@@ -830,5 +830,8 @@
     "New reply from support": "Новый ответ от поддержки",
     "Our team answered your request. Tap to read the reply.": "Наша команда ответила на ваше обращение. Нажмите, чтобы прочитать ответ.",
     "Account suspended": "Аккаунт заблокирован",
-    "Your account has been suspended. Contact support if you think this is a mistake.": "Ваш аккаунт заблокирован. Обратитесь в поддержку, если считаете, что это ошибка."
+    "Your account has been suspended. Contact support if you think this is a mistake.": "Ваш аккаунт заблокирован. Обратитесь в поддержку, если считаете, что это ошибка.",
+    "This is already your phone number.": "Это уже ваш номер телефона.",
+    "This email address is already in use.": "Этот адрес электронной почты уже используется.",
+    "You can keep up to :count saved place. Delete one to add another.|You can keep up to :count saved places. Delete one to add another.": "Можно сохранить не более :count места. Удалите одно, чтобы добавить новое.|Можно сохранить не более :count мест. Удалите одно, чтобы добавить новое.|Можно сохранить не более :count мест. Удалите одно, чтобы добавить новое."
 }

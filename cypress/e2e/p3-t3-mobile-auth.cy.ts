@@ -82,7 +82,8 @@ describe('P3-T3 · Mobile auth API', () => {
             expect(first.status).to.equal(200);
             expect(Object.keys(first.body).sort()).to.deep.equal(['access_token', 'access_token_expires_at', 'needs_phone', 'refresh_token', 'user']);
             expect(first.body.needs_phone).to.equal(false);
-            expect(first.body.user).to.include({ phone: '+37491770006', is_rider: true, is_driver: false, status: 'active' });
+            expect(first.body.user).to.include({ phone: '+374*****006', status: 'active' });
+            expect(first.body.user.modes).to.deep.equal({ is_rider: true, is_driver: false });
             expect(first.body.refresh_token).to.match(/^[A-Za-z0-9_-]{86}$/);
             const minutes = (Date.parse(first.body.access_token_expires_at) - Date.now()) / 60_000;
             expect(minutes).to.be.within(58, 60);
@@ -94,8 +95,8 @@ describe('P3-T3 · Mobile auth API', () => {
             cy.make('clear_rate_limits');
             signIn('+37491770006', 'cypress-driver-phone', 'driver').then((again) => {
                 expect(again.user.id).to.equal(first.body.user.id);
-                expect(again.user.is_driver).to.equal(true);
-                expect(again.user.is_rider).to.equal(true);
+                expect(again.user.modes.is_driver).to.equal(true);
+                expect(again.user.modes.is_rider).to.equal(true);
             });
 
             cy.sql('select count(*)::int as n from users where id = ? or (phone_hash is not null and id <> ? and created_at > now() - interval \'1 minute\' and name is null)', [first.body.user.id, first.body.user.id]).its('0.n').should('eq', 1);
@@ -192,7 +193,7 @@ describe('P3-T3 · Mobile auth API', () => {
             otpRequest('+37491770013').its('status').should('eq', 202);
             otpVerify('+37491770013').then((refused) => {
                 expect(refused.status).to.equal(403);
-                expect(refused.body).to.deep.equal({ message: 'This account is suspended.' });
+                expect(refused.body).to.deep.equal({ message: 'This account is suspended.', code: 'account_suspended' });
             });
             tokensOf(session.user.id).should('eq', 0);
         });
@@ -203,7 +204,7 @@ describe('P3-T3 · Mobile auth API', () => {
             otpRequest('+37491770015').its('status').should('eq', 202);
             otpVerify('+37491770015').then((refused) => {
                 expect(refused.status).to.equal(403);
-                expect(refused.body).to.deep.equal({ message: 'Admin accounts cannot sign in to the apps.' });
+                expect(refused.body).to.deep.equal({ message: 'Admin accounts cannot sign in to the apps.', code: 'admin_account' });
             });
             tokensOf(admin.id).should('eq', 0);
         });
@@ -241,7 +242,7 @@ describe('P3-T3 · Mobile auth API', () => {
             cy.api('POST', '/api/v1/auth/phone/verify', { phone: '091 77 00 14', code: CODE }, pending.access_token).then((full) => {
                 expect(full.status).to.equal(200);
                 expect(full.body.needs_phone).to.equal(false);
-                expect(full.body.user).to.include({ id: pending.user_id, phone: '+37491770014' });
+                expect(full.body.user).to.include({ id: pending.user_id, phone: '+374*****014' });
                 cy.api('POST', '/api/v1/auth/logout', undefined, pending.access_token).its('status').should('eq', 401);
                 cy.sql("select abilities from personal_access_tokens where tokenable_id = ?", [pending.user_id]).then((rows) => {
                     expect(rows.map((row) => JSON.parse(row.abilities))).to.deep.equal([['rider']]);
