@@ -104,6 +104,21 @@ describe('P8-T2 · Driver location and availability', () => {
         });
     });
 
+    // Criterion: only accepted while the driver is online AND verified.
+    it('refuses a position from a driver who is online but not approved, or whose papers ran out, and stores nothing', () => {
+        approvedDriver('Online Ollie', '+37491520012', { verification_status: 'pending', availability: 'online' }).then((pending) => {
+            approvedDriver('Lapsed Lea', '+37491520013', { verification_status: 'expired', availability: 'online' }).then((expired) => {
+                [[pending, 'driver_not_verified'], [expired, 'documents_expired']].forEach(([driver, code]) => {
+                    const d = driver as Driver;
+                    signIn(d.phone).then((token) => ping(token, { lat: 40.1, lng: 44.5 }).then((r) => { expect(r.status, d.name).to.equal(403); expect(r.body.code).to.equal(code); }));
+                    state(d.user_id).then((s) => expect(s, `${d.name}: nothing stored`).to.deep.equal({ position: null, last_seen: null, pings: [] }));
+                    locationEvents(d.user_id).should('deep.equal', []);
+                    profileOf(d.driver_id).then((row) => expect(row.availability).to.equal('online'));
+                });
+            });
+        });
+    });
+
     // Criterion: coordinates outside valid ranges are rejected.
     it('rejects coordinates and numbers out of range and stores nothing', () => {
         approvedDriver('Range Ray', '+37491520005').then((driver) => {

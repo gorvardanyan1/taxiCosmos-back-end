@@ -98,6 +98,19 @@ class DriverLocationApiTest extends DriverLocationTestCase
         $this->assertNull($pings[0]->accuracy);
     }
 
+    public function test_the_heading_is_rounded_to_the_nearest_degree(): void
+    {
+        [, , $token] = $this->driver();
+        $this->travelTo(CarbonImmutable::parse('2026-10-14 10:00:00', 'UTC'));
+        $this->ping($token, ['lat' => 40.1, 'lng' => 44.5, 'heading' => 270.4])->assertOk();
+        $this->travelTo(CarbonImmutable::parse('2026-10-14 10:00:05', 'UTC'));
+        $this->ping($token, ['lat' => 40.1, 'lng' => 44.5, 'heading' => 270.6])->assertOk();
+        $this->travelTo(CarbonImmutable::parse('2026-10-14 10:00:10', 'UTC'));
+        $this->ping($token, ['lat' => 40.1, 'lng' => 44.5, 'heading' => 359.6])->assertOk();
+
+        $this->assertSame([270, 271, 0], DriverLocationPing::query()->orderBy('recorded_at')->get()->pluck('heading')->all());
+    }
+
     public function test_the_driver_is_always_the_signed_in_one_whatever_the_request_says(): void
     {
         [$me, , $token] = $this->driver();

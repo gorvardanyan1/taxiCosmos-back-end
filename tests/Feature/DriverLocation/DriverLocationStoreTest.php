@@ -86,6 +86,16 @@ class DriverLocationStoreTest extends DriverLocationTestCase
         };
 
         $this->assertFalse($broken->removeQuietly(1));
+
+        // Whatever the client library throws (not only a RuntimeException) must not undo a committed change.
+        $odd = new class($this->redis) extends DriverLocationStore
+        {
+            public function remove(int $driverUserId): void
+            {
+                throw new \LogicException('unexpected');
+            }
+        };
+        $this->assertFalse($odd->removeQuietly(1));
         $this->assertTrue($this->store()->removeQuietly(1));
     }
 }

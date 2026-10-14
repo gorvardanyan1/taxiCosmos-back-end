@@ -71,6 +71,20 @@ class StaleDriverSweeperTest extends DriverLocationTestCase
         $this->assertNotNull($this->position($justUnder->id));
     }
 
+    public function test_a_driver_who_just_went_online_is_not_taken_offline_for_a_position_left_from_an_earlier_session(): void
+    {
+        [$user, $profile] = $this->driver(DriverAvailability::Online, ['last_online_at' => $this->now->subSeconds(60)]);
+        $this->seedPosition($user->id, $this->ago(3600)); // an hour old, from before they went online a minute ago
+
+        $this->assertSame(['marked_offline' => 0, 'pruned' => 0], $this->sweep());
+        $this->assertSame(DriverAvailability::Online, $profile->fresh()->availability);
+
+        // Still silent five minutes after going online: now they are quiet.
+        $this->travelTo($this->now->addMinutes(5));
+        $this->assertSame(['marked_offline' => 1, 'pruned' => 0], $this->sweep());
+        $this->assertSame(DriverAvailability::Offline, $profile->fresh()->availability);
+    }
+
     public function test_the_limit_comes_from_configuration(): void
     {
         config(['taxikosmos.driver_location.stale_after_minutes' => 2]);

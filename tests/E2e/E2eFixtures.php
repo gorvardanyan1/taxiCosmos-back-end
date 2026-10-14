@@ -510,14 +510,17 @@ final class E2eFixtures
     }
 
     /**
-     * Make a driver's last ping older, as if the app had gone quiet. {driver_user_id, seconds}
+     * Make a driver's last ping, and the time they went online, older: as if the app had gone quiet that long ago.
+     * {driver_user_id, seconds}
      */
     private function ageDriverPing(array $a): array
     {
-        $at = now()->subSeconds((int) $a['seconds'])->getTimestamp();
-        app(StreamClient::class)->raw(['ZADD', app(DriverLocationStore::class)->lastSeenKey(), (string) $at, (string) (int) $a['driver_user_id']]);
+        $at = now()->subSeconds((int) $a['seconds']);
+        app(StreamClient::class)->raw(['ZADD', app(DriverLocationStore::class)->lastSeenKey(), (string) $at->getTimestamp(), (string) (int) $a['driver_user_id']]);
+        // A driver who went online moments ago is given time to send a first ping, so "quiet for N minutes" needs this too.
+        DriverProfile::query()->where('user_id', (int) $a['driver_user_id'])->update(['last_online_at' => $at]);
 
-        return ['last_seen' => $at];
+        return ['last_seen' => $at->getTimestamp()];
     }
 
     /**

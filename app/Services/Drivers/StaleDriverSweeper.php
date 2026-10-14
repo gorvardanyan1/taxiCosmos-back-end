@@ -78,6 +78,12 @@ final class StaleDriverSweeper
                 return false;
             }
 
+            // Went online only moments ago: an old position is left from an earlier session (it was not cleared), and the
+            // driver has not had the time yet to send the first ping.
+            if ($profile->last_online_at !== null && $profile->last_online_at->getTimestamp() > $cutoff) {
+                return false;
+            }
+
             $profile->forceFill(['availability' => DriverAvailability::Offline])->save();
 
             return true;

@@ -30,7 +30,7 @@ Every refusal is `{"message": "...", "code": "..."}` (422 is Laravel's `{"messag
 
 ## Redis (shared with the Node service)
 
-Redis **6.2 or newer** is required (`GEOSEARCH`, `ZMSCORE`).
+Redis **6.2 or newer** is required (`GEOSEARCH`, `ZMSCORE`), as a single node or with Sentinel: the write is one script over both keys, which a Redis Cluster would refuse (the two key names are fixed, so they do not share a hash slot).
 
 Both keys are used **exactly as named** (raw commands, no Laravel `REDIS_PREFIX`), on the real-time connection (`REALTIME_REDIS_CONNECTION`). Members are the driver's **user id**.
 
