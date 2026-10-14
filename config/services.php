@@ -38,6 +38,17 @@ return [
     // Maps (P5-T1): address search, geocoding and routes behind App\Contracts\GeoProvider. MAPS_PROVIDER is google or 2gis;
     // `fake` (no key, no network, made-up answers) is the default in the testing and e2e environments and is refused anywhere
     // but local, testing and e2e (AppServiceProvider).
+    // Push notifications (P8-T4). `expo` sends through the Expo Push Service; `log` writes the push to the log and sends nothing
+    // (the default outside production, so local and staging never push unless it is switched on). Production must choose.
+    'push' => [
+        'driver' => env('PUSH_DRIVER', env('APP_ENV') === 'production' ? null : 'log'),
+        'timeout' => (int) env('PUSH_TIMEOUT', 10),
+        'expo' => [
+            // Only needed when "enhanced push security" is on for the Expo project.
+            'access_token' => env('EXPO_ACCESS_TOKEN'),
+        ],
+    ],
+
     'maps' => [
         'provider' => env('MAPS_PROVIDER', in_array(env('APP_ENV'), ['testing', 'e2e'], true) ? 'fake' : 'google'),
         'google' => ['key' => env('GOOGLE_MAPS_API_KEY')],

@@ -93,6 +93,16 @@ return [
         ],
     ],
 
+    'push' => [
+        // How long Expo may keep trying to deliver a trip offer (an offer lasts about 15 s, so a late one is worthless).
+        'offer_ttl_seconds' => (int) env('PUSH_OFFER_TTL', 30),
+
+        // Expo receipts (where a stale token is reported) are ready after a while; tickets older than this are read, and
+        // tickets older than the retention are dropped (Expo keeps receipts for about a day).
+        'receipt_delay_minutes' => (int) env('PUSH_RECEIPT_DELAY_MINUTES', 15),
+        'ticket_retention_hours' => (int) env('PUSH_TICKET_RETENTION_HOURS', 24),
+    ],
+
     'driver_location' => [
         // An online driver with no ping for this long is marked offline by drivers:mark-stale-offline (P8-T2).
         'stale_after_minutes' => (int) env('DRIVER_STALE_AFTER_MINUTES', 5),

@@ -8,6 +8,9 @@ use App\Enums\DriverDocumentType;
 use App\Enums\TripStatus;
 use App\Enums\UserStatus;
 use App\Enums\VehicleClass;
+use App\Events\Realtime\SupportTicketUpdated;
+use App\Events\Realtime\TripOffer;
+use App\Events\Realtime\TripStatusChanged;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Models\CommissionRule;
 use App\Models\DriverBankAccount;
@@ -28,6 +31,7 @@ use App\Services\Drivers\DriverLocationStore;
 use App\Services\Drivers\StaleDriverSweeper;
 use App\Services\Fares\FareCalculator;
 use App\Services\MobileAuth\MobileSessionService;
+use App\Services\Push\LogPushSender;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
 use Illuminate\Support\Facades\Cache;
@@ -84,6 +88,8 @@ final class E2eFixtures
             'expire_otp' => $this->expireOtp($a),
             'expire_access_token' => $this->expireAccessToken($a),
             'stream' => $this->stream($a),
+            'sent_pushes' => $this->sentPushes($a),
+            'dispatch_trip_event' => $this->dispatchTripEvent($a),
             'driver_location_state' => $this->driverLocationState($a),
             'age_driver_ping' => $this->ageDriverPing($a),
             'sweep_stale_drivers' => $this->sweepStaleDrivers(),
@@ -252,6 +258,7 @@ final class E2eFixtures
         $user = User::factory()->driver()->withPhone($a['phone'] ?? null)->create([
             'name' => $a['name'] ?? 'Cypress Driver',
             'email' => $a['email'] ?? null,
+            ...(isset($a['locale']) ? ['locale' => $a['locale']] : []),
             ...(($a['suspended'] ?? false) ? ['status' => UserStatus::Suspended, 'suspension_reason' => 'Suspended by fixture'] : []),
         ]);
         $zone = isset($a['zone_code']) ? Zone::query()->where('code', $a['zone_code'])->firstOrFail() : null;
@@ -487,6 +494,45 @@ final class E2eFixtures
 
             return ['id' => $id, 'fields' => $fields];
         }, $entries);
+    }
+
+    /**
+     * The pushes the log driver wrote instead of sending (PUSH_DRIVER=log), newest last, for the phone with this push token when
+     * given. Read-only. {push_token?}
+     */
+    private function sentPushes(array $a): array
+    {
+        $path = (string) config('logging.channels.single.path');
+        $fingerprint = isset($a['push_token']) ? LogPushSender::fingerprint($a['push_token']) : null;
+        $pushes = [];
+
+        foreach (is_file($path) ? file($path, FILE_IGNORE_NEW_LINES) : [] as $line) {
+            if (preg_match('/Push notification \(not sent[^)]*\) (\{.*\})(?: \[\])? *$/', $line, $m) !== 1) {
+                continue;
+            }
+
+            $context = json_decode($m[1], true);
+            if ($fingerprint === null || $context['token'] === $fingerprint) {
+                $pushes[] = $context;
+            }
+        }
+
+        return $pushes;
+    }
+
+    /**
+     * Raise a trip or support event the way the trip and support tasks will, so the pushes they trigger can be checked.
+     * {kind: offer|status|reply, ...}
+     */
+    private function dispatchTripEvent(array $a): array
+    {
+        match ($a['kind']) {
+            'offer' => TripOffer::dispatch((int) $a['offer_id'], (int) $a['trip_id'], (int) $a['driver_user_id'], now()->addSeconds(15), 'A', 'B', 2500, 'AMD', 'economy'),
+            'status' => TripStatusChanged::dispatch((int) $a['trip_id'], 'TK-'.$a['trip_id'], 'requested', $a['status'], (int) $a['rider_user_id'], isset($a['driver_user_id']) ? (int) $a['driver_user_id'] : null),
+            'reply' => SupportTicketUpdated::dispatch((int) $a['ticket_id'], 'TKT-'.$a['ticket_id'], 'open', (int) $a['requester_user_id'], 'reply'),
+        };
+
+        return ['dispatched' => $a['kind']];
     }
 
     /**

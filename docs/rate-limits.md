@@ -25,6 +25,7 @@ Named rate limiters and other request throttles. Add every new limiter here (tas
 | `driver-location` (`throttle:driver-location`) | `POST /api/v1/driver/location` (the REST fallback for driver pings; the Node service takes the normal flow) | `RATE_LIMIT_DRIVER_LOCATION` (30) per minute | signed-in driver (IP as fallback) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 | `driver-availability` (`throttle:driver-availability`) | `POST /api/v1/driver/availability` (online / offline) | `RATE_LIMIT_DRIVER_AVAILABILITY` (10) per minute | signed-in driver (IP as fallback) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 | `geo` (`throttle:geo`) | `GET /api/v1/geo/autocomplete`, `/places/{id}`, `/reverse`, `/route` (each call that misses the cache is billed by the maps provider) | `RATE_LIMIT_GEO` (60) per minute, all four endpoints share it (after `throttle:api`) | signed-in rider/driver (IP as fallback) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
+| `devices` (`throttle:devices`) | `POST /api/v1/devices`, `DELETE /api/v1/devices/{id}` (push token registration) | `RATE_LIMIT_DEVICES` (30) per minute (after `throttle:api`) | signed-in rider/driver (IP as fallback) | 429 JSON with `Retry-After` | `App\Providers\AppServiceProvider` |
 
 Every rate-limited response is a `429` with a `Retry-After` header (seconds). Browser pages render the template's
 "Too many requests" card (`Errors/Show`) and keep the header; the sign-in form shows the "Too many login attempts"
