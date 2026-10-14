@@ -804,5 +804,12 @@
     "×:value / max ×:max": "×:value / առավ. ×:max",
     "← Drivers": "← Վարորդներ",
     "← Riders": "← Ուղևորներ",
-    "← Trips": "← Ուղևորություններ"
+    "← Trips": "← Ուղևորություններ",
+    "Your account is suspended.": "Ձեր հաշիվը արգելափակված է։",
+    "Your driver profile has not been approved yet.": "Ձեր վարորդի պրոֆիլը դեռ հաստատված չէ։",
+    "One of your documents has expired. Upload a new one to continue.": "Ձեր փաստաթղթերից մեկի ժամկետը լրացել է։ Շարունակելու համար վերբեռնեք նորը։",
+    "Add an approved primary vehicle to go online.": "Ավելացրեք հաստատված հիմնական ավտոմեքենա՝ առցանց լինելու համար։",
+    "Go online before sending your location.": "Տեղակայությունն ուղարկելուց առաջ անցեք առցանց ռեժիմի։",
+    "You cannot go offline during a trip.": "Ուղևորության ընթացքում չեք կարող անցնել անցանց ռեժիմի։",
+    "Your location could not be saved. Please try again.": "Ձեր տեղակայությունը չհաջողվեց պահպանել։ Խնդրում ենք կրկին փորձել։"
 }

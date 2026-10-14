@@ -2,6 +2,7 @@
 
 namespace Tests\E2e;
 
+use App\Models\DriverLocationPing;
 use App\Realtime\RealtimeEventType;
 use App\Realtime\StreamClient;
 use Illuminate\Console\Command;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * A clean slate for one Cypress spec: fresh schema + roles, empty cache (rate limits, permission
- * cache), no realtime events, no uploaded e2e files.
+ * cache), no realtime events, no driver positions or pings, no uploaded e2e files.
  */
 class E2eResetCommand extends Command
 {
@@ -28,6 +29,10 @@ class E2eResetCommand extends Command
         foreach (RealtimeEventType::cases() as $type) {
             app(StreamClient::class)->raw(['DEL', $type->streamKey()]);
         }
+
+        // Driver positions (ids are reused after a reset) and the MongoDB ping history of the e2e database.
+        app(StreamClient::class)->raw(['DEL', config('realtime.geo.locations_key'), config('realtime.geo.last_seen_key')]);
+        DriverLocationPing::query()->delete();
 
         Storage::disk(config('taxikosmos.documents.disk'))->deleteDirectory(E2eFixtures::FILE_DIRECTORY);
 

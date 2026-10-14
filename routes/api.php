@@ -2,6 +2,8 @@
 
 use App\Enums\SocialProvider;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DriverAvailabilityController;
+use App\Http\Controllers\Api\V1\DriverLocationController;
 use App\Http\Controllers\Api\V1\FareEstimateController;
 use App\Http\Controllers\Api\V1\GeoController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +28,12 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->prefix('trips')->group(function () {
     // What a trip would cost per vehicle class; returns the quote_id trip creation (P7-T6) refers to.
     Route::post('fare-estimate', FareEstimateController::class)->middleware('throttle:fare-estimate');
+});
+
+// The driver's own state (P8-T2): where they are and whether they take trips. Driver app only.
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:driver'])->prefix('driver')->group(function () {
+    Route::post('location', DriverLocationController::class)->middleware('throttle:driver-location');
+    Route::post('availability', DriverAvailabilityController::class)->middleware('throttle:driver-availability');
 });
 
 // Address search, pickup pin and route preview for both apps (a phone-less pending session cannot use them). Each call that misses

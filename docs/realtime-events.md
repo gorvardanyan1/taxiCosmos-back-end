@@ -71,7 +71,7 @@ Create the group at `0` to receive everything still in the stream, or `$` to rec
 | `user.suspended` | `taxikosmos:events:user.suspended` | 1 | `user_id`, `status` | wired now — `UserObserver` | that user |
 | `surge.changed` | `taxikosmos:events:surge.changed` | 1 | `surge_id`, `zone_id`, `vehicle_class`, `multiplier`, `active`, `starts_at`, `ends_at` | P5-T4 | all drivers/riders in the zone |
 | `support_ticket.updated` | `taxikosmos:events:support_ticket.updated` | 1 | `ticket_id`, `ticket_code`, `status`, `requester_user_id`, `change` | P7-T5 | the requester |
-| `driver.location_updated` | `taxikosmos:events:driver.location_updated` | 1 | `driver_user_id`, `latitude`, `longitude`, `heading`, `recorded_at` | placeholder for P8-T2 | admin live map / the rider of the active trip |
+| `driver.location_updated` | `taxikosmos:events:driver.location_updated` | 1 | `driver_user_id`, `latitude`, `longitude`, `heading`, `recorded_at` | wired now — `POST /api/v1/driver/location` (P8-T2) | admin live map / the rider of the active trip |
 
 ### `trip.offer`
 
@@ -465,11 +465,11 @@ Example:
 
 ### `driver.location_updated`
 
-**Placeholder.** Live positions normally use Redis GEOADD / pub-sub because a missed ping is harmless; the stream exists so the contract is complete.
+A position the driver app sent through the REST fallback (`POST /api/v1/driver/location`, see `driver-location.md`). Pings the Node service receives itself go straight to Redis `GEOADD`; this stream is how the fallback pings reach the same riders and admin map. A missed ping is harmless (the next one replaces it).
 
 * **Stream:** `taxikosmos:events:driver.location_updated`  
 * **Deliver to:** admin live map / the rider of the active trip (route on `driver_user_id`)  
-* **Published by:** placeholder for P8-T2
+* **Published by:** wired now — `DriverLocationService` (P8-T2), after the position is stored in Redis
 
 | Payload field | Type / values |
 | --- | --- |

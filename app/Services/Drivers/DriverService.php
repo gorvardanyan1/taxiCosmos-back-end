@@ -29,7 +29,7 @@ final class DriverService
     /** The trip statuses in which a driver is committed to a rider. */
     private const LIVE_TRIP_STATUSES = [TripStatus::Matched, TripStatus::Arrived, TripStatus::InProgress];
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly DriverLocationStore $locations) {}
 
     /**
      * Only the fields present in $data change. Returns false when nothing differed (no write, no audit entry).
@@ -119,6 +119,9 @@ final class DriverService
             if ($locked->availability !== DriverAvailability::Offline) {
                 $locked->forceFill(['availability' => DriverAvailability::Offline])->save();
             }
+
+            // A suspended driver must not stay on the map or in dispatch's geo search.
+            DB::afterCommit(fn () => $this->locations->removeQuietly($locked->user_id));
 
             $this->audit->record(
                 actor: $actor, action: 'driver.suspended', target: $locked, reason: $reason, reasonRequired: true,

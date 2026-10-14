@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\ConflictException;
+use App\Exceptions\DriverStatusException;
 use App\Exceptions\GeoException;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Http\Middleware\EnsureAdminAccess;
@@ -66,6 +67,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // "No such place / route" is an ordinary answer, not an error worth a stack trace in the log; an outage (502) is still reported.
         $exceptions->dontReportWhen(fn (Throwable $e) => $e instanceof GeoException && $e->status === 404);
+        // A driver told "you are offline / not approved" is a normal answer. The one failure (a position Redis would not take) is logged
+        // where it happens, with the exception class only: a Redis error can quote the coordinates.
+        $exceptions->dontReportWhen(fn (Throwable $e) => $e instanceof DriverStatusException);
 
         // An action the record's state does not allow (a reviewed document, an already inactive zone) is a conflict (409). The Inertia admin gets
         // it as a flash message on the page it came from.

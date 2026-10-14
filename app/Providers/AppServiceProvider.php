@@ -107,6 +107,10 @@ class AppServiceProvider extends ServiceProvider
         // Revealing a bank account number is logged every time; the limit stops a stolen session from harvesting numbers.
         RateLimiter::for('bank-account-reveal', fn (Request $request) => Limit::perMinute(10)->by('bank-account-reveal:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Pings come every few seconds from a working driver, so the budget is per driver and generous; the toggle is not.
+        RateLimiter::for('driver-location', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_location'))->by('driver-location:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('driver-availability', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_availability'))->by('driver-availability:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         // Each estimate stores a quote, so it is limited per rider (not per address, which phones share).
         RateLimiter::for('fare-estimate', fn (Request $request) => Limit::perMinute(30)->by('fare-estimate:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }

@@ -93,6 +93,14 @@ return [
         ],
     ],
 
+    'driver_location' => [
+        // An online driver with no ping for this long is marked offline by drivers:mark-stale-offline (P8-T2).
+        'stale_after_minutes' => (int) env('DRIVER_STALE_AFTER_MINUTES', 5),
+
+        // Location pings kept in MongoDB for history; older ones are removed by the collection's TTL index.
+        'ping_retention_days' => (int) env('DRIVER_PING_RETENTION_DAYS', 90),
+    ],
+
     'audit' => [
         // CSV export of the Activity Log stops after this many rows.
         'export_max_rows' => (int) env('AUDIT_EXPORT_MAX_ROWS', 50000),
