@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\DriverAvailabilityController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
 use App\Http\Controllers\Api\V1\FareEstimateController;
 use App\Http\Controllers\Api\V1\GeoController;
+use App\Http\Controllers\Api\V1\Internal\SocketAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\SavedPlaceController;
 use Illuminate\Support\Facades\Route;
@@ -73,4 +74,10 @@ Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driv
     Route::get('places/{placeId}', [GeoController::class, 'place'])->where('placeId', '[A-Za-z0-9_:\-][A-Za-z0-9_.:\-]{0,199}');
     Route::get('reverse', [GeoController::class, 'reverse']);
     Route::get('route', [GeoController::class, 'route']);
+});
+
+// Service-to-service (P8-T3): the Node real-time service asks who owns a token. Authenticated by the shared service token and the
+// caller's address, never by a user token; kept out of the public API docs (docs/realtime-events.md).
+Route::middleware(['socket.service', 'throttle:socket-auth'])->prefix('internal')->group(function () {
+    Route::post('socket-auth', SocketAuthController::class)->name('internal.socket-auth');
 });

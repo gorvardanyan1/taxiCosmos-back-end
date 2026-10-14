@@ -140,6 +140,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('driver-availability', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_availability'))->by('driver-availability:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Each estimate stores a quote, so it is limited per rider (not per address, which phones share).
+        // The Node service asks once per socket connect, so the ceiling is high; it is per calling address.
+        RateLimiter::for('socket-auth', fn (Request $request) => Limit::perMinute(config('security.rate_limits.socket_auth'))->by('socket-auth:'.$request->ip()));
+
+        RateLimiter::for('socket-ticket', fn (Request $request) => Limit::perMinute(config('security.rate_limits.socket_ticket'))->by('socket-ticket:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         RateLimiter::for('fare-estimate', fn (Request $request) => Limit::perMinute(30)->by('fare-estimate:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }
 

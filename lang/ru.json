@@ -726,6 +726,7 @@
     "Two-factor setup": "Настройка двухфакторной аутентификации",
     "Type": "Тип",
     "Type to search across the platform.": "Введите запрос для поиска по платформе.",
+    "Forbidden.": "Доступ запрещён.",
     "Unauthenticated.": "Требуется вход.",
     "Under review": "На проверке",
     "Unknown availability.": "Неизвестная доступность.",
