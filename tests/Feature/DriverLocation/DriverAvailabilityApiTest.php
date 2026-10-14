@@ -76,6 +76,21 @@ class DriverAvailabilityApiTest extends DriverLocationTestCase
         $this->assertSame(0, $this->positionCount(), 'neither the position nor the ping time stays');
     }
 
+    public function test_the_profile_row_is_locked_inside_a_transaction_while_the_switch_decides(): void
+    {
+        // Two quick taps must serialise on the row, or both would read "offline" and both would publish the change.
+        [, , $token] = $this->driver(DriverAvailability::Offline);
+
+        $online = $this->profileLocksDuring(fn () => $this->setAvailability($token, 'online')->assertOk());
+        $offline = $this->profileLocksDuring(fn () => $this->setAvailability($token, 'offline')->assertOk());
+
+        $this->assertNotEmpty($online, 'going online locks the profile row');
+        $this->assertNotEmpty($offline, 'going offline locks the profile row');
+        foreach ([...$online, ...$offline] as $lock) {
+            $this->assertGreaterThanOrEqual(1, $lock['depth'], 'the lock is taken inside the transaction that changes the row');
+        }
+    }
+
     public function test_going_offline_when_already_offline_does_nothing(): void
     {
         [, , $token] = $this->driver(DriverAvailability::Offline);

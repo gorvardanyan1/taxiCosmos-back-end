@@ -7,9 +7,9 @@ The driver app tells the backend where it is and whether it takes trips. Live po
 | Request | Success | Refusals |
 | --- | --- | --- |
 | `POST /api/v1/driver/location` `{lat, lng, heading?, speed?, accuracy?}` | `200 {"recorded_at": "2026-10-14T10:00:00.250Z"}` | 422 (bad numbers), 403 `driver_not_verified` / `documents_expired`, 409 `driver_offline`, 503 `location_unavailable`, 429 |
-| `POST /api/v1/driver/availability` `{availability: "online" \| "offline"}` | `200 {"availability": "online" \| "offline" \| "on_trip"}` | 422, 403 `driver_suspended` / `driver_not_verified` / `documents_expired`, 409 `no_active_vehicle` / `driver_on_trip`, 429 |
+| `POST /api/v1/driver/availability` `{availability: "online" \| "offline"}` | `200 {"availability": "online" \| "offline" \| "on_trip"}` | 422, 403 `driver_not_verified` / `documents_expired`, 409 `no_active_vehicle` / `driver_on_trip`, 429 |
 
-Every refusal is `{"message": "...", "code": "..."}` (422 is Laravel's `{"message", "errors"}`); the message is in the app language. A suspended account's tokens are revoked, so it gets 401 on its next call.
+Every refusal is `{"message": "...", "code": "..."}` (422 is Laravel's `{"message", "errors"}`); the message is in the app language. A suspended account's tokens are revoked, so it gets 401 on its next call, and a token issued to a suspended account is refused with a plain 403 by the app gate before these endpoints run. (`DriverAvailabilityService` also refuses a suspended account with `driver_suspended` for any caller that is not the HTTP gate.)
 
 ### Location rules
 
@@ -29,6 +29,8 @@ Every refusal is `{"message": "...", "code": "..."}` (422 is Laravel's `{"messag
 * Limited to `RATE_LIMIT_DRIVER_AVAILABILITY` (10) a minute per driver.
 
 ## Redis (shared with the Node service)
+
+Redis **6.2 or newer** is required (`GEOSEARCH`, `ZMSCORE`).
 
 Both keys are used **exactly as named** (raw commands, no Laravel `REDIS_PREFIX`), on the real-time connection (`REALTIME_REDIS_CONNECTION`). Members are the driver's **user id**.
 

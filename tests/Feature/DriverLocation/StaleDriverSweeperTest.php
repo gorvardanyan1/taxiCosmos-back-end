@@ -148,6 +148,20 @@ class StaleDriverSweeperTest extends DriverLocationTestCase
         $this->assertNotNull($this->position($user->id));
     }
 
+    public function test_the_driver_row_is_locked_inside_a_transaction_before_the_sweep_marks_them_offline(): void
+    {
+        // The ping time is read again under this lock, so a ping that lands meanwhile saves the driver.
+        [$user] = $this->driver(DriverAvailability::Online, ['last_online_at' => $this->now->subHour()]);
+        $this->seedPosition($user->id, $this->ago(600));
+
+        $locks = $this->profileLocksDuring(fn () => $this->sweep());
+
+        $this->assertNotEmpty($locks, 'marking a driver offline locks their profile row');
+        foreach ($locks as $lock) {
+            $this->assertGreaterThanOrEqual(1, $lock['depth']);
+        }
+    }
+
     public function test_a_second_run_changes_nothing_and_publishes_nothing_more(): void
     {
         [$user] = $this->driver(DriverAvailability::Online, ['last_online_at' => $this->now->subHour()]);

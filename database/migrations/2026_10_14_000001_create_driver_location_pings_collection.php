@@ -21,6 +21,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('mongodb')->drop('driver_location_pings');
+        // Only the indexes: a rollback must not delete the history that has been collected.
+        Schema::connection('mongodb')->table('driver_location_pings', function (Blueprint $collection) {
+            $collection->dropIndexIfExists('driver_history');
+            $collection->dropIndexIfExists('recorded_at_1');
+        });
     }
 };

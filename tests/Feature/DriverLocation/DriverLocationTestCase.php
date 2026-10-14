@@ -9,6 +9,7 @@ use App\Models\DriverLocationPing;
 use App\Models\DriverProfile;
 use App\Models\User;
 use App\Models\Vehicle;
+use Illuminate\Support\Facades\DB;
 use Tests\Feature\Realtime\RealtimeTestCase;
 
 /**
@@ -78,6 +79,26 @@ abstract class DriverLocationTestCase extends RealtimeTestCase
         app('auth')->forgetGuards(); // the guard remembers the first token's user for the rest of the test
 
         return $this->postJson('/api/v1/driver/location', $body, $this->bearer($token));
+    }
+
+    /**
+     * Run the callback and return the statements that locked a driver profile row (SELECT ... FOR UPDATE), each with the
+     * transaction depth it ran at: a lock outside a transaction is released at once and protects nothing.
+     *
+     * @return list<array{sql: string, depth: int}>
+     */
+    protected function profileLocksDuring(callable $callback): array
+    {
+        $locks = [];
+        DB::listen(function ($query) use (&$locks) {
+            if (str_contains($query->sql, 'driver_profiles') && str_contains(strtolower($query->sql), 'for update')) {
+                $locks[] = ['sql' => $query->sql, 'depth' => DB::transactionLevel()];
+            }
+        });
+
+        $callback();
+
+        return $locks;
     }
 
     protected function setAvailability(string $token, mixed $availability)
