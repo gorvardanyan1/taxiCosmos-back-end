@@ -37,13 +37,13 @@ class OtpVerifyTest extends TestCase
 
         $body = $this->verify($code)->assertOk()->assertJsonStructure([
             'access_token', 'access_token_expires_at', 'refresh_token',
-            'user' => ['id', 'name', 'email', 'phone', 'locale', 'timezone', 'is_rider', 'is_driver', 'status'],
+            'user' => ['id', 'name', 'phone', 'email', 'email_verified', 'locale', 'timezone', 'status', 'modes' => ['is_rider', 'is_driver'], 'driver', 'rider'],
             'needs_phone',
         ])->json();
 
         $user = User::query()->sole();
         $this->assertSame($user->id, $body['user']['id']);
-        $this->assertSame(self::PHONE, $body['user']['phone']);
+        $this->assertSame('+374*****221', $body['user']['phone'], 'the sign-in answer shows the phone masked, like GET /me');
         $this->assertTrue($user->is_rider);
         $this->assertFalse($user->is_driver);
         $this->assertFalse($user->is_admin);

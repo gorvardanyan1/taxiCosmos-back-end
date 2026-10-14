@@ -41,4 +41,17 @@ final class E164PhoneNumber implements NormalizesForBlindIndex
             return null;
         }
     }
+
+    /**
+     * The number as the apps show it back to its owner: the country code and the last three digits, the rest hidden
+     * ("+37491210443" → "+374*****443").
+     */
+    public static function mask(string $e164): string
+    {
+        $length = strlen($e164);
+
+        return $length < 9
+            ? str_repeat('*', max($length - 2, 0)).substr($e164, -2)
+            : substr($e164, 0, 4).str_repeat('*', $length - 7).substr($e164, -3);
+    }
 }

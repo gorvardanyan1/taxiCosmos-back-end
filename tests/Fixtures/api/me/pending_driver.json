@@ -1,0 +1,49 @@
+{
+    "user": {
+        "id": 1,
+        "name": "Davit Sargsyan",
+        "phone": "+374*****001",
+        "email": "davit@example.com",
+        "email_verified": true,
+        "locale": "ru",
+        "timezone": "UTC",
+        "status": "active",
+        "modes": {
+            "is_rider": false,
+            "is_driver": true
+        },
+        "driver": {
+            "verification_status": "pending",
+            "availability": "offline",
+            "documents": [
+                {
+                    "type": "license",
+                    "status": "pending",
+                    "reason": null
+                },
+                {
+                    "type": "id_card",
+                    "status": "rejected",
+                    "reason": "The photo is blurry"
+                },
+                {
+                    "type": "vehicle_registration",
+                    "status": "missing",
+                    "reason": null
+                }
+            ],
+            "primary_vehicle": {
+                "id": 1,
+                "make": "Toyota",
+                "model": "Camry",
+                "year": 2020,
+                "plate_number": "12 AB 345",
+                "color": "white",
+                "vehicle_class": "economy",
+                "status": "pending_review"
+            },
+            "debt_limit_reached": false
+        },
+        "rider": null
+    }
+}

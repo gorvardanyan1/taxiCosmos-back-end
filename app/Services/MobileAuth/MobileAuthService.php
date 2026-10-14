@@ -118,7 +118,9 @@ final class MobileAuthService
         $trusted = $identity->email !== null && $identity->emailVerified && $provider !== SocialProvider::Facebook;
         $existing = $identity->email === null ? null : User::withTrashed()->whereRaw('lower(email) = ?', [mb_strtolower($identity->email)])->first();
 
-        if ($existing !== null && $trusted) {
+        // Only an address the account has proven (a provider-verified one) can be claimed by a provider's verified sign-in: an
+        // address merely typed into the profile of an account would otherwise hand that account to its real owner's sign-in.
+        if ($existing !== null && $trusted && $existing->email_verified_at !== null) {
             return $existing;
         }
 

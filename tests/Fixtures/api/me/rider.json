@@ -1,0 +1,28 @@
+{
+    "user": {
+        "id": 1,
+        "name": "Ani Hakobyan",
+        "phone": "+374*****443",
+        "email": "ani@example.com",
+        "email_verified": true,
+        "locale": "hy",
+        "timezone": "Asia/Yerevan",
+        "status": "active",
+        "modes": {
+            "is_rider": true,
+            "is_driver": false
+        },
+        "driver": null,
+        "rider": {
+            "rating": {
+                "average": 4.85,
+                "count": 12
+            },
+            "outstanding_balance": {
+                "amount": 0,
+                "currency": "AMD"
+            },
+            "default_payment_method": null
+        }
+    }
+}

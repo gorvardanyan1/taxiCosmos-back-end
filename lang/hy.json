@@ -830,5 +830,8 @@
     "New reply from support": "Նոր պատասխան աջակցությունից",
     "Our team answered your request. Tap to read the reply.": "Մեր թիմը պատասխանել է ձեր դիմումին։ Սեղմեք՝ պատասխանը կարդալու համար։",
     "Account suspended": "Հաշիվը արգելափակվել է",
-    "Your account has been suspended. Contact support if you think this is a mistake.": "Ձեր հաշիվը արգելափակվել է։ Եթե կարծում եք, որ սա սխալ է, դիմեք աջակցության։"
+    "Your account has been suspended. Contact support if you think this is a mistake.": "Ձեր հաշիվը արգելափակվել է։ Եթե կարծում եք, որ սա սխալ է, դիմեք աջակցության։",
+    "This is already your phone number.": "Սա արդեն ձեր հեռախոսահամարն է։",
+    "This email address is already in use.": "Այս էլ. փոստի հասցեն արդեն օգտագործվում է։",
+    "You can keep up to :count saved place. Delete one to add another.|You can keep up to :count saved places. Delete one to add another.": "Կարելի է պահել առավելագույնը :count հասցե։ Ջնջեք մեկը՝ նորը ավելացնելու համար։|Կարելի է պահել առավելագույնը :count հասցե։ Ջնջեք մեկը՝ նորը ավելացնելու համար։"
 }
