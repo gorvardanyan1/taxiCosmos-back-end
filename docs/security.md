@@ -164,3 +164,12 @@ TOTP (an authenticator app) through Laravel Fortify, on the session guard of the
   QR code, codes) while a setup is pending, and in the one-time dialog after a regeneration, never in an audit entry or a log.
 - **Tests:** `tests/Feature/Auth/TwoFactor*Test.php`, `SingleUseTotpProviderTest`, `tests/Feature/Pii/TwoFactorKeyRotationTest`, the Vitest specs next to the pages, and
   `cypress/e2e/p3-t2-admin-two-factor.cy.ts` (its required-role group runs on a second server with the rule on).
+
+## My Account: password and sessions (P13-T3)
+
+* **Change password** (`PUT /admin/account/password`) needs the current password and a new one that follows the same rules as a reset (12+ characters, mixed case, numbers, symbols, not leaked) and differs from the current one. It signs every other browser out at once.
+* **Log out other sessions** (`DELETE /admin/account/sessions`) asks for the password. Both are limited by `password-confirm` (5 per minute).
+* The admin routes run `auth.session` (`AuthenticateSession`): a session whose stored password hash no longer matches the account's is signed out. That is what ends the other browsers, whatever the session driver.
+* **Active sessions list.** With `SESSION_DRIVER=database` the My Account page lists the admin's sessions (browser and system parsed from the user agent, IP, last activity; the real session id never leaves the server). With another driver (Redis) sessions cannot be listed, so only this browser is shown and the button stays enabled (there may be others); ending the others works because their session no longer matches the password hash.
+* **Profile**: name and timezone only. The email is the sign-in identity and is read-only.
+* Every change is audited (`account.profile_updated`, `account.password_changed`, `account.other_sessions_ended`), never with a password or hash.

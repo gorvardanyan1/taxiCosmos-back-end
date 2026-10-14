@@ -23,7 +23,7 @@ Route::middleware('guest')->group(function () {
 });
 
 // Two-factor setup: any signed-in admin, including one who must set it up before anything else (no EnsureTwoFactorSetUp here).
-Route::middleware(['auth', 'admin.idle', 'admin', 'throttle:admin'])->group(function () {
+Route::middleware(['auth', 'auth.session', 'admin.idle', 'admin', 'throttle:admin'])->group(function () {
     Route::get('/two-factor-setup', [TwoFactorSetupController::class, 'show'])->name('two-factor.setup');
     Route::post('/two-factor-setup', [TwoFactorSetupController::class, 'start'])->middleware('throttle:password-confirm')->name('two-factor.setup.start');
     Route::post('/two-factor-setup/confirm', [TwoFactorSetupController::class, 'confirm'])->middleware('throttle:two-factor-confirm')->name('two-factor.setup.confirm');
@@ -31,7 +31,7 @@ Route::middleware(['auth', 'admin.idle', 'admin', 'throttle:admin'])->group(func
 
 // Admin panel: session guard + idle timeout + admin access, and a named permission per page
 // (docs/permissions.md).
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin', 'two-factor.required', 'throttle:admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'auth.session', 'admin.idle', 'admin', 'two-factor.required', 'throttle:admin'])->group(function () {
     Route::get('/', Admin\DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
     Route::get('/live-map', Admin\LiveMapController::class)->middleware('permission:live_map.view')->name('live-map');
 
@@ -122,6 +122,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     Route::get('/socket-ticket', Admin\SocketTicketController::class)->middleware('throttle:socket-ticket')->name('socket-ticket');
     Route::get('/account', Admin\AccountController::class)->name('account');
     Route::patch('/account/locale', Admin\AccountLocaleController::class)->name('account.locale');
+    Route::patch('/account/profile', Admin\AccountProfileController::class)->name('account.profile');
+    Route::put('/account/password', [Admin\AccountSecurityController::class, 'updatePassword'])->middleware('throttle:password-confirm')->name('account.password');
+    Route::delete('/account/sessions', [Admin\AccountSecurityController::class, 'logoutOtherSessions'])->middleware('throttle:password-confirm')->name('account.sessions.destroy');
     Route::delete('/account/two-factor', [Admin\AccountTwoFactorController::class, 'destroy'])->middleware('throttle:password-confirm')->name('account.two-factor.destroy');
     Route::post('/account/two-factor/recovery-codes', [Admin\AccountTwoFactorController::class, 'regenerateRecoveryCodes'])->middleware('throttle:password-confirm')->name('account.two-factor.recovery-codes');
 });

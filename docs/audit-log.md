@@ -56,6 +56,7 @@ are handled too. Failed sign-ins store the email that was typed, never the passw
 | `fare_rule.created` (first rule of a class), `fare_rule.versioned` (a price change: old and new values of what changed, `context` = zone code, class, previous rule id) | `FareRuleService` (see [fares.md](fares.md)) |
 | `rider.updated`, `rider.suspended`, `rider.reactivated` | `RiderService` (see [riders.md](riders.md)); a reason is required |
 | `account.locale_changed` | `AccountLocaleController` (My Account → Language; old and new language, no reason) |
+| `account.profile_updated` (old and new name and timezone), `account.password_changed` (no values, no hashes), `account.other_sessions_ended` (`context.sessions` = how many were ended) | `AdminAccountService` (My Account → Profile and Security, see [security.md](security.md)) |
 
 Refunds, manual payments, fare adjustments, suspensions, role and settings changes, 2FA reset and PII reveal
 are logged by their own tasks through the same service (the 2FA reset is built, see above).

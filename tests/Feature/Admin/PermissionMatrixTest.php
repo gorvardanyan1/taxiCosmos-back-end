@@ -111,7 +111,7 @@ class PermissionMatrixTest extends AdminTestCase
             }
         }
 
-        $this->assertEqualsCanonicalizing(['/admin/account', '/admin/account/locale', '/admin/account/two-factor', '/admin/account/two-factor/recovery-codes'], array_keys($selfService));
+        $this->assertEqualsCanonicalizing(['/admin/account', '/admin/account/locale', '/admin/account/profile', '/admin/account/password', '/admin/account/sessions', '/admin/account/two-factor', '/admin/account/two-factor/recovery-codes', '/admin/socket-ticket'], array_keys($selfService));
         $this->assertSame([], array_diff($used, AdminPermission::values()), 'a route names a permission that does not exist');
     }
 

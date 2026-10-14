@@ -834,5 +834,12 @@
     "Your account has been suspended. Contact support if you think this is a mistake.": "Ваш аккаунт заблокирован. Обратитесь в поддержку, если считаете, что это ошибка.",
     "This is already your phone number.": "Это уже ваш номер телефона.",
     "This email address is already in use.": "Этот адрес электронной почты уже используется.",
-    "You can keep up to :count saved place. Delete one to add another.|You can keep up to :count saved places. Delete one to add another.": "Можно сохранить не более :count места. Удалите одно, чтобы добавить новое.|Можно сохранить не более :count мест. Удалите одно, чтобы добавить новое.|Можно сохранить не более :count мест. Удалите одно, чтобы добавить новое."
+    "You can keep up to :count saved place. Delete one to add another.|You can keep up to :count saved places. Delete one to add another.": "Можно сохранить не более :count места. Удалите одно, чтобы добавить новое.|Можно сохранить не более :count мест. Удалите одно, чтобы добавить новое.|Можно сохранить не более :count мест. Удалите одно, чтобы добавить новое.",
+    "Profile updated.": "Профиль обновлён.",
+    "Password updated. Your other sessions were signed out.": "Пароль изменён. Остальные ваши сеансы завершены.",
+    "Other sessions were signed out.": "Остальные сеансы завершены.",
+    "Unknown browser": "Неизвестный браузер",
+    "Unknown system": "Неизвестная система",
+    "Your sign-in email. Ask a super admin to change it.": "Ваш email для входа. Чтобы изменить его, обратитесь к суперадминистратору.",
+    "Every other browser signed in to your account is signed out at once. Confirm your password to continue.": "Все остальные браузеры, где выполнен вход в вашу учётную запись, будут сразу отключены. Подтвердите пароль, чтобы продолжить."
 }

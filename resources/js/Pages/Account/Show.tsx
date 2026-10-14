@@ -1,7 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import ActionButton, { UNAVAILABLE_HINT } from '@/Components/ActionButton';
+import { UNAVAILABLE_HINT } from '@/Components/ActionButton';
 import FormField from '@/Components/FormField';
 import Modal from '@/Components/Modal';
 import PasswordConfirmModal from '@/Components/PasswordConfirmModal';
@@ -26,6 +26,8 @@ interface Props {
     recovery_codes_left: number;
     /** Right after a regeneration: the new codes, shown once. */
     new_recovery_codes: string[] | null;
+    /** The list is every session of the account (database sessions); otherwise it shows only this browser and others may exist. */
+    sessions_listed: boolean;
     sessions: { id: string; device: string; ip: string; last_active_at: string; is_current: boolean }[];
     notification_preferences: { event: string; in_app: boolean; email: boolean }[];
     /** The admin panel languages, each with its own name. */
@@ -33,15 +35,21 @@ interface Props {
     actions: Actions<'updateProfile' | 'updatePassword' | 'enableTwoFactor' | 'disableTwoFactor' | 'regenerateRecoveryCodes' | 'logoutOtherSessions' | 'updateNotifications' | 'updateLocale'>;
 }
 
-export default function AccountShow({ tab, tabs, profile, two_factor_enabled, two_factor_required, recovery_codes_left, new_recovery_codes, sessions, notification_preferences, locales, actions }: Props) {
+export default function AccountShow({ tab, tabs, profile, two_factor_enabled, two_factor_required, recovery_codes_left, new_recovery_codes, sessions, sessions_listed, notification_preferences, locales, actions }: Props) {
     const profileForm = useForm(profile);
     const languageForm = useForm({ locale: profile.locale });
     const once = useSubmitOnce();
     // The server answers with a full reload (Inertia::location), so the new dictionary loads.
     const saveLanguage = () => actions.updateLocale && once((done) => languageForm.patch(actions.updateLocale!, { onFinish: done }));
+    // Only the editable fields are sent (the email is the sign-in identity, the language has its own form).
+    const saveProfile = () => actions.updateProfile && once((done) => {
+        profileForm.transform(({ name, timezone }) => ({ name, timezone }));
+        profileForm.patch(actions.updateProfile!, { preserveScroll: true, onFinish: done });
+    });
     const passwordForm = useForm({ current_password: '', password: '', password_confirmation: '' });
+    const savePassword = () => actions.updatePassword && once((done) => passwordForm.put(actions.updatePassword!, { preserveScroll: true, onSuccess: () => passwordForm.reset(), onError: () => passwordForm.reset('password', 'password_confirmation'), onFinish: done }));
     const notifications = useForm({ preferences: notification_preferences });
-    const [twoFactorDialog, setTwoFactorDialog] = useState<'enable' | 'disable' | 'regenerate' | null>(null);
+    const [twoFactorDialog, setTwoFactorDialog] = useState<'enable' | 'disable' | 'regenerate' | 'sessions' | null>(null);
     const [showCodes, setShowCodes] = useState(false);
     useEffect(() => { if (new_recovery_codes) setShowCodes(true); }, [new_recovery_codes]);
 
@@ -71,10 +79,10 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, tw
                 <div className={`${card} max-w-3xl p-6`}>
                     <div className="grid gap-5 md:grid-cols-2">
                         <FormField label={t('Full name')} error={profileForm.errors.name} htmlFor="name"><input id="name" className={field} value={profileForm.data.name} onChange={(e) => profileForm.setData('name', e.target.value)} /></FormField>
-                        <FormField label={t('Email address')} error={profileForm.errors.email} htmlFor="email"><input id="email" type="email" className={field} value={profileForm.data.email} onChange={(e) => profileForm.setData('email', e.target.value)} /></FormField>
+                        <FormField label={t('Email address')} error={profileForm.errors.email} htmlFor="email"><input id="email" type="email" readOnly className={`${field} bg-slate-50 text-slate-500`} value={profileForm.data.email} aria-describedby="email-hint" /><p id="email-hint" className="mt-1.5 text-xs text-slate-400">{t('Your sign-in email. Ask a super admin to change it.')}</p></FormField>
                         <FormField label={t('Timezone')} error={profileForm.errors.timezone} htmlFor="timezone"><input id="timezone" className={field} value={profileForm.data.timezone} onChange={(e) => profileForm.setData('timezone', e.target.value)} /></FormField>
                     </div>
-                    <button onClick={() => actions.updateProfile && profileForm.patch(actions.updateProfile)} disabled={actions.updateProfile === null || profileForm.processing} title={actions.updateProfile === null ? t(UNAVAILABLE_HINT) : undefined} className={`${primary} mt-6`}>{t('Save changes')}</button>
+                    <button onClick={saveProfile} disabled={actions.updateProfile === null || profileForm.processing} title={actions.updateProfile === null ? t(UNAVAILABLE_HINT) : undefined} className={`${primary} mt-6`}>{t('Save changes')}</button>
                 </div>
                 </>
             )}
@@ -89,7 +97,7 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, tw
                                 {passwordForm.errors[key] && <p role="alert" className="mt-1.5 text-xs font-semibold text-red-600">{passwordForm.errors[key]}</p>}
                             </div>
                         ))}
-                        <button onClick={() => actions.updatePassword && passwordForm.put(actions.updatePassword, { onSuccess: () => passwordForm.reset() })} disabled={actions.updatePassword === null || passwordForm.processing} title={actions.updatePassword === null ? t(UNAVAILABLE_HINT) : undefined} className={`${primary} mt-4`}>{t('Update password')}</button>
+                        <button onClick={savePassword} disabled={actions.updatePassword === null || passwordForm.processing} title={actions.updatePassword === null ? t(UNAVAILABLE_HINT) : undefined} className={`${primary} mt-4`}>{t('Update password')}</button>
                     </div>
                     <div className={`${card} p-6`}>
                         <div className="flex items-start">
@@ -118,7 +126,7 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, tw
                                 <div><b>{s.device} · {s.ip}</b><p className="text-slate-400">{s.is_current ? t('Current session') : formatRelative(s.last_active_at)}</p></div>
                             </div>
                         ))}
-                        <ActionButton url={actions.logoutOtherSessions} className="mt-4 text-xs font-bold text-red-600">{t('Log out other sessions')}</ActionButton>
+                        <button type="button" onClick={() => setTwoFactorDialog('sessions')} disabled={actions.logoutOtherSessions === null || (sessions_listed && sessions.every((s) => s.is_current))} className="mt-4 text-xs font-bold text-red-600 disabled:cursor-not-allowed disabled:opacity-40">{t('Log out other sessions')}</button>
                     </div>
                 </div>
             )}
@@ -154,6 +162,11 @@ export default function AccountShow({ tab, tabs, profile, two_factor_enabled, tw
                 open={twoFactorDialog === 'regenerate'} onClose={() => setTwoFactorDialog(null)} url={actions.regenerateRecoveryCodes}
                 title={t('Regenerate recovery codes')} confirmLabel={t('Regenerate recovery codes')}
                 description={t('You get eight new codes and the old ones stop working at once. Confirm your password to continue.')}
+            />
+            <PasswordConfirmModal
+                open={twoFactorDialog === 'sessions'} onClose={() => setTwoFactorDialog(null)} url={actions.logoutOtherSessions} method="delete" tone="danger"
+                title={t('Log out other sessions')} confirmLabel={t('Log out other sessions')}
+                description={t('Every other browser signed in to your account is signed out at once. Confirm your password to continue.')}
             />
             <Modal open={showCodes && new_recovery_codes !== null} onClose={() => setShowCodes(false)} title={t('Your new recovery codes')}
                 footer={<button onClick={() => setShowCodes(false)} className={primary}>{t('Done')}</button>}>
