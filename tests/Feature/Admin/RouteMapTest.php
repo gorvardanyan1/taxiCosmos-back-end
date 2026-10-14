@@ -45,7 +45,7 @@ class RouteMapTest extends AdminTestCase
             'settings platform' => ['/admin/settings/platform', 'Settings/Platform', fn (Assert $p) => $p->has('settings', 7)],
             'settings maps' => ['/admin/settings/maps', 'Settings/Maps', fn (Assert $p) => $p->where('maps.provider', 'google')],
             'activity log' => ['/admin/activity-logs', 'ActivityLog/Index', fn (Assert $p) => $p->where('entries.total', 0)->where('expandedId', null)->where('expanded', null)->where('actions.export', '/admin/activity-logs/export')],
-            'my account' => ['/admin/account', 'Account/Show', fn (Assert $p) => $p->where('tab', 'profile')->has('sessions', 2)->has('notification_preferences', 8)],
+            'my account' => ['/admin/account', 'Account/Show', fn (Assert $p) => $p->where('tab', 'profile')->has('sessions', 1)->has('notification_preferences', 8)],
         ];
     }
 

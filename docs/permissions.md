@@ -60,6 +60,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/settings/users` | `admins.manage` |
 | `GET /admin/settings/{gateways,currencies,platform,maps}` | `settings.manage` |
 | `GET /admin/activity-logs`, `/admin/activity-logs/export` (CSV) | `activity_log.view` |
+| `PATCH /admin/account/profile` (own name and timezone), `PUT /admin/account/password` (current password), `DELETE /admin/account/sessions` (password; signs out the other browsers) | admin access only (self-service; they change only the signed-in admin's own account) |
 | `GET /admin/socket-ticket` (a one-time ticket for the admin's socket; docs/realtime-events.md) | admin access only (self-service; identifies only the signed-in admin) |
 | `GET /admin/account` | admin access only (self-service) |
 | `PATCH /admin/account/locale` (choose the panel language) | admin access only (self-service; changes only the signed-in admin) |

@@ -834,5 +834,12 @@
     "Your account has been suspended. Contact support if you think this is a mistake.": "Ձեր հաշիվը արգելափակվել է։ Եթե կարծում եք, որ սա սխալ է, դիմեք աջակցության։",
     "This is already your phone number.": "Սա արդեն ձեր հեռախոսահամարն է։",
     "This email address is already in use.": "Այս էլ. փոստի հասցեն արդեն օգտագործվում է։",
-    "You can keep up to :count saved place. Delete one to add another.|You can keep up to :count saved places. Delete one to add another.": "Կարելի է պահել առավելագույնը :count հասցե։ Ջնջեք մեկը՝ նորը ավելացնելու համար։|Կարելի է պահել առավելագույնը :count հասցե։ Ջնջեք մեկը՝ նորը ավելացնելու համար։"
+    "You can keep up to :count saved place. Delete one to add another.|You can keep up to :count saved places. Delete one to add another.": "Կարելի է պահել առավելագույնը :count հասցե։ Ջնջեք մեկը՝ նորը ավելացնելու համար։|Կարելի է պահել առավելագույնը :count հասցե։ Ջնջեք մեկը՝ նորը ավելացնելու համար։",
+    "Profile updated.": "Պրոֆիլը թարմացվել է։",
+    "Password updated. Your other sessions were signed out.": "Գաղտնաբառը փոխվել է։ Ձեր մյուս սեանսները դադարեցվել են։",
+    "Other sessions were signed out.": "Մյուս սեանսները դադարեցվել են։",
+    "Unknown browser": "Անհայտ զննարկիչ",
+    "Unknown system": "Անհայտ համակարգ",
+    "Your sign-in email. Ask a super admin to change it.": "Ձեր մուտքի էլ. փոստը։ Այն փոխելու համար դիմեք գերադմինին։",
+    "Every other browser signed in to your account is signed out at once. Confirm your password to continue.": "Ձեր հաշվով մուտք գործած մյուս բոլոր զննարկիչները միանգամից դուրս կգան։ Շարունակելու համար հաստատեք գաղտնաբառը։"
 }

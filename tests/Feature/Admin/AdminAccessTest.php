@@ -33,7 +33,7 @@ class AdminAccessTest extends AdminTestCase
             $this->assertContains('admin', $middleware, "{$route->uri()} must require admin access.");
             $this->assertContains('two-factor.required', $middleware, "{$route->uri()} must send an admin who still has to set up two-factor authentication to the setup screen.");
 
-            $selfService = in_array($route->uri(), ['admin/account', 'admin/account/locale', 'admin/account/two-factor', 'admin/account/two-factor/recovery-codes'], true);
+            $selfService = in_array($route->uri(), ['admin/account', 'admin/account/locale', 'admin/account/profile', 'admin/account/password', 'admin/account/sessions', 'admin/account/two-factor', 'admin/account/two-factor/recovery-codes', 'admin/socket-ticket'], true);
             $hasPermission = collect($middleware)->contains(fn ($m) => str_starts_with($m, 'permission:'));
             $this->assertTrue($selfService || $hasPermission, "{$route->uri()} has no named permission.");
         }

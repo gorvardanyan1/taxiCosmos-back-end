@@ -1,11 +1,7 @@
 <?php
 
-// My Account sessions and notification data (real data: P13-T3 / P13-T6). Two-factor state is real (P3-T2).
+// My Account notification preferences (real data: P13-T6). Two-factor state (P3-T2), the profile and the sessions (P13-T3) are real.
 return [
-    'sessions' => [
-        ['id' => 'current', 'device' => 'Chrome · macOS', 'ip' => '10.10.4.21', 'last_active_at' => now()->toIso8601String(), 'is_current' => true],
-        ['id' => 'other-1', 'device' => 'Safari · iPhone', 'ip' => '10.10.6.14', 'last_active_at' => now()->subHours(2)->toIso8601String(), 'is_current' => false],
-    ],
     'notification_preferences' => [
         ['event' => 'new_driver_application', 'in_app' => true, 'email' => true],
         ['event' => 'document_expiring', 'in_app' => true, 'email' => true],

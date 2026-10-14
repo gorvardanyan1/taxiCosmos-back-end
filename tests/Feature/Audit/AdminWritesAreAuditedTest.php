@@ -83,6 +83,9 @@ class AdminWritesAreAuditedTest extends AuditTestCase
                 'cancellation_fee' => 500, 'cancellation_free_seconds' => 120, 'booking_fee' => 0, 'tax_rate_bps' => 0, 'tax_inclusive' => false,
             ])],
             'admin.account.locale' => ['account.locale_changed', fn (User $admin) => $this->actingAs($admin)->patch('/admin/account/locale', ['locale' => $admin->locale === 'ru' ? 'hy' : 'ru'])],
+            'admin.account.profile' => ['account.profile_updated', fn (User $admin) => $this->actingAs($admin)->patch('/admin/account/profile', ['name' => 'Renamed '.uniqid(), 'timezone' => 'Asia/Yerevan'])],
+            'admin.account.password' => ['account.password_changed', fn (User $admin) => $this->actingAs($admin)->put('/admin/account/password', ['current_password' => 'password', 'password' => 'Brand-New-Pass!2026', 'password_confirmation' => 'Brand-New-Pass!2026'])],
+            'admin.account.sessions.destroy' => ['account.other_sessions_ended', fn (User $admin) => $this->actingAs($admin)->delete('/admin/account/sessions', ['password' => 'password'])],
             'admin.account.two-factor.destroy' => ['admin.two_factor.disabled', function (User $admin) {
                 $this->enableTwoFactor($admin);
 
@@ -128,6 +131,9 @@ class AdminWritesAreAuditedTest extends AuditTestCase
         foreach ($this->registry() as $route => [$action, $perform]) {
             $admin = $this->admin();
             $before = ActivityLogEntry::where('description', $action)->count();
+
+            // Each write is a fresh browser: a password change in one must not leave its session hash behind for the next admin.
+            $this->flushSession();
 
             // Every admin write redirects back to its page, except the bank-account reveal, which answers with the number as JSON.
             $response = $perform($admin);

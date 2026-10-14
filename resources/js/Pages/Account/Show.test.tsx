@@ -11,7 +11,7 @@ const locales = [{ code: 'en', name: 'English' }, { code: 'hy', name: 'Հայե�
 const actions = { updateProfile: null, updatePassword: null, enableTwoFactor: null, disableTwoFactor: null, regenerateRecoveryCodes: null, logoutOtherSessions: null, updateNotifications: null, updateLocale: '/admin/account/locale' };
 const props = {
     tab: 'profile', tabs: ['profile', 'security', 'notifications'], profile: { name: 'Sky', email: 'sky@x.test', locale: 'en', timezone: 'Asia/Yerevan' },
-    two_factor_enabled: false, two_factor_required: false, recovery_codes_left: 0, new_recovery_codes: null, sessions: [], notification_preferences: [], locales, actions,
+    two_factor_enabled: false, two_factor_required: false, recovery_codes_left: 0, new_recovery_codes: null, sessions: [], sessions_listed: true, notification_preferences: [], locales, actions,
 };
 
 describe('My Account → language', () => {
@@ -174,5 +174,111 @@ describe('My Account → two-factor authentication', () => {
         render(<AccountShow {...security} {...on} actions={{ ...actions, ...urls }} />);
 
         expect(screen.queryByRole('dialog')).toBeNull();
+    });
+});
+
+describe('My Account → profile, password and sessions', () => {
+    beforeEach(() => { page.props = sharedProps(); });
+    afterEach(() => vi.restoreAllMocks());
+
+    const live = { ...actions, updateProfile: '/admin/account/profile', updatePassword: '/admin/account/password', logoutOtherSessions: '/admin/account/sessions' };
+    const sessions = [
+        { id: 'a', device: 'Chrome · macOS', ip: '10.0.0.1', last_active_at: '2026-10-14T10:00:00+00:00', is_current: true },
+        { id: 'b', device: 'Safari · iOS', ip: '10.0.0.2', last_active_at: '2026-10-14T08:00:00+00:00', is_current: false },
+    ];
+
+    it('sends only the name and timezone when the profile is saved; the email is read-only', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(<AccountShow {...props} actions={live} />);
+
+        expect(screen.getByLabelText('Email address')).toHaveAttribute('readonly');
+        fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Anna Support' } });
+        fireEvent.change(screen.getByLabelText('Timezone'), { target: { value: 'Europe/Moscow' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+        expect(visit).toHaveBeenCalledTimes(1);
+        expect(visit.mock.calls[0][0]).toBe('/admin/account/profile');
+        expect(visit.mock.calls[0][1]).toMatchObject({ method: 'patch', data: { name: 'Anna Support', timezone: 'Europe/Moscow' } });
+        expect(Object.keys(visit.mock.calls[0][1]!.data as object).sort()).toEqual(['name', 'timezone']);
+    });
+
+    it('shows the server\'s profile errors next to the fields, and a double-click sends once', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation((_url, options) => {
+            options?.onError?.({ name: 'The name field is required.', timezone: 'The selected timezone is invalid.' });
+        });
+        render(<AccountShow {...props} actions={live} />);
+
+        const save = screen.getByRole('button', { name: 'Save changes' });
+        fireEvent.click(save);
+        fireEvent.click(save);
+
+        expect(visit).toHaveBeenCalledTimes(1);
+        expect(screen.getByText('The name field is required.')).toBeInTheDocument();
+        expect(screen.getByText('The selected timezone is invalid.')).toBeInTheDocument();
+    });
+
+    it('keeps Save off when the server gave no endpoint', () => {
+        render(<AccountShow {...props} actions={{ ...actions, updateProfile: null }} />);
+
+        expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    });
+
+    it('changes the password with PUT, sends the three fields and clears them after success', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation((_url, options) => { options?.onSuccess?.({} as never); });
+        render(<AccountShow {...props} tab="security" actions={live} />);
+
+        fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'old-pass' } });
+        fireEvent.change(screen.getByPlaceholderText('New password'), { target: { value: 'Brand-New-Pass!2026' } });
+        fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'Brand-New-Pass!2026' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Update password' }));
+
+        expect(visit.mock.calls[0][0]).toBe('/admin/account/password');
+        expect(visit.mock.calls[0][1]).toMatchObject({ method: 'put', data: { current_password: 'old-pass', password: 'Brand-New-Pass!2026', password_confirmation: 'Brand-New-Pass!2026' } });
+        expect(screen.getByPlaceholderText('Current password')).toHaveValue('');
+        expect(screen.getByPlaceholderText('New password')).toHaveValue('');
+    });
+
+    it('shows a wrong current password under its field and clears the typed passwords', () => {
+        vi.spyOn(router, 'visit').mockImplementation((_url, options) => { options?.onError?.({ current_password: 'The password is incorrect.' }); });
+        render(<AccountShow {...props} tab="security" actions={live} />);
+
+        fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'nope' } });
+        fireEvent.change(screen.getByPlaceholderText('New password'), { target: { value: 'Brand-New-Pass!2026' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Update password' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent('The password is incorrect.');
+        expect(screen.getByPlaceholderText('New password')).toHaveValue('');
+    });
+
+    it('lists the sessions, marks the current one, and signs the others out behind the password', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(<AccountShow {...props} tab="security" sessions={sessions} actions={live} />);
+
+        expect(screen.getByText('Chrome · macOS · 10.0.0.1')).toBeInTheDocument();
+        expect(screen.getByText('Current session')).toBeInTheDocument();
+        expect(screen.getByText('Safari · iOS · 10.0.0.2')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Log out other sessions' }));
+        const dialog = screen.getByRole('dialog', { name: 'Log out other sessions' });
+        expect(within(dialog).getByRole('button', { name: 'Log out other sessions' })).toBeDisabled();
+        fireEvent.change(within(dialog).getByLabelText(/Current password/), { target: { value: 'secret-pass' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Log out other sessions' }));
+
+        expect(visit.mock.calls[0][0]).toBe('/admin/account/sessions');
+        expect(visit.mock.calls[0][1]).toMatchObject({ method: 'delete', data: { password: 'secret-pass' } });
+    });
+
+    it('still offers to log the others out when sessions cannot be listed, since there may be others', () => {
+        render(<AccountShow {...props} tab="security" sessions={[sessions[0]]} sessions_listed={false} actions={live} />);
+
+        expect(screen.getByRole('button', { name: 'Log out other sessions' })).toBeEnabled();
+    });
+
+    it('has nothing to log out when this is the only session, or when the server offers no action', () => {
+        const { rerender } = render(<AccountShow {...props} tab="security" sessions={[sessions[0]]} actions={live} />);
+        expect(screen.getByRole('button', { name: 'Log out other sessions' })).toBeDisabled();
+
+        rerender(<AccountShow {...props} tab="security" sessions={sessions} actions={{ ...live, logoutOtherSessions: null }} />);
+        expect(screen.getByRole('button', { name: 'Log out other sessions' })).toBeDisabled();
     });
 });
