@@ -1,6 +1,6 @@
 # Real-time events (Redis Streams)
 
-Laravel publishes **state-change events** to Redis Streams. A separate **Node/Socket.io service** reads them through a **consumer group** and pushes them to the apps and the admin. Laravel never talks to a socket: **Redis is the only integration point** (plus the token-check endpoint in P8-T3). Source of truth in code: `App\Realtime\RealtimeEventType` (stream, version, payload keys); this document is tested against it (`RealtimeEventsDocumentTest`).
+Laravel publishes **state-change events** to Redis Streams. A separate **Node/Socket.io service** reads them through a **consumer group** and pushes them to the apps and the admin. Laravel never talks to a socket: **Redis is the only integration point** (plus the token-check endpoint, see "Authenticating a socket"). Source of truth in code: `App\Realtime\RealtimeEventType` (stream, version, payload keys); this document is tested against it (`RealtimeEventsDocumentTest`).
 
 ## Transport
 
@@ -55,6 +55,43 @@ XAUTOCLAIM <key> socket-service node-1 60000 0-0
 ```
 
 Create the group at `0` to receive everything still in the stream, or `$` to receive only new entries. Run several consumers with the same group name to share the load; each entry goes to exactly one of them. `RealtimeEventsDocumentTest`, `ConsumerGroupTest` and `EventsAfterCommitTest` exercise exactly this against real Redis.
+
+## Authenticating a socket (token check)
+
+The Node service has no access to Laravel's database. When a client opens a socket it asks Laravel who the connection belongs to:
+
+```
+POST /api/v1/internal/socket-auth
+X-Service-Token: <SOCKET_SERVICE_TOKEN>        (or Authorization: Bearer <SOCKET_SERVICE_TOKEN>)
+Content-Type: application/json
+
+{ "token": "<the app's Sanctum access token>" }        # a rider/driver app socket
+{ "ticket": "<ticket from GET /admin/socket-ticket>" }  # an admin browser socket (exactly one of the two)
+```
+
+**Caller authentication.** Two checks, both required: the shared `SOCKET_SERVICE_TOKEN` (at least 32 characters; compared in constant time) and a caller address inside `SOCKET_SERVICE_ALLOWED_IPS` (default `127.0.0.1,::1`; comma separated addresses/CIDRs). The endpoint fails closed: with no token configured, or an empty address list, every call is refused. A missing or wrong service token is `401`, a wrong address is `403`. A user's own token is never a service token. The route is outside the public API docs (`@hideFromAPIDocumentation`). It is rate limited per calling address (`socket-auth`, `RATE_LIMIT_SOCKET_AUTH`, default 1200/min): keep the connection's answer for the life of the socket instead of asking per message.
+
+**Success — `200`:**
+
+| Field | Meaning |
+| --- | --- |
+| `user_id` | integer — the room key: it equals the `*_user_id` fields in the event payloads above |
+| `kind` | `mobile` or `admin` |
+| `app` | `rider`, `driver` or `admin` — the app this token belongs to (join the matching rooms) |
+| `modes` | what the account can be: any of `rider`, `driver`; `["admin"]` for an admin |
+| `roles` | admin tickets only: the admin's role names |
+| `status` | `active` (anything else is a 401, so the Node service only ever sees `active`) |
+| `expires_at` | ISO-8601 time the access token stops working (`null` for an admin ticket). Disconnect or re-authenticate when it passes; the app refreshes its token over REST and re-sends it |
+
+```json
+{ "user_id": 42, "kind": "mobile", "app": "driver", "modes": ["driver"], "status": "active", "expires_at": "2026-10-10T10:15:30+00:00" }
+```
+
+**Refusal — `401 { "message": "Unauthenticated." }`**, the same body for every reason: unknown, revoked (logout, refresh, logout-all, suspension) or expired token; an account that is suspended, deactivated, deleted or an admin account; a token for an app the account does not have; a session that still has to add its phone; an unknown, used or expired ticket; an admin who lost access. Close the socket. `422` means the request body was malformed (neither or both of `token` and `ticket`).
+
+**Suspension while connected.** The check runs when the socket connects. A user suspended later is told by the `user.suspended` event (stream above): disconnect that user's sockets when it arrives.
+
+**Admin tickets.** An admin's browser cannot use the session cookie on the socket origin. A signed-in admin calls `GET /admin/socket-ticket` (session, any admin; limiter `socket-ticket`, 20/min) and receives `{ "ticket": "<48 characters>", "expires_in": 60 }` (`Cache-Control: no-store`). The browser sends the ticket in the socket handshake and the Node service exchanges it at `socket-auth`. A ticket works **once** (a replay is a 401) and only within `SOCKET_TICKET_TTL` seconds (default 60); Laravel stores only its hash, and admin access is checked again when it is exchanged.
 
 ## Event catalogue
 

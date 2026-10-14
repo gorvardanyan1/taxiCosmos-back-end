@@ -119,6 +119,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.idle', 'admin
     });
 
     // Self-service: admin access only, no permission (docs/permissions.md).
+    Route::get('/socket-ticket', Admin\SocketTicketController::class)->middleware('throttle:socket-ticket')->name('socket-ticket');
     Route::get('/account', Admin\AccountController::class)->name('account');
     Route::patch('/account/locale', Admin\AccountLocaleController::class)->name('account.locale');
     Route::delete('/account/two-factor', [Admin\AccountTwoFactorController::class, 'destroy'])->middleware('throttle:password-confirm')->name('account.two-factor.destroy');

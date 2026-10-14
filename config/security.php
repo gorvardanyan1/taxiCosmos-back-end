@@ -23,6 +23,15 @@ return [
     // Comma separated IPv4/IPv6 addresses or CIDR ranges, e.g. "203.0.113.7,10.0.0.0/8". Empty = off.
     'admin_ip_allowlist' => array_values(array_filter(array_map('trim', explode(',', (string) env('ADMIN_IP_ALLOWLIST', ''))))),
 
+    // Node/Socket.io service (P8-T3): it calls POST /api/v1/internal/socket-auth with this shared secret (header X-Service-Token or
+    // Authorization: Bearer) from one of these addresses. Both must match; an empty/short token or an empty list refuses everything.
+    'socket' => [
+        'service_token' => (string) env('SOCKET_SERVICE_TOKEN', ''),
+        'allowed_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('SOCKET_SERVICE_ALLOWED_IPS', '127.0.0.1,::1'))))),
+        // How long an admin socket ticket (GET /admin/socket-ticket) can be exchanged, in seconds. It works once.
+        'ticket_ttl_seconds' => (int) env('SOCKET_TICKET_TTL', 60),
+    ],
+
     'two_factor' => [
         // Admin roles that must have two-factor authentication: until they set it up they can reach nothing but the
         // setup screen (P3-T2), and they cannot switch it off. Comma separated role names. Unset or blank means the default:
@@ -47,6 +56,8 @@ return [
         'driver_location' => (int) env('RATE_LIMIT_DRIVER_LOCATION', 30),         // per driver, POST /api/v1/driver/location (the REST fallback for pings)
         'devices' => (int) env('RATE_LIMIT_DEVICES', 30),                          // per signed-in user, POST/DELETE /api/v1/devices (push tokens)
         'driver_availability' => (int) env('RATE_LIMIT_DRIVER_AVAILABILITY', 10), // per driver, POST /api/v1/driver/availability (going online/offline)
+        'socket_auth' => (int) env('RATE_LIMIT_SOCKET_AUTH', 1200),               // per calling address, POST /api/v1/internal/socket-auth (every socket connect)
+        'socket_ticket' => (int) env('RATE_LIMIT_SOCKET_TICKET', 20),             // per signed-in admin, GET /admin/socket-ticket
     ],
 
 ];
