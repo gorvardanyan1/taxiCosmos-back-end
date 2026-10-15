@@ -29,6 +29,7 @@ use App\Realtime\RealtimeEventType;
 use App\Realtime\StreamClient;
 use App\Services\Audit\AuditLogger;
 use App\Services\Commission\TripCommission;
+use App\Services\DriverDocuments\DriverDocumentReviewer;
 use App\Services\Drivers\DriverLocationStore;
 use App\Services\Drivers\StaleDriverSweeper;
 use App\Services\Fares\FareCalculator;
@@ -92,6 +93,8 @@ final class E2eFixtures
             'stream' => $this->stream($a),
             'sent_pushes' => $this->sentPushes($a),
             'support_ticket' => $this->supportTicket($a),
+            'activate_vehicle' => $this->activateVehicle($a),
+            'approve_documents' => $this->approveDocuments($a),
             'logged_mail' => $this->loggedMail($a),
             'dispatch_trip_event' => $this->dispatchTripEvent($a),
             'driver_location_state' => $this->driverLocationState($a),
@@ -554,6 +557,35 @@ final class E2eFixtures
         SupportTicketMessage::factory()->create(['ticket_id' => $ticket->id, 'author_id' => (int) $a['requester_id'], 'body' => $a['message'] ?? 'Cypress message']);
 
         return ['id' => $ticket->id, 'code' => $ticket->refresh()->code, 'trip_id' => $trip?->id, 'trip_code' => $trip?->public_code];
+    }
+
+    /**
+     * An admin approved this vehicle (it is active), as the driver's app cannot do. {vehicle_id, primary?}
+     */
+    private function activateVehicle(array $a): array
+    {
+        $vehicle = Vehicle::query()->findOrFail((int) $a['vehicle_id']);
+        $vehicle->forceFill(['status' => 'active'])->save();
+        ($a['primary'] ?? false) && $vehicle->markAsPrimary();
+
+        return ['id' => $vehicle->id, 'status' => $vehicle->refresh()->status->value];
+    }
+
+    /**
+     * An admin approved the driver's pending documents. {driver_user_id, types?: [license, ...], reviewer_email}
+     */
+    private function approveDocuments(array $a): array
+    {
+        $reviewer = User::query()->where('email', $a['reviewer_email'])->firstOrFail();
+        $driver = DriverProfile::query()->where('user_id', (int) $a['driver_user_id'])->firstOrFail();
+        $count = 0;
+
+        foreach ($driver->documents()->where('status', 'pending')->when(isset($a['types']), fn ($q) => $q->whereIn('type', $a['types']))->get() as $document) {
+            app(DriverDocumentReviewer::class)->approve($document, $reviewer);
+            $count++;
+        }
+
+        return ['approved' => $count];
     }
 
     /**

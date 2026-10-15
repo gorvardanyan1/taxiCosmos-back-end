@@ -2,6 +2,7 @@
 
 namespace App\Services\DriverDocuments;
 
+use App\Enums\DriverDocumentStatus;
 use App\Enums\DriverDocumentType;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
@@ -42,7 +43,8 @@ final class DriverDocumentUploader
         $path = $disk->putFile("drivers/{$driver->getKey()}", $file, 'private');
 
         try {
-            return DB::transaction(function () use ($driver, $type, $file, $vehicle, $documentNumber, $expiresAt, $path) {
+            $replaced = [];
+            $document = DB::transaction(function () use ($driver, $type, $file, $vehicle, $documentNumber, $expiresAt, $path, &$replaced) {
                 $document = new DriverDocument([
                     'type' => $type,
                     'vehicle_id' => $vehicle?->getKey(),
@@ -52,7 +54,10 @@ final class DriverDocumentUploader
                     'size_bytes' => $file->getSize(),
                     'expires_at' => $expiresAt?->toDateString(),
                 ]);
+                // Two uploads of the same paper at once queue up here, so the later one replaces the earlier.
+                DriverProfile::query()->whereKey($driver->getKey())->lockForUpdate()->first();
                 $document->driver()->associate($driver)->save();
+                $replaced = $this->replaceEarlier($driver, $type, $vehicle, $document);
 
                 // A new upload can move a rejected driver back to pending.
                 $this->verification->sync($driver, null);
@@ -64,6 +69,31 @@ final class DriverDocumentUploader
 
             throw $e;
         }
+
+        // The replaced ones are gone for good once the new one is saved.
+        $disk->delete($replaced);
+
+        return $document;
+    }
+
+    /**
+     * The driver's earlier document of the same type (and vehicle) that is still pending or was rejected is replaced by the new
+     * one: its row is kept for the audit trail but stops counting. An approved document stays until its replacement is approved.
+     *
+     * @return list<string> the replaced files, to delete after the commit
+     */
+    private function replaceEarlier(DriverProfile $driver, DriverDocumentType $type, ?Vehicle $vehicle, DriverDocument $new): array
+    {
+        $earlier = DriverDocument::query()
+            ->where('driver_id', $driver->getKey())->where('type', $type->value)->whereKeyNot($new->getKey())
+            ->when($vehicle === null, fn ($query) => $query->whereNull('vehicle_id'), fn ($query) => $query->where('vehicle_id', $vehicle->getKey()))
+            ->whereIn('status', [DriverDocumentStatus::Pending->value, DriverDocumentStatus::Rejected->value])
+            ->get();
+
+        $paths = $earlier->pluck('file_path')->all();
+        $earlier->each->delete();
+
+        return $paths;
     }
 
     private function validate(DriverProfile $driver, DriverDocumentType $type, UploadedFile $file, ?Vehicle $vehicle, ?CarbonInterface $expiresAt): void

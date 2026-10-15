@@ -881,5 +881,11 @@
     "Trip: :code": "Ուղևորություն՝ :code",
     "Open the ticket": "Բացել դիմումը",
     "Unknown category.": "Անհայտ կատեգորիա։",
-    "Unknown priority.": "Անհայտ առաջնահերթություն։"
+    "Unknown priority.": "Անհայտ առաջնահերթություն։",
+    "This licence number cannot be used.": "Այս վկայականի համարը հնարավոր չէ օգտագործել։",
+    "This plate number cannot be used.": "Այս պետհամարանիշը հնարավոր չէ օգտագործել։",
+    "Apply as a driver first.": "Նախ ներկայացրեք վարորդի հայտ։",
+    "You have reached the number of vehicles you can keep. Remove one first.": "Դուք հասել եք պահվող մեքենաների թույլատրելի քանակին։ Նախ հեռացրեք մեկը։",
+    "This vehicle is on a trip. Remove it after the trip.": "Այս մեքենան այժմ ուղևորության մեջ է։ Հեռացրեք այն ուղևորությունից հետո։",
+    "You have reached the number of payout accounts you can keep. Remove one first.": "Դուք հասել եք վճարումների հաշիվների թույլատրելի քանակին։ Նախ հեռացրեք մեկը։"
 }

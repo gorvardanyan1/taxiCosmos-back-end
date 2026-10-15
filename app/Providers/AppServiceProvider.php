@@ -138,6 +138,10 @@ class AppServiceProvider extends ServiceProvider
         // Opening a ticket and writing on one: per person, generous for a conversation but not for flooding the staff.
         RateLimiter::for('support-tickets', fn (Request $request) => Limit::perMinute(config('security.rate_limits.support_tickets'))->by('support-tickets:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Onboarding writes are a handful per driver; an upload is the heavy one, so it has its own, tighter budget.
+        RateLimiter::for('driver-onboarding', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_onboarding'))->by('driver-onboarding:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+        RateLimiter::for('driver-documents', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_documents'))->by('driver-documents:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         // Pings come every few seconds from a working driver, so the budget is per driver and generous; the toggle is not.
         RateLimiter::for('driver-location', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_location'))->by('driver-location:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('driver-availability', fn (Request $request) => Limit::perMinute(config('security.rate_limits.driver_availability'))->by('driver-availability:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));

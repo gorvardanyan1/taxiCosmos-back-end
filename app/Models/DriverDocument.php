@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * An uploaded driver or vehicle paper awaiting (or past) review. Status, reviewer and
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DriverDocument extends Model
 {
     /** @use HasFactory<DriverDocumentFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $attributes = [
         'status' => DriverDocumentStatus::Pending->value,
