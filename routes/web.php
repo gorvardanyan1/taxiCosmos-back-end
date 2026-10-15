@@ -6,7 +6,7 @@ use App\Http\Controllers\TwoFactorSetupController;
 use Illuminate\Support\Facades\Route;
 
 // Record ids in URLs: 1-18 digits, so an id too large for a bigint is a plain 404, never a type error.
-foreach (['rider', 'driver', 'document', 'trip', 'zone', 'vehicle', 'account', 'user'] as $parameter) {
+foreach (['rider', 'driver', 'document', 'trip', 'zone', 'vehicle', 'account', 'user', 'ticket'] as $parameter) {
     Route::pattern($parameter, '[0-9]{1,18}');
 }
 
@@ -81,7 +81,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'auth.session', 'adm
         Route::get('/trips/{trip}', [Admin\TripController::class, 'show'])->name('trips.show');
     });
 
-    Route::get('/support-tickets', Admin\SupportTicketController::class)->middleware('permission:support.manage')->name('support-tickets.index');
+    Route::middleware('permission:support.manage')->prefix('support-tickets')->name('support-tickets.')->group(function () {
+        Route::get('/', [Admin\SupportTicketController::class, 'index'])->name('index');
+        Route::get('/{ticket}', [Admin\SupportTicketController::class, 'show'])->name('show');
+        Route::post('/{ticket}/assign', [Admin\SupportTicketController::class, 'assign'])->name('assign');
+        Route::post('/{ticket}/messages', [Admin\SupportTicketController::class, 'message'])->name('messages.store');
+        Route::post('/{ticket}/resolve', [Admin\SupportTicketController::class, 'resolve'])->name('resolve');
+        Route::post('/{ticket}/reopen', [Admin\SupportTicketController::class, 'reopen'])->name('reopen');
+    });
     Route::get('/ratings', Admin\RatingController::class)->middleware('permission:ratings.view')->name('ratings.index');
     Route::get('/transactions', Admin\TransactionController::class)->middleware('permission:payments.view')->name('transactions.index');
     Route::get('/payouts', Admin\PayoutController::class)->middleware('permission:payouts.view')->name('payouts.index');

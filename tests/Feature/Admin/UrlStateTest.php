@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\DriverProfile;
+use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\Audit\AuditLogger;
@@ -115,7 +116,9 @@ class UrlStateTest extends AdminTestCase
         $this->actingAs($admin)->get('/admin/transactions?txn=6')
             ->assertInertia(fn (Assert $page) => $page->where('selected.code', 'TXN-104876')->where('selected.failure_reason', 'do_not_honor'));
         $this->actingAs($admin)->get('/admin/transactions?txn=999')->assertInertia(fn (Assert $page) => $page->where('selected', null));
-        $this->actingAs($admin)->get('/admin/support-tickets?ticket=2')->assertInertia(fn (Assert $page) => $page->where('selected.code', 'TKT-2939'));
+        $ticket = SupportTicket::factory()->create();
+        SupportTicket::factory()->create();
+        $this->actingAs($admin)->get("/admin/support-tickets?ticket={$ticket->id}")->assertInertia(fn (Assert $page) => $page->where('selected.id', $ticket->id));
         $entry = app(AuditLogger::class)->record($admin, 'driver.document.rejected', reason: 'Expired policy');
         $this->actingAs($admin)->get('/admin/activity-logs?entry='.$entry->id)->assertInertia(fn (Assert $page) => $page->where('expandedId', $entry->id)->where('expanded.action', 'driver.document.rejected'));
         $this->actingAs($admin)->get('/admin/activity-logs?entry=999999')->assertInertia(fn (Assert $page) => $page->where('expandedId', null)->where('expanded', null));

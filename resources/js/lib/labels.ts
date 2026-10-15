@@ -13,7 +13,7 @@ const LABELS: Record<string, string> = {
     completed: tk('Completed'), cancelled: tk('Cancelled'), no_driver_found: tk('No driver found'), en_route: tk('En route'),
     unpaid: tk('Unpaid'), authorized: tk('Authorized'), paid: tk('Paid'), payment_failed: tk('Payment failed'),
     partially_refunded: tk('Partially refunded'), refunded: tk('Refunded'), processing: tk('Processing'), failed: tk('Failed'),
-    open: tk('Open'), resolved: tk('Resolved'), waiting: tk('Waiting'), ready: tk('Ready'), online: tk('Online'),
+    open: tk('Open'), resolved: tk('Resolved'), waiting: tk('Waiting'), waiting_on_customer: tk('Waiting on customer'), closed: tk('Closed'), ready: tk('Ready'), online: tk('Online'),
     offline: tk('Offline'), on_trip: tk('On trip'), in_trip: tk('In trip'), won: tk('Won'), lost: tk('Lost'),
     // People and roles
     rider: tk('Rider'), driver: tk('Driver'), admin: tk('Admin'), super_admin: tk('Super admin'), support: tk('Support'),
@@ -33,7 +33,8 @@ const LABELS: Record<string, string> = {
     no_verified_bank_account: tk('No verified bank account'), negative_balance: tk('Negative balance'),
     duplicate: tk('Duplicate'), fraudulent: tk('Fraudulent'), product_not_received: tk('Not received'),
     // Support and ratings
-    urgent: tk('Urgent'), high: tk('High'), normal: tk('Normal'), low: tk('Low'), safety: tk('Safety'), payment: tk('Payment'),
+    urgent: tk('Urgent'), high: tk('High'), normal: tk('Normal'), low: tk('Low'), safety: tk('Safety'), fare: tk('Fare'), lost_item: tk('Lost item'),
+    driver_behavior: tk('Driver behavior'), rider_behavior: tk('Rider behavior'), app_issue: tk('App issue'), other: tk('Other'), payment: tk('Payment'),
     trip: tk('Trip'), vehicle: tk('Vehicle'), fare_rule: tk('Fare rule'), commission_rule: tk('Commission rule'), flag: tk('Flag'), internal: tk('Internal'), zone: tk('Zone'), signup: tk('Sign-up'),
     cancel: tk('Cancel'), rider_to_driver: tk('Rider → Driver'), driver_to_rider: tk('Driver → Rider'),
     // Notification events

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\Internal\SocketAuthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\SavedPlaceController;
+use App\Http\Controllers\Api\V1\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 // Mobile surface (rider and driver apps): JSON, Sanctum bearer tokens only, never a session.
@@ -58,6 +59,15 @@ Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->
 Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driver', 'throttle:devices'])->prefix('devices')->group(function () {
     Route::post('/', [DeviceController::class, 'store']);
     Route::delete('{device}', [DeviceController::class, 'destroy'])->whereNumber('device');
+});
+
+// Support tickets (P7-T5): either app, signed in fully. A blocked (suspended) account may still write to support (EnsureMobileClient lets
+// the support.* routes through), so it can ask why. Each person only ever sees their own tickets, and never the internal notes.
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driver', 'throttle:support-tickets'])->prefix('support-tickets')->group(function () {
+    Route::get('/', [SupportTicketController::class, 'index'])->name('support.index');
+    Route::post('/', [SupportTicketController::class, 'store'])->name('support.store');
+    Route::get('{ticket}', [SupportTicketController::class, 'show'])->whereNumber('ticket')->name('support.show');
+    Route::post('{ticket}/messages', [SupportTicketController::class, 'storeMessage'])->whereNumber('ticket')->name('support.messages.store');
 });
 
 // The driver's own state (P8-T2): where they are and whether they take trips. Driver app only.

@@ -19,6 +19,8 @@ use App\Models\DriverLocationPing;
 use App\Models\DriverProfile;
 use App\Models\FareFee;
 use App\Models\FareRule;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -89,6 +91,8 @@ final class E2eFixtures
             'expire_access_token' => $this->expireAccessToken($a),
             'stream' => $this->stream($a),
             'sent_pushes' => $this->sentPushes($a),
+            'support_ticket' => $this->supportTicket($a),
+            'logged_mail' => $this->loggedMail($a),
             'dispatch_trip_event' => $this->dispatchTripEvent($a),
             'driver_location_state' => $this->driverLocationState($a),
             'age_driver_ping' => $this->ageDriverPing($a),
@@ -525,6 +529,57 @@ final class E2eFixtures
         }
 
         return $pushes;
+    }
+
+    /**
+     * A support ticket with its first message from the requester. {requester_id, type?: rider|driver, subject?, message?, category?, priority?,
+     * status?, trip_id?, with_trip?, assignee_email?}. Returns {id, code, trip_id, trip_code}.
+     */
+    private function supportTicket(array $a): array
+    {
+        $trip = ($a['with_trip'] ?? false) ? Trip::factory()->create(['rider_id' => (int) $a['requester_id']]) : null;
+        $a['trip_id'] = $trip?->id ?? ($a['trip_id'] ?? null);
+        $ticket = SupportTicket::factory()->create(array_filter([
+            'requester_id' => (int) $a['requester_id'],
+            'requester_type' => AppClient::from($a['type'] ?? 'rider'),
+            'subject' => $a['subject'] ?? 'Cypress ticket',
+            'category' => $a['category'] ?? 'other',
+            'priority' => $a['priority'] ?? 'normal',
+            'status' => $a['status'] ?? 'open',
+            'trip_id' => $a['trip_id'] ?? null,
+            'assigned_to' => isset($a['assignee_email']) ? User::query()->where('email', $a['assignee_email'])->value('id') : null,
+            'resolved_at' => in_array($a['status'] ?? 'open', ['resolved', 'closed'], true) ? now() : null,
+            'resolution' => in_array($a['status'] ?? 'open', ['resolved', 'closed'], true) ? 'Fixed.' : null,
+        ], fn ($value) => $value !== null));
+        SupportTicketMessage::factory()->create(['ticket_id' => $ticket->id, 'author_id' => (int) $a['requester_id'], 'body' => $a['message'] ?? 'Cypress message']);
+
+        return ['id' => $ticket->id, 'code' => $ticket->refresh()->code, 'trip_id' => $trip?->id, 'trip_code' => $trip?->public_code];
+    }
+
+    /**
+     * The mails the log driver wrote instead of sending (MAIL_MAILER=log): recipient and subject, oldest first. Read-only. {subject_contains?}
+     */
+    private function loggedMail(array $a): array
+    {
+        $path = (string) config('logging.channels.single.path');
+        $mails = [];
+        $to = null;
+
+        foreach (is_file($path) ? file($path, FILE_IGNORE_NEW_LINES) : [] as $line) {
+            $line = rtrim($line, "\r");
+
+            if (str_starts_with($line, 'To: ')) {
+                $to = substr($line, 4);
+            } elseif (str_starts_with($line, 'Subject: ') && $to !== null) {
+                $subject = substr($line, 9);
+                if (! isset($a['subject_contains']) || str_contains($subject, $a['subject_contains'])) {
+                    $mails[] = ['to' => $to, 'subject' => $subject];
+                }
+                $to = null;
+            }
+        }
+
+        return $mails;
     }
 
     /**

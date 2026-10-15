@@ -27,8 +27,9 @@ export function buildQueryUrl(changes: QueryChanges, options: { resetPage?: bool
     return `${location.pathname}${search ? `?${search}` : ''}`;
 }
 
-export function visitQuery(changes: QueryChanges, options: { resetPage?: boolean } = {}): void {
-    router.get(buildQueryUrl(changes, options), {}, { preserveState: true, preserveScroll: true });
+/** `resetScroll` goes back to the top of the page (opening a record from a long list shows it from its start). */
+export function visitQuery(changes: QueryChanges, options: { resetPage?: boolean; resetScroll?: boolean } = {}): void {
+    router.get(buildQueryUrl(changes, options), {}, { preserveState: true, preserveScroll: !options.resetScroll });
 }
 
 export const filterKey = (name: string): string => `filter[${name}]`;

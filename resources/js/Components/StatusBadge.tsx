@@ -12,8 +12,8 @@ const violet: Tone = { dot: '#8b5cf6', bg: '#f5f3ff', color: '#7c3aed' };
 
 const tones: Record<string, Tone> = {
     active: green, verified: green, approved: green, completed: green, resolved: green, paid: green, won: green, ready: green,
-    pending: amber, open: amber, requested: amber, waiting: amber, pending_review: amber, pending_deletion: amber,
-    inactive: grey, deactivated: grey, offline: grey,
+    pending: amber, open: amber, requested: amber, waiting: amber, waiting_on_customer: amber, pending_review: amber, pending_deletion: amber,
+    inactive: grey, deactivated: grey, offline: grey, closed: grey,
     suspended: red, cancelled: red, failed: red, rejected: red, expired: red, lost: red, no_driver_found: red,
     processing: blue, in_progress: blue, matched: blue, arrived: blue, on_trip: blue, online: green,
     review: violet,

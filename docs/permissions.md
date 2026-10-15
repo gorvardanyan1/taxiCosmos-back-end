@@ -45,7 +45,7 @@ Admin access uses [spatie/laravel-permission](https://spatie.be/docs/laravel-per
 | `GET /admin/drivers/{id}/documents/{docId}/file` (signed, expiring link) | `drivers.view` |
 | `POST /admin/drivers/{id}/documents/{docId}/approve`, `.../reject` (reason required) | `drivers.verify` |
 | `GET /admin/trips`, `/admin/trips/{id}` | `trips.view` |
-| `GET /admin/support-tickets` | `support.manage` |
+| `GET /admin/support-tickets`, `GET /admin/support-tickets/{id}`, `POST /admin/support-tickets/{id}/assign`, `/messages` (reply or internal note), `/resolve`, `/reopen` | `support.manage` |
 | `GET /admin/ratings` | `ratings.view` |
 | `GET /admin/transactions` | `payments.view` |
 | `GET /admin/payouts` | `payouts.view` |
@@ -89,6 +89,7 @@ answers 403 for the same requests anyway (`PermissionMatrixTest` checks every ro
 | Payments: Record Manual Payment, Confirm / Reject a manual payment | `payments.manual`; Refund: `payments.refund` |
 | Payouts: Approve batch, Approve / Reject | `payouts.approve` |
 | Support tickets: Issue refund | `payments.refund` (on top of `support.manage` for the page) |
+| Support tickets: Adjust fare | `trips.adjust_fare` (on top of `support.manage` for the page) |
 | Zones & Fares: Add fare rule, new version of a rule | `fares.manage` (the page itself needs `zones.manage`) |
 
 Actions whose endpoint and permission are not built yet (driver balance adjustments and cash settlements, ratings moderation,
