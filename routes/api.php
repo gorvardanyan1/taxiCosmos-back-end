@@ -3,8 +3,13 @@
 use App\Enums\SocialProvider;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\DriverApplicationController;
 use App\Http\Controllers\Api\V1\DriverAvailabilityController;
+use App\Http\Controllers\Api\V1\DriverBankAccountController;
+use App\Http\Controllers\Api\V1\DriverDocumentController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
+use App\Http\Controllers\Api\V1\DriverProfileController;
+use App\Http\Controllers\Api\V1\DriverVehicleController;
 use App\Http\Controllers\Api\V1\FareEstimateController;
 use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\Internal\SocketAuthController;
@@ -68,6 +73,28 @@ Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider,driv
     Route::post('/', [SupportTicketController::class, 'store'])->name('support.store');
     Route::get('{ticket}', [SupportTicketController::class, 'show'])->whereNumber('ticket')->name('support.show');
     Route::post('{ticket}/messages', [SupportTicketController::class, 'storeMessage'])->whereNumber('ticket')->name('support.messages.store');
+});
+
+// Driver onboarding (P4-T4): apply, licence and home zone, vehicles, documents, payout accounts. Driver app only. Each driver only ever
+// touches their own records; a suspended account is stopped by the `mobile` gate like everywhere else.
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:driver'])->prefix('driver')->group(function () {
+    Route::middleware('throttle:driver-onboarding')->group(function () {
+        Route::post('application', DriverApplicationController::class);
+        Route::put('profile', DriverProfileController::class);
+
+        Route::get('vehicles', [DriverVehicleController::class, 'index']);
+        Route::post('vehicles', [DriverVehicleController::class, 'store']);
+        Route::patch('vehicles/{vehicle}', [DriverVehicleController::class, 'update'])->whereNumber('vehicle');
+        Route::delete('vehicles/{vehicle}', [DriverVehicleController::class, 'destroy'])->whereNumber('vehicle');
+
+        Route::get('bank-accounts', [DriverBankAccountController::class, 'index']);
+        Route::post('bank-accounts', [DriverBankAccountController::class, 'store']);
+        Route::delete('bank-accounts/{account}', [DriverBankAccountController::class, 'destroy'])->whereNumber('account');
+
+        Route::get('documents', [DriverDocumentController::class, 'index']);
+    });
+
+    Route::post('documents', [DriverDocumentController::class, 'store'])->middleware('throttle:driver-documents');
 });
 
 // The driver's own state (P8-T2): where they are and whether they take trips. Driver app only.

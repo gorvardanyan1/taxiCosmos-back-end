@@ -58,3 +58,5 @@ The page and every API shape carry only `account_last4`. Finance (and super admi
 ## Deleted accounts
 
 A driver whose account was deleted keeps their documents, trips and earnings for review, but the page shows no personal data and offers no Edit, Suspend or Reactivate. The server refuses those three requests with a 409 ("This driver's account was deleted. It can no longer be changed.") and writes nothing, not even an audit entry. Vehicles, documents and the bank-account reveal are not affected by this rule.
+
+The driver's own side of onboarding (sign-up, licence, vehicles, documents, payout accounts) is the app API in [driver-onboarding.md](driver-onboarding.md). A document the driver replaces, or one that belonged to a vehicle they removed, no longer appears here (it is kept, soft deleted, for the audit trail).

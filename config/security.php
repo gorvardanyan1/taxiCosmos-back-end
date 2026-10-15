@@ -56,6 +56,8 @@ return [
         'driver_location' => (int) env('RATE_LIMIT_DRIVER_LOCATION', 30),         // per driver, POST /api/v1/driver/location (the REST fallback for pings)
         'devices' => (int) env('RATE_LIMIT_DEVICES', 30),                          // per signed-in user, POST/DELETE /api/v1/devices (push tokens)
         'driver_availability' => (int) env('RATE_LIMIT_DRIVER_AVAILABILITY', 10), // per driver, POST /api/v1/driver/availability (going online/offline)
+        'driver_onboarding' => (int) env('RATE_LIMIT_DRIVER_ONBOARDING', 30),     // per driver, the /api/v1/driver application, profile, vehicle and bank-account calls
+        'driver_documents' => (int) env('RATE_LIMIT_DRIVER_DOCUMENTS', 20),       // per driver, POST /api/v1/driver/documents (uploads)
         'support_tickets' => (int) env('RATE_LIMIT_SUPPORT_TICKETS', 20),         // per signed-in rider/driver, /api/v1/support-tickets (open, list, write)
         'socket_auth' => (int) env('RATE_LIMIT_SOCKET_AUTH', 1200),               // per calling address, POST /api/v1/internal/socket-auth (every socket connect)
         'socket_ticket' => (int) env('RATE_LIMIT_SOCKET_TICKET', 20),             // per signed-in admin, GET /admin/socket-ticket

@@ -25,6 +25,12 @@ return [
         'default_region' => env('PHONE_DEFAULT_REGION', 'AM'),
     ],
 
+    // Driver onboarding from the app (P4-T4): how many vehicles and payout accounts one driver may keep.
+    'onboarding' => [
+        'max_vehicles' => (int) env('DRIVER_MAX_VEHICLES', 5),
+        'max_bank_accounts' => (int) env('DRIVER_MAX_BANK_ACCOUNTS', 5),
+    ],
+
     'documents' => [
         // Private disk for driver and vehicle papers. Switch to an S3-compatible disk (staging,
         // production) with DRIVER_DOCUMENTS_DISK=s3; no code change is needed.
@@ -39,8 +45,8 @@ return [
         'url_ttl_minutes' => (int) env('DRIVER_DOCUMENT_URL_TTL', 5),
 
         // Upload limits, checked against the file's real content (not the client-sent name).
-        'max_kilobytes' => (int) env('DRIVER_DOCUMENT_MAX_KB', 8192),
-        'mime_types' => ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+        'max_kilobytes' => (int) env('DRIVER_DOCUMENT_MAX_KB', 10240),
+        'mime_types' => ['application/pdf', 'image/jpeg', 'image/png'],
     ],
 
     // Languages a rider can use in the apps (their `locale`).

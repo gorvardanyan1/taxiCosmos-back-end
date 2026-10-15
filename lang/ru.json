@@ -881,5 +881,11 @@
     "Trip: :code": "Поездка: :code",
     "Open the ticket": "Открыть обращение",
     "Unknown category.": "Неизвестная категория.",
-    "Unknown priority.": "Неизвестный приоритет."
+    "Unknown priority.": "Неизвестный приоритет.",
+    "This licence number cannot be used.": "Этот номер удостоверения нельзя использовать.",
+    "This plate number cannot be used.": "Этот номерной знак нельзя использовать.",
+    "Apply as a driver first.": "Сначала подайте заявку водителя.",
+    "You have reached the number of vehicles you can keep. Remove one first.": "Вы достигли допустимого числа автомобилей. Сначала удалите один.",
+    "This vehicle is on a trip. Remove it after the trip.": "Этот автомобиль сейчас в поездке. Удалите его после поездки.",
+    "You have reached the number of payout accounts you can keep. Remove one first.": "Вы достигли допустимого числа счетов для выплат. Сначала удалите один."
 }
