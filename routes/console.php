@@ -24,3 +24,6 @@ Schedule::command('push:check-receipts')->everyFiveMinutes()->withoutOverlapping
 
 // Fare quotes are useful for minutes; the expired ones are deleted a day later.
 Schedule::command('model:prune', ['--model' => [FareQuote::class]])->dailyAt('03:50')->withoutOverlapping()->onOneServer();
+
+// Rider wallets (P6-T1): every cached balance is checked against its ledger each night; a mismatch is logged at critical level.
+Schedule::command('wallets:reconcile')->dailyAt('02:20')->withoutOverlapping()->onOneServer();

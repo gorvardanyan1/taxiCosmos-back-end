@@ -887,5 +887,7 @@
     "Apply as a driver first.": "Նախ ներկայացրեք վարորդի հայտ։",
     "You have reached the number of vehicles you can keep. Remove one first.": "Դուք հասել եք պահվող մեքենաների թույլատրելի քանակին։ Նախ հեռացրեք մեկը։",
     "This vehicle is on a trip. Remove it after the trip.": "Այս մեքենան այժմ ուղևորության մեջ է։ Հեռացրեք այն ուղևորությունից հետո։",
-    "You have reached the number of payout accounts you can keep. Remove one first.": "Դուք հասել եք վճարումների հաշիվների թույլատրելի քանակին։ Նախ հեռացրեք մեկը։"
+    "You have reached the number of payout accounts you can keep. Remove one first.": "Դուք հասել եք վճարումների հաշիվների թույլատրելի քանակին։ Նախ հեռացրեք մեկը։",
+    "The wallet balance is not enough.": "Դրամապանակի մնացորդը բավարար չէ։",
+    "The wallet balance would be too large.": "Դրամապանակի մնացորդը չափազանց մեծ կլինի։"
 }

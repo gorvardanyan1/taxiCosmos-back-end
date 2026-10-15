@@ -887,5 +887,7 @@
     "Apply as a driver first.": "Сначала подайте заявку водителя.",
     "You have reached the number of vehicles you can keep. Remove one first.": "Вы достигли допустимого числа автомобилей. Сначала удалите один.",
     "This vehicle is on a trip. Remove it after the trip.": "Этот автомобиль сейчас в поездке. Удалите его после поездки.",
-    "You have reached the number of payout accounts you can keep. Remove one first.": "Вы достигли допустимого числа счетов для выплат. Сначала удалите один."
+    "You have reached the number of payout accounts you can keep. Remove one first.": "Вы достигли допустимого числа счетов для выплат. Сначала удалите один.",
+    "The wallet balance is not enough.": "Баланс кошелька недостаточен.",
+    "The wallet balance would be too large.": "Баланс кошелька станет слишком большим."
 }
