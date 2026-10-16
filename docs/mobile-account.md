@@ -31,9 +31,10 @@ compare against them.
   `availability`, `documents` (the **required** documents that are not yet approved, each `{type, status, reason}` with status
   `missing|pending|rejected|expired`; `reason` is the reviewer's text for a rejected one), `primary_vehicle`
   (`{id, make, model, year, plate_number, color, vehicle_class, status}` or `null`), `debt_limit_reached`.
-* `rider` (when the person is a rider): `rating`, `outstanding_balance` (minor units + currency), `default_payment_method`.
-* Not available yet, so constant until their task lands: `debt_limit_reached` is always `false` (driver balances, P11-T3),
-  `outstanding_balance` is `0` and `default_payment_method` is `null` (payments, P6).
+* `rider` (when the person is a rider): `rating`, `outstanding_balance` (minor units + currency: what failed card payments left
+  owing, the first currency; above zero the app asks for a card update and payment, see `docs/payments.md`), `default_payment_method`
+  (the default saved card, same shape as `GET /api/v1/payment-methods`, or `null`).
+* Not available yet, so constant until its task lands: `debt_limit_reached` is always `false` (driver balances, P11-T3).
 
 ## Blocked accounts
 

@@ -38,4 +38,4 @@ The tables every payment feature is built on (P6-T2 onwards). **Rider money only
 
 ## What is not here yet
 
-The gateways and their webhooks (P6-T2 to P6-T4), manual payments (P6-T5), refunds (P6-T7), wallet use at checkout and the Transactions admin page's real data (it still shows fixtures) come with their own tasks and build on these tables.
+The gateway contract, the card trip flow, saved cards and outstanding balances are in `docs/payments.md` (P6-T2). The real gateways and their webhooks (P6-T3, P6-T4), manual payments (P6-T5), refunds (P6-T7), wallet use at checkout and the Transactions admin page's real data (it still shows fixtures) come with their own tasks and build on these tables.

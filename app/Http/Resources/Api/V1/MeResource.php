@@ -7,6 +7,8 @@ use App\Models\DriverProfile;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\DriverDocuments\VerificationResolver;
+use App\Services\Payments\OutstandingBalance;
+use App\Services\Payments\SavedCards;
 use App\Support\E164PhoneNumber;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -89,9 +91,10 @@ class MeResource extends JsonResource
     {
         return [
             'rating' => ['average' => $this->rider_rating_avg === null ? null : (float) $this->rider_rating_avg, 'count' => $this->rider_rating_count],
-            // Money in minor units. Outstanding balances and saved cards arrive with payments (P6): nothing is owed and no card is saved before then.
-            'outstanding_balance' => ['amount' => 0, 'currency' => config('taxikosmos.base_currency')],
-            'default_payment_method' => null,
+            // Money in minor units: what failed card payments left owing (P6-T2). Above zero, the app asks the rider to update the card
+            // and pay it (GET /account/outstanding has the trips and every currency) before a new card trip.
+            'outstanding_balance' => app(OutstandingBalance::class)->totals($this->resource)[0] ?? ['amount' => 0, 'currency' => config('taxikosmos.base_currency')],
+            'default_payment_method' => ($card = app(SavedCards::class)->default($this->resource)) === null ? null : (new PaymentMethodResource($card))->resolve(),
         ];
     }
 }

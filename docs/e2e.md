@@ -18,6 +18,7 @@ spec in `cypress/e2e/<task-id>-<name>.cy.ts` (see `.claude/commands/task.md`, se
 | Queue | redis | sync |
 | Mail / SMS | log | log, to `storage/logs/e2e.log` |
 | Maps (`MAPS_PROVIDER`) | `google` | `fake` (keyless, deterministic; no call leaves the machine) |
+| Card gateway (`PAYMENT_DRIVER`) | `fake` | `fake` (no network; test tokens `tok_visa`, `tok_declined`, `tok_capture_fails`, see `docs/payments.md`). Its state is in the cache, so `clear_rate_limits` also forgets holds: set up a hold and its capture in one fixture |
 | OTP | random | fixed `123456` for `+37491770001…39` |
 | Language | per admin / browser | same; admin fixtures default to English (`locale` option) |
 | Debug pages | on | off (the template error pages render) |

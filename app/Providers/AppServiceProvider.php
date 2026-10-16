@@ -16,6 +16,7 @@ use App\Services\Geo\CachingGeoProvider;
 use App\Services\Geo\FakeGeoProvider;
 use App\Services\Geo\GoogleMapsProvider;
 use App\Services\Geo\TwoGisProvider;
+use App\Services\Payments\PaymentGateways;
 use App\Services\Push\ExpoPushSender;
 use App\Services\Push\LogPushSender;
 use App\Services\Sms\LogSmsSender;
@@ -67,6 +68,10 @@ class AppServiceProvider extends ServiceProvider
             'log' => new LogPushSender,
             default => throw new RuntimeException('PUSH_DRIVER must be set to expo or log (got "'.config('services.push.driver').'").'),
         });
+
+        // Card gateways (P6-T2): PAYMENT_GATEWAY names the one new cards are saved with, PAYMENT_DRIVER=fake swaps in the no-network
+        // gateway (local, testing, e2e only). Only App\Services\Payments asks for these.
+        $this->app->singleton(PaymentGateways::class, fn ($app) => new PaymentGateways($app->make(CacheRepository::class), (string) $app->environment()));
 
         $this->app->bind(SmsSender::class, fn () => match (config('sms.driver')) {
             'log' => new LogSmsSender,
