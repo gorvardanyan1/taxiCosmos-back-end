@@ -889,5 +889,20 @@
     "This vehicle is on a trip. Remove it after the trip.": "Этот автомобиль сейчас в поездке. Удалите его после поездки.",
     "You have reached the number of payout accounts you can keep. Remove one first.": "Вы достигли допустимого числа счетов для выплат. Сначала удалите один.",
     "The wallet balance is not enough.": "Баланс кошелька недостаточен.",
-    "The wallet balance would be too large.": "Баланс кошелька станет слишком большим."
+    "The wallet balance would be too large.": "Баланс кошелька станет слишком большим.",
+    "This card could not be saved. Check it or try another card.": "Не удалось сохранить карту. Проверьте её или попробуйте другую карту.",
+    "Choose one of your saved cards.": "Выберите одну из сохранённых карт.",
+    "Send an Idempotency-Key header with this payment.": "Отправьте с этим платежом заголовок Idempotency-Key.",
+    "Card payments are not available right now. Try again in a moment.": "Оплата картой сейчас недоступна. Попробуйте чуть позже.",
+    "The card was declined. Try another card.": "Карта отклонена. Попробуйте другую карту.",
+    "Pay your outstanding balance before requesting a card trip.": "Погасите задолженность, прежде чем заказывать поездку с оплатой картой.",
+    "There is nothing to pay.": "Оплачивать нечего.",
+    "Add a card first.": "Сначала добавьте карту.",
+    "This idempotency key was already used for a different payment.": "Этот ключ идемпотентности уже использован для другого платежа.",
+    "This payment is still being processed. Try again in a moment.": "Этот платёж ещё обрабатывается. Попробуйте чуть позже.",
+    "This hold has already been captured or released.": "Эта блокировка средств уже списана или снята.",
+    "Only a succeeded charge or capture can be refunded.": "Вернуть можно только успешное списание.",
+    "The refund is more than what is left to refund.": "Сумма возврата больше остатка, доступного для возврата.",
+    "This card is paying for a trip in progress. Remove it after the trip.": "Этой картой оплачивается текущая поездка. Удалите её после поездки.",
+    "You have reached the number of cards you can keep. Remove one first.": "Достигнуто максимальное количество карт. Сначала удалите одну."
 }

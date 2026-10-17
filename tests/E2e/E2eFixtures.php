@@ -5,12 +5,14 @@ namespace Tests\E2e;
 use App\Enums\AdminRole;
 use App\Enums\AppClient;
 use App\Enums\DriverDocumentType;
+use App\Enums\TripPaymentMethod;
 use App\Enums\TripStatus;
 use App\Enums\UserStatus;
 use App\Enums\VehicleClass;
 use App\Events\Realtime\SupportTicketUpdated;
 use App\Events\Realtime\TripOffer;
 use App\Events\Realtime\TripStatusChanged;
+use App\Exceptions\PaymentException;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Models\CommissionRule;
 use App\Models\DriverBankAccount;
@@ -34,6 +36,8 @@ use App\Services\Drivers\DriverLocationStore;
 use App\Services\Drivers\StaleDriverSweeper;
 use App\Services\Fares\FareCalculator;
 use App\Services\MobileAuth\MobileSessionService;
+use App\Services\Payments\SavedCards;
+use App\Services\Payments\TripCardPayments;
 use App\Services\Push\LogPushSender;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
@@ -101,6 +105,9 @@ final class E2eFixtures
             'age_driver_ping' => $this->ageDriverPing($a),
             'sweep_stale_drivers' => $this->sweepStaleDrivers(),
             'clear_rate_limits' => $this->clearRateLimits(),
+            'card_trip' => $this->cardTrip($a),
+            'failed_card_trip' => $this->failedCardTrip($a),
+            'hold_card_trip' => $this->holdCardTrip($a),
             default => throw new InvalidArgumentException("Unknown e2e fixture \"{$fixture}\"."),
         };
     }
@@ -674,6 +681,54 @@ final class E2eFixtures
     /**
      * Forget every rate-limit counter (the e2e cache holds nothing else that a test relies on).
      */
+    /**
+     * A card trip of the rider, paid with their saved card, in progress. {rider_id, payment_method_id}
+     */
+    private function cardTrip(array $a): array
+    {
+        $trip = Trip::factory()->inProgress()->create(['rider_id' => $a['rider_id'], 'payment_method' => TripPaymentMethod::Card, 'payment_method_id' => $a['payment_method_id']]);
+
+        return ['id' => $trip->id, 'public_code' => $trip->public_code];
+    }
+
+    /**
+     * A completed card trip whose final capture was declined, through the real card flow and the fake gateway: hold, ride,
+     * capture fails, payment_failed. The rider gets a tok_capture_fails card for it. {rider_id, fare?}
+     */
+    private function failedCardTrip(array $a): array
+    {
+        $rider = User::query()->findOrFail($a['rider_id']);
+        $card = app(SavedCards::class)->add($rider, 'tok_capture_fails', false)['card'];
+        $trip = Trip::factory()->create(['rider_id' => $rider->id, 'payment_method' => TripPaymentMethod::Card, 'payment_method_id' => $card->id]);
+        $payments = app(TripCardPayments::class);
+        $payments->hold($trip);
+
+        $fare = (int) ($a['fare'] ?? 150000);
+        $trip->transitionTo(TripStatus::Matched, attributes: ['driver_id' => DriverProfile::factory()->approved()->create()->id]);
+        $trip->transitionTo(TripStatus::Arrived);
+        $trip->transitionTo(TripStatus::InProgress);
+        $trip->transitionTo(TripStatus::Completed, attributes: ['fare_amount' => $fare, 'commission_amount' => intdiv($fare, 5), 'driver_earnings_amount' => $fare - intdiv($fare, 5)]);
+        $payments->complete($trip->fresh());
+
+        return ['id' => $trip->id, 'public_code' => $trip->public_code, 'payment_method_id' => $card->id, 'payment_status' => $trip->fresh()->payment_status->value];
+    }
+
+    /**
+     * What happens when a new card trip is requested for the rider with this card (the step trip creation, P7-T6, runs). {rider_id, payment_method_id}
+     */
+    private function holdCardTrip(array $a): array
+    {
+        $trip = Trip::factory()->create(['rider_id' => $a['rider_id'], 'payment_method' => TripPaymentMethod::Card, 'payment_method_id' => $a['payment_method_id']]);
+
+        try {
+            $hold = app(TripCardPayments::class)->hold($trip);
+
+            return ['trip_id' => $trip->id, 'held' => $hold->amount, 'payment_status' => $trip->fresh()->payment_status->value];
+        } catch (PaymentException $e) {
+            return ['trip_id' => $trip->id, 'refused' => $e->errorCode, 'status' => $e->status];
+        }
+    }
+
     private function clearRateLimits(): array
     {
         Cache::flush();

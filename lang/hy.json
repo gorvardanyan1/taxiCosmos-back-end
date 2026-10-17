@@ -889,5 +889,20 @@
     "This vehicle is on a trip. Remove it after the trip.": "Այս մեքենան այժմ ուղևորության մեջ է։ Հեռացրեք այն ուղևորությունից հետո։",
     "You have reached the number of payout accounts you can keep. Remove one first.": "Դուք հասել եք վճարումների հաշիվների թույլատրելի քանակին։ Նախ հեռացրեք մեկը։",
     "The wallet balance is not enough.": "Դրամապանակի մնացորդը բավարար չէ։",
-    "The wallet balance would be too large.": "Դրամապանակի մնացորդը չափազանց մեծ կլինի։"
+    "The wallet balance would be too large.": "Դրամապանակի մնացորդը չափազանց մեծ կլինի։",
+    "This card could not be saved. Check it or try another card.": "Քարտը չհաջողվեց պահպանել։ Ստուգեք այն կամ փորձեք այլ քարտ։",
+    "Choose one of your saved cards.": "Ընտրեք ձեր պահպանված քարտերից մեկը։",
+    "Send an Idempotency-Key header with this payment.": "Այս վճարման հետ ուղարկեք Idempotency-Key վերնագիրը։",
+    "Card payments are not available right now. Try again in a moment.": "Քարտով վճարումն այս պահին հասանելի չէ։ Փորձեք մի փոքր ուշ։",
+    "The card was declined. Try another card.": "Քարտը մերժվեց։ Փորձեք այլ քարտ։",
+    "Pay your outstanding balance before requesting a card trip.": "Մարեք ձեր պարտքը՝ նախքան քարտով վճարվող ուղևորություն պատվիրելը։",
+    "There is nothing to pay.": "Վճարելու ոչինչ չկա։",
+    "Add a card first.": "Նախ ավելացրեք քարտ։",
+    "This idempotency key was already used for a different payment.": "Այս իդեմպոտենտության բանալին արդեն օգտագործվել է այլ վճարման համար։",
+    "This payment is still being processed. Try again in a moment.": "Այս վճարումը դեռ մշակվում է։ Փորձեք մի փոքր ուշ։",
+    "This hold has already been captured or released.": "Այս արգելափակումն արդեն գանձվել կամ ազատվել է։",
+    "Only a succeeded charge or capture can be refunded.": "Կարելի է վերադարձնել միայն հաջողված գանձումը։",
+    "The refund is more than what is left to refund.": "Վերադարձի գումարը գերազանցում է վերադարձման ենթակա մնացորդը։",
+    "This card is paying for a trip in progress. Remove it after the trip.": "Այս քարտով վճարվում է ընթացիկ ուղևորությունը։ Հեռացրեք այն ուղևորությունից հետո։",
+    "You have reached the number of cards you can keep. Remove one first.": "Դուք հասել եք քարտերի առավելագույն քանակին։ Նախ հեռացրեք մեկը։"
 }

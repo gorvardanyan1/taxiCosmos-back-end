@@ -27,3 +27,6 @@ Schedule::command('model:prune', ['--model' => [FareQuote::class]])->dailyAt('03
 
 // Rider wallets (P6-T1): every cached balance is checked against its ledger each night; a mismatch is logged at critical level.
 Schedule::command('wallets:reconcile')->dailyAt('02:20')->withoutOverlapping()->onOneServer();
+
+// Card holds (P6-T2): a hold that would lapse at the gateway (Stripe: 7 days) before its trip ends is renewed.
+Schedule::command('payments:refresh-holds')->hourly()->withoutOverlapping()->onOneServer();

@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\V1\FareEstimateController;
 use App\Http\Controllers\Api\V1\GeoController;
 use App\Http\Controllers\Api\V1\Internal\SocketAuthController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\OutstandingBalanceController;
+use App\Http\Controllers\Api\V1\PaymentMethodController;
 use App\Http\Controllers\Api\V1\SavedPlaceController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +59,20 @@ Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->
 Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->prefix('trips')->group(function () {
     // What a trip would cost per vehicle class; returns the quote_id trip creation (P7-T6) refers to.
     Route::post('fare-estimate', FareEstimateController::class)->middleware('throttle:fare-estimate');
+});
+
+// The rider's saved cards and what they owe after a failed card payment (P6-T2). Rider app only; each rider only ever sees their own
+// cards. Writes share the payment budget (card testing and double charges are attacks, not traffic).
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider'])->group(function () {
+    Route::get('payment-methods', [PaymentMethodController::class, 'index']);
+    Route::get('account/outstanding', [OutstandingBalanceController::class, 'show']);
+
+    Route::middleware('throttle:payment')->group(function () {
+        Route::post('payment-methods', [PaymentMethodController::class, 'store']);
+        Route::delete('payment-methods/{paymentMethod}', [PaymentMethodController::class, 'destroy'])->whereNumber('paymentMethod');
+        Route::post('payment-methods/{paymentMethod}/default', [PaymentMethodController::class, 'makeDefault'])->whereNumber('paymentMethod');
+        Route::post('account/outstanding/pay', [OutstandingBalanceController::class, 'pay']);
+    });
 });
 
 // Push tokens (P8-T4): the apps register on sign-in and token refresh and deregister on logout. Either app, signed in fully
