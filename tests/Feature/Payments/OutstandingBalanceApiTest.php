@@ -7,6 +7,7 @@ use App\Enums\TripPaymentStatus;
 use App\Models\Transaction;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Payments\OutstandingBalance;
 use App\Services\Payments\PaymentProcessor;
 
 /**
@@ -54,6 +55,22 @@ class OutstandingBalanceApiTest extends CardPaymentsTestCase
             'totals' => [['amount' => 20000, 'currency' => 'AMD']],
             'trips' => [['id' => $trip->id, 'public_code' => $trip->public_code, 'amount' => 20000, 'currency' => 'AMD', 'ended_at' => $trip->completed_at->toIso8601String()]],
         ]]);
+    }
+
+    public function test_a_failed_trip_whose_fare_was_collected_another_way_owes_nothing_and_blocks_nothing(): void
+    {
+        $rider = $this->rider();
+        $trip = $this->failedTrip($rider, 150000, 150000);
+        $this->card($rider, attributes: ['is_default' => true]);
+        // The fare is fully covered (a manual payment recorded later, P6-T5) while the trip still says payment_failed.
+        $this->assertSame(TripPaymentStatus::PaymentFailed, $trip->fresh()->payment_status);
+
+        $this->getJson('/api/v1/account/outstanding', $this->as($rider))->assertOk()
+            ->assertExactJson(['data' => ['has_outstanding' => false, 'totals' => [], 'trips' => []]]);
+        $this->getJson('/api/v1/me', $this->as($rider))->assertJsonPath('user.rider.outstanding_balance', ['amount' => 0, 'currency' => 'AMD']);
+        app(OutstandingBalance::class)->assertClear($rider);
+        $this->postJson('/api/v1/account/outstanding/pay', [], $this->as($rider) + ['Idempotency-Key' => self::KEY])
+            ->assertStatus(409)->assertJsonPath('code', 'nothing_outstanding');
     }
 
     public function test_me_shows_the_balance_and_the_default_card_so_the_app_asks_for_an_update(): void

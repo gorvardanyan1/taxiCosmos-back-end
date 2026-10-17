@@ -191,6 +191,26 @@ class TripCardPaymentsTest extends CardPaymentsTestCase
         $this->assertSame([['amount' => 20000, 'currency' => 'AMD']], app(OutstandingBalance::class)->totals($rider));
     }
 
+    public function test_a_retried_completion_after_the_rider_paid_the_balance_keeps_the_trip_paid(): void
+    {
+        $rider = $this->rider();
+        $trip = $this->cardTrip($rider, $this->card($rider, 'capturefails', ['is_default' => true]), 'requested');
+        $this->trips->hold($trip);
+        $trip = $this->complete($trip, 150000);
+        $this->trips->complete($trip);
+        $this->assertSame(TripPaymentStatus::PaymentFailed, $trip->fresh()->payment_status);
+        app(OutstandingBalance::class)->pay($rider, $this->card($rider), 'retry-pay-0001');
+        $this->assertSame(TripPaymentStatus::Paid, $trip->fresh()->payment_status);
+        $rows = Transaction::query()->count();
+
+        // A completion job that runs again after the rider paid: the failed capture is not retried and nothing is charged.
+        $this->trips->complete($trip->fresh());
+
+        $this->assertSame(TripPaymentStatus::Paid, $trip->fresh()->payment_status);
+        $this->assertSame($rows, Transaction::query()->count());
+        $this->assertSame([], app(OutstandingBalance::class)->totals($rider));
+    }
+
     public function test_an_outstanding_balance_refuses_the_next_card_trip_without_a_gateway_call(): void
     {
         $rider = $this->rider();
