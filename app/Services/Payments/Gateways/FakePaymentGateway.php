@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  * Its state lives in the cache, so it holds across HTTP requests (Cypress).
  *
  * Test cards (the token the app would get from the gateway's own card form; docs/payments.md):
- * tok_visa (Visa 4242), tok_mastercard (Mastercard 4444), tok_declined (attaches, then every hold or charge is declined),
+ * tok_visa (Visa 4242), tok_mastercard (Mastercard 4444), tok_amex (Amex 8431), tok_declined (attaches, then every hold or charge is declined),
  * tok_capture_fails (holds work, the capture is declined), tok_invalid (refused at setup).
  */
 final class FakePaymentGateway implements PaymentGatewayInterface
@@ -28,6 +28,7 @@ final class FakePaymentGateway implements PaymentGatewayInterface
     public const CARDS = [
         'tok_visa' => ['kind' => 'ok', 'brand' => 'visa', 'last4' => '4242'],
         'tok_mastercard' => ['kind' => 'ok', 'brand' => 'mastercard', 'last4' => '4444'],
+        'tok_amex' => ['kind' => 'ok', 'brand' => 'amex', 'last4' => '8431'],
         'tok_declined' => ['kind' => 'declined', 'brand' => 'visa', 'last4' => '0002'],
         'tok_capture_fails' => ['kind' => 'capturefails', 'brand' => 'visa', 'last4' => '0341'],
     ];
@@ -166,7 +167,8 @@ final class FakePaymentGateway implements PaymentGatewayInterface
             return null;
         }
 
-        return new GatewayCard('fake_pm_'.$card['kind'].'_'.Str::lower(Str::random(16)), $card['brand'], $card['last4'], 12, (int) now()->format('Y') + 3);
+        // Like Stripe, the same token on the same customer is the same saved card, so a retried "add card" finds it again.
+        return new GatewayCard('fake_pm_'.$card['kind'].'_'.substr(sha1($customerId.'|'.$token), 0, 16), $card['brand'], $card['last4'], 12, (int) now()->format('Y') + 3);
     }
 
     public function detachPaymentMethod(PaymentMethod $paymentMethod): void

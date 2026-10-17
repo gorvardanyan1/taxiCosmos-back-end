@@ -79,12 +79,13 @@ Writes also use `throttle:payment` (`docs/rate-limits.md`). Errors are `{message
 
 ## The fake gateway (local, testing, e2e)
 
-`PAYMENT_DRIVER=fake` keeps its state in the cache (it survives between requests) and behaves like a gateway where it matters: a repeated key returns the first answer and moves nothing, holds lapse after the gateway's lifetime, a hold is captured or voided once. Test tokens for `POST /api/v1/payment-methods`:
+`PAYMENT_DRIVER=fake` keeps its state in the cache (it survives between requests) and behaves like a gateway where it matters: a repeated key returns the first answer and moves nothing, holds lapse after the gateway's lifetime, a hold is captured or voided once. The same token on the same rider is the same saved card (as with Stripe), so adding it again answers `200` with the first card. Test tokens for `POST /api/v1/payment-methods`:
 
 | Token | Card | Behaviour |
 | --- | --- | --- |
 | `tok_visa` | Visa 4242 | everything succeeds |
 | `tok_mastercard` | Mastercard 4444 | everything succeeds |
+| `tok_amex` | Amex 8431 | everything succeeds |
 | `tok_declined` | Visa 0002 | saves; every hold and charge is declined |
 | `tok_capture_fails` | Visa 0341 | holds succeed; the capture is declined (makes an outstanding balance) |
 | anything else (`tok_invalid`) | — | refused at setup (422) |

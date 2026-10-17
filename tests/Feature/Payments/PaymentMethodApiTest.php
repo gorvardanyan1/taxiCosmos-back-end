@@ -39,7 +39,7 @@ class PaymentMethodApiTest extends CardPaymentsTestCase
 
         $second = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_mastercard'], $headers)->assertCreated()
             ->assertJsonPath('data.is_default', false)->assertJsonPath('data.brand', 'mastercard')->json('data.id');
-        $third = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_visa', 'make_default' => true], $headers)->assertCreated()
+        $third = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_amex', 'make_default' => true], $headers)->assertCreated()
             ->assertJsonPath('data.is_default', true)->json('data.id');
 
         $this->assertSame(1, count(array_unique(PaymentMethod::query()->pluck('gateway_customer_id')->all())));
@@ -47,6 +47,37 @@ class PaymentMethodApiTest extends CardPaymentsTestCase
         $this->assertSame([$third], PaymentMethod::query()->where('is_default', true)->pluck('id')->all());
         // Default first, then newest.
         $this->getJson('/api/v1/payment-methods', $headers)->assertOk()->assertJsonPath('data.*.id', [$third, $second, $first]);
+    }
+
+    public function test_adding_the_same_card_again_returns_it_instead_of_failing_or_duplicating(): void
+    {
+        $rider = $this->rider();
+        $headers = $this->as($rider);
+        $visa = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_visa'], $headers)->assertCreated()->json('data.id');
+        $mastercard = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_mastercard'], $headers)->assertCreated()->json('data.id');
+
+        // The app timed out and sends the same token again: the gateway hands back the same card.
+        $again = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_mastercard'], $headers)->assertOk()
+            ->assertJsonPath('data.id', $mastercard)->assertJsonPath('data.is_default', false);
+        $this->assertSame(2, PaymentMethod::query()->count());
+
+        // Asking for it to be the default on the retry still makes it so, and only it.
+        $this->postJson('/api/v1/payment-methods', ['token' => 'tok_mastercard', 'make_default' => true], $headers)->assertOk()
+            ->assertJsonPath('data.id', $mastercard)->assertJsonPath('data.is_default', true);
+        $this->assertSame([$mastercard], PaymentMethod::query()->where('is_default', true)->pluck('id')->all());
+        $this->assertFalse(PaymentMethod::query()->findOrFail($visa)->is_default);
+        $this->assertSame($again->json('data.last4'), '4444');
+        // One customer for the rider, however many attempts.
+        $this->assertSame(1, count(array_filter(array_column($this->gateway()->calls, 'op'), fn ($op) => $op === 'createCustomer')));
+    }
+
+    public function test_two_riders_adding_the_same_test_token_get_separate_cards(): void
+    {
+        $first = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_visa'], $this->as($this->rider()))->assertCreated()->json('data.id');
+        $second = $this->postJson('/api/v1/payment-methods', ['token' => 'tok_visa'], $this->as($this->rider('+37491210444')))->assertCreated()->json('data.id');
+
+        $this->assertNotSame($first, $second);
+        $this->assertSame(2, PaymentMethod::query()->distinct()->count('gateway_payment_method_id'));
     }
 
     public function test_the_list_shows_only_the_riders_own_live_cards_without_gateway_ids(): void
