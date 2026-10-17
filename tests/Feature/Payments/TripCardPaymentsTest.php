@@ -296,6 +296,58 @@ class TripCardPaymentsTest extends CardPaymentsTestCase
         $this->assertSame(0, Transaction::query()->count());
     }
 
+    public function test_completing_a_trip_that_is_not_completed_takes_nothing(): void
+    {
+        $rider = $this->rider();
+        // Still in progress, but with a fare on it: only the status guard stops the capture.
+        $trip = $this->cardTrip($rider, $this->card($rider), 'inProgress', ['fare_amount' => 150000, 'commission_amount' => 0, 'driver_earnings_amount' => 0]);
+        $this->trips->hold($trip);
+        $calls = count($this->gateway()->calls);
+
+        try {
+            $this->trips->complete($trip->fresh());
+            $this->fail('A trip that is not completed was paid.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame('The trip must be completed.', $e->getMessage());
+        }
+
+        $this->assertSame($calls, count($this->gateway()->calls));
+        $this->assertSame(0, Transaction::query()->whereIn('type', ['capture', 'charge'])->count());
+        $this->assertSame(TripPaymentStatus::Authorized, $trip->fresh()->payment_status);
+    }
+
+    public function test_cancelling_a_trip_that_is_not_cancelled_takes_nothing(): void
+    {
+        $rider = $this->rider();
+        $trip = $this->cardTrip($rider, $this->card($rider), 'completed', ['fare_amount' => 150000, 'commission_amount' => 0, 'driver_earnings_amount' => 0]);
+        $this->trips->hold($trip);
+
+        try {
+            $this->trips->cancel($trip->fresh());
+            $this->fail('A trip that is not cancelled was settled as cancelled.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame('The trip must be cancelled.', $e->getMessage());
+        }
+
+        $this->assertSame(0, Transaction::query()->whereIn('type', ['capture', 'charge', 'void'])->count());
+    }
+
+    public function test_a_completed_cash_trip_is_never_paid_through_the_gateway(): void
+    {
+        $rider = $this->rider();
+        $trip = Trip::factory()->completed()->create(['rider_id' => $rider->id, 'payment_method' => TripPaymentMethod::Cash]);
+
+        try {
+            $this->trips->complete($trip);
+            $this->fail('A cash trip was paid through the gateway.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame('Only card trips are paid through the gateway.', $e->getMessage());
+        }
+
+        $this->assertSame([], $this->gateway()->calls);
+        $this->assertSame(TripPaymentStatus::Unpaid, $trip->fresh()->payment_status);
+    }
+
     public function test_a_card_trip_without_a_live_card_of_the_rider_is_refused(): void
     {
         $rider = $this->rider();

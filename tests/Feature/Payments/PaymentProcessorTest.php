@@ -10,6 +10,7 @@ use App\Exceptions\PaymentGatewayException;
 use App\Models\Transaction;
 use App\Services\Payments\PaymentProcessor;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -164,6 +165,32 @@ class PaymentProcessorTest extends CardPaymentsTestCase
         }
 
         $this->assertSame(0, Transaction::query()->count());
+        $this->assertSame([], $this->gateway()->calls);
+    }
+
+    public function test_a_second_server_taking_the_key_between_the_read_and_the_insert_is_told_it_is_in_progress(): void
+    {
+        $rider = $this->rider();
+        $card = $this->card($rider);
+        // Another server inserts the same key just before ours does: the unique index (gateway, idempotency_key) refuses ours.
+        Transaction::creating(function () use ($rider, $card) {
+            DB::table('transactions')->insert([
+                'user_id' => $rider->id, 'payment_method_id' => $card->id, 'gateway' => 'stripe', 'idempotency_key' => 'key-race',
+                'type' => 'charge', 'status' => 'processing', 'amount' => 5000, 'currency' => 'AMD',
+            ]);
+        });
+
+        try {
+            $this->payments->charge($rider, $card, 5000, 'AMD', 'key-race');
+            $this->fail('The duplicate key was not refused.');
+        } catch (PaymentException $e) {
+            $this->assertSame('payment_in_progress', $e->errorCode);
+            $this->assertSame(409, $e->status);
+        } finally {
+            Transaction::flushEventListeners();
+        }
+
+        // The gateway was never called for the losing attempt.
         $this->assertSame([], $this->gateway()->calls);
     }
 

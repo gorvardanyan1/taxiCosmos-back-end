@@ -146,6 +146,22 @@ class PaymentLocksTest extends TestCase
         $this->assertSame([$card->id], PaymentMethod::query()->where('is_default', true)->pluck('id')->all());
     }
 
+    public function test_saving_a_card_waits_for_the_lock_on_the_rider_and_saves_nothing_while_it_is_held(): void
+    {
+        $rider = $this->rider();
+        $this->hold('users', $rider->id);
+
+        $this->assertLockedOut(fn () => app(SavedCards::class)->add($rider, 'tok_visa', true));
+
+        $this->assertSame(0, PaymentMethod::query()->count());
+
+        // Once the other request is done, the same call saves the card as the default.
+        $this->release();
+        $card = app(SavedCards::class)->add($rider, 'tok_visa', true)['card'];
+        $this->assertTrue($card->is_default);
+        $this->assertSame(1, PaymentMethod::query()->count());
+    }
+
     public function test_a_second_payment_of_the_balance_while_the_first_is_running_charges_nothing(): void
     {
         $rider = $this->rider();
