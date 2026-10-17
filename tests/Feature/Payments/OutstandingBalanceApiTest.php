@@ -73,6 +73,28 @@ class OutstandingBalanceApiTest extends CardPaymentsTestCase
             ->assertStatus(409)->assertJsonPath('code', 'nothing_outstanding');
     }
 
+    public function test_the_balance_adds_up_every_owed_trip_per_currency(): void
+    {
+        $rider = $this->rider();
+        // The USD trip is the oldest, so sorting by currency (not by trip) is what puts AMD first.
+        $usd = $this->cardTrip($rider, $this->card($rider), 'completed', [
+            'fare_currency' => 'USD', 'estimated_fare_amount' => 700, 'fare_amount' => 700, 'commission_amount' => 0, 'driver_earnings_amount' => 0,
+            'payment_status' => TripPaymentStatus::PaymentFailed,
+        ]);
+        $a = $this->failedTrip($rider, 1000);
+        $b = $this->failedTrip($rider, 2500);
+
+        $response = $this->getJson('/api/v1/account/outstanding', $this->as($rider))->assertOk();
+
+        $response->assertJsonPath('data.has_outstanding', true)
+            // One total per currency, sorted by currency code, each the sum of that currency's trips.
+            ->assertJsonPath('data.totals', [['amount' => 3500, 'currency' => 'AMD'], ['amount' => 700, 'currency' => 'USD']])
+            ->assertJsonPath('data.trips.*.id', [$usd->id, $a->id, $b->id])
+            ->assertJsonPath('data.trips.*.amount', [700, 1000, 2500]);
+        // /me carries the first currency's total.
+        $this->getJson('/api/v1/me', $this->as($rider))->assertJsonPath('user.rider.outstanding_balance', ['amount' => 3500, 'currency' => 'AMD']);
+    }
+
     public function test_me_shows_the_balance_and_the_default_card_so_the_app_asks_for_an_update(): void
     {
         $rider = $this->rider();

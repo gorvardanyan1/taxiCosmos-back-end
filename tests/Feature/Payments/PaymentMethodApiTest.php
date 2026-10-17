@@ -97,6 +97,20 @@ class PaymentMethodApiTest extends CardPaymentsTestCase
         $this->assertStringNotContainsString('gateway', $response->getContent());
     }
 
+    public function test_a_card_is_valid_through_the_end_of_its_expiry_month(): void
+    {
+        $this->travelTo('2026-10-15 12:00:00');
+        $rider = $this->rider();
+        $thisMonth = $this->card($rider, attributes: ['exp_month' => 10, 'exp_year' => 2026]);
+        $lastMonth = $this->card($rider, attributes: ['exp_month' => 9, 'exp_year' => 2026]);
+        $lastYear = $this->card($rider, attributes: ['exp_month' => 12, 'exp_year' => 2025]);
+        $nextYear = $this->card($rider, attributes: ['exp_month' => 1, 'exp_year' => 2027]);
+
+        $expired = collect($this->getJson('/api/v1/payment-methods', $this->as($rider))->assertOk()->json('data'))->pluck('is_expired', 'id')->all();
+
+        $this->assertEquals([$thisMonth->id => false, $lastMonth->id => true, $lastYear->id => true, $nextYear->id => false], $expired);
+    }
+
     public function test_a_refused_or_malformed_token_saves_nothing(): void
     {
         $rider = $this->rider();

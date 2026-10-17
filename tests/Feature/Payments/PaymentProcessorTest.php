@@ -275,6 +275,53 @@ class PaymentProcessorTest extends CardPaymentsTestCase
         $this->assertSame(10000, (int) Transaction::query()->where('type', 'refund')->sum('amount'));
     }
 
+    public function test_a_refund_still_in_flight_counts_against_what_can_be_refunded(): void
+    {
+        $rider = $this->rider();
+        $charge = $this->payments->charge($rider, $this->card($rider), 10000, 'AMD', 'key-paid-flight');
+        // The first refund's answer is lost in a timeout: its row stays `processing`.
+        $this->gateway()->timeoutNext(applied: false);
+
+        try {
+            $this->payments->refund($charge, 6000, 'key-refund-flight-1');
+            $this->fail('The timeout was swallowed.');
+        } catch (PaymentGatewayException) {
+        }
+
+        try {
+            $this->payments->refund($charge, 5000, 'key-refund-flight-2');
+            $this->fail('A refund passed what was left once the first one was counted.');
+        } catch (PaymentException $e) {
+            $this->assertSame('refund_exceeds_remaining', $e->errorCode);
+        }
+
+        $this->assertSame(1, Transaction::query()->where('type', 'refund')->count());
+        // The retry of the first refund finishes it, and what is left (4 000) can still be refunded once.
+        $this->assertSame(TransactionStatus::Succeeded, $this->payments->refund($charge, 6000, 'key-refund-flight-1')->status);
+        $this->assertSame(TransactionStatus::Succeeded, $this->payments->refund($charge, 4000, 'key-refund-flight-3')->status);
+        $this->assertSame(10000, (int) Transaction::query()->where('type', 'refund')->sum('amount'));
+    }
+
+    public function test_a_capture_still_in_flight_closes_the_hold_to_a_void_with_another_key(): void
+    {
+        $rider = $this->rider();
+        $hold = $this->payments->authorize($rider, $this->card($rider), 18000, 'AMD', 'key-hold-flight');
+        $this->gateway()->timeoutNext(applied: false);
+
+        try {
+            $this->payments->capture($hold, 15000, 'key-capture-flight');
+            $this->fail('The timeout was swallowed.');
+        } catch (PaymentGatewayException) {
+        }
+
+        $this->assertHoldClosed(fn () => $this->payments->void($hold, 'key-void-flight'));
+        $this->assertHoldClosed(fn () => $this->payments->capture($hold, 1000, 'key-capture-flight-2'));
+        $this->assertSame(0, Transaction::query()->where('type', 'void')->count());
+
+        // Only the retry of the same capture goes through.
+        $this->assertSame(TransactionStatus::Succeeded, $this->payments->capture($hold, 15000, 'key-capture-flight')->status);
+    }
+
     public function test_a_hold_or_a_failed_charge_cannot_be_refunded(): void
     {
         $rider = $this->rider();
