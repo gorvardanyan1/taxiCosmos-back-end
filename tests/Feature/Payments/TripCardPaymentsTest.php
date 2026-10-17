@@ -162,6 +162,24 @@ class TripCardPaymentsTest extends CardPaymentsTestCase
         $this->assertSame(2, $gateway->moneyMovements()); // the capture and one extra charge
     }
 
+    public function test_a_fare_exactly_equal_to_the_hold_is_captured_with_no_extra_charge(): void
+    {
+        $rider = $this->rider();
+        $trip = $this->cardTrip($rider, $this->card($rider), 'requested', ['estimated_fare_amount' => 150000]);
+        $hold = $this->trips->hold($trip);
+        $this->assertSame(180000, $hold->amount);
+        $trip = $this->complete($trip, 180000);
+
+        $this->trips->complete($trip);
+
+        $capture = Transaction::query()->where('type', 'capture')->sole();
+        $this->assertSame(180000, $capture->amount);
+        $this->assertSame(TransactionStatus::Succeeded, $capture->status);
+        $this->assertSame(0, Transaction::query()->where('type', 'charge')->count());
+        $this->assertSame(TripPaymentStatus::Paid, $trip->fresh()->payment_status);
+        $this->assertSame(['authorize', 'capture'], array_column($this->gateway()->calls, 'op'));
+    }
+
     public function test_a_failed_capture_makes_the_trip_payment_failed_and_an_outstanding_balance(): void
     {
         $rider = $this->rider();
@@ -325,6 +343,48 @@ class TripCardPaymentsTest extends CardPaymentsTestCase
         $this->trips->complete($this->complete($running, 150000));
         $this->assertSame($new->id, Transaction::query()->where('type', 'capture')->sole()->parent_transaction_id);
         $this->assertSame(TripPaymentStatus::Paid, $running->fresh()->payment_status);
+    }
+
+    public function test_a_declined_renewal_keeps_the_old_hold_and_voids_nothing(): void
+    {
+        $rider = $this->rider();
+        $card = $this->card($rider);
+        $trip = $this->cardTrip($rider, $card, 'requested');
+        $old = $this->trips->hold($trip);
+        // The card starts declining before the hold would lapse.
+        $card->forceFill(['gateway_payment_method_id' => 'fake_pm_declined_'.$card->id])->save();
+        $this->travel(145)->hours();
+
+        $this->assertSame(0, $this->trips->renewExpiringHolds());
+
+        $this->assertSame($old->id, $this->trips->currentHold($trip)->id);
+        $this->assertSame(0, Transaction::query()->where('type', 'void')->count());
+        $renewal = Transaction::query()->where('idempotency_key', "trip:{$trip->id}:hold:renew:{$old->id}")->sole();
+        $this->assertSame(TransactionStatus::Failed, $renewal->status);
+        $this->assertSame('card_declined', $renewal->failure_code);
+        // The trip is untouched: still authorized on the old hold.
+        $this->assertSame(TripPaymentStatus::Authorized, $trip->fresh()->payment_status);
+    }
+
+    public function test_a_renewal_that_times_out_keeps_the_old_hold_and_the_next_run_finishes_it_once(): void
+    {
+        $rider = $this->rider();
+        $trip = $this->cardTrip($rider, $this->card($rider), 'requested');
+        $old = $this->trips->hold($trip);
+        $this->travel(145)->hours();
+        $this->gateway()->timeoutNext(applied: false);
+
+        $this->assertSame(0, $this->trips->renewExpiringHolds());
+
+        $this->assertSame($old->id, $this->trips->currentHold($trip)->id);
+        $this->assertSame(0, Transaction::query()->where('type', 'void')->count());
+
+        // The next run retries the same renewal key: one new hold, the old one released.
+        $this->assertSame(1, $this->trips->renewExpiringHolds());
+        $new = $this->trips->currentHold($trip);
+        $this->assertNotSame($old->id, $new->id);
+        $this->assertSame(2, Transaction::query()->where('type', 'authorization')->where('status', 'succeeded')->count());
+        $this->assertSame(1, Transaction::query()->where('type', 'void')->where('parent_transaction_id', $old->id)->count());
     }
 
     public function test_a_hold_that_lapsed_without_renewal_fails_the_capture(): void
