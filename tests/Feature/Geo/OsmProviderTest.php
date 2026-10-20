@@ -272,6 +272,21 @@ class OsmProviderTest extends TestCase
         $this->getJson('/api/v1/geo/autocomplete?q=abovyan', ['Authorization' => 'Bearer '.$token])->assertOk()->assertJsonPath('suggestions.0.place_id', 'W4421');
     }
 
+    public function test_the_limit_holds_when_the_cache_returns_the_last_call_time_as_a_string_as_redis_does(): void
+    {
+        Sleep::fake();
+        $this->travelTo(now());
+        Http::fake([self::NOMINATIM.'/*' => Http::response([self::row()])]);
+        // What Redis gives back for a stored number: Cache::get() is "1792522979836", not 1792522979836.
+        $nowMs = (int) round(now()->getPreciseTimestamp(3));
+        Cache::put('geo:osm:nominatim:last-call', (string) ($nowMs - 400), 60);
+        $this->assertIsString(Cache::get('geo:osm:nominatim:last-call'));
+
+        $this->osm(intervalMs: 1000)->geocode('abovyan');
+
+        Sleep::assertSequence([Sleep::for(600)->milliseconds()]);
+    }
+
     public function test_a_failed_nominatim_call_still_counts_towards_the_one_a_second_limit(): void
     {
         Sleep::fake();
