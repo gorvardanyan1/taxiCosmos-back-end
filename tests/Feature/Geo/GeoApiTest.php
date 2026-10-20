@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Geo;
 
+use App\Data\GeoPoint;
 use App\Exceptions\GeoException;
 use App\Models\User;
+use App\Services\Fares\RouteEstimator;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -265,7 +267,7 @@ class GeoApiTest extends TestCase
      */
     public static function providers(): array
     {
-        return ['fake' => ['fake'], 'google' => ['google'], '2gis' => ['2gis']];
+        return ['fake' => ['fake'], 'osm' => ['osm'], 'google' => ['google'], '2gis' => ['2gis']];
     }
 
     #[DataProvider('providers')]
@@ -276,12 +278,19 @@ class GeoApiTest extends TestCase
             'places.googleapis.com/v1/places/*' => Http::response(['id' => 'g1', 'displayName' => ['text' => 'Cafe'], 'formattedAddress' => 'Abovyan St 1', 'location' => ['latitude' => 40.18, 'longitude' => 44.51]]),
             'maps.googleapis.com/*' => Http::response(['status' => 'OK', 'results' => [['place_id' => 'g1', 'formatted_address' => 'Abovyan St 1', 'geometry' => ['location' => ['lat' => 40.18, 'lng' => 44.51]]]]]),
             'routes.googleapis.com/*' => Http::response(['routes' => [['distanceMeters' => 1523, 'duration' => '312s', 'polyline' => ['encodedPolyline' => 'abc']]]]),
+            'nominatim.openstreetmap.org/reverse*' => Http::response(['osm_type' => 'way', 'osm_id' => 4421, 'lat' => '40.1801', 'lon' => '44.5101', 'name' => '', 'display_name' => 'Abovyan St 1, Yerevan', 'address' => ['road' => 'Abovyan St']]),
+            'nominatim.openstreetmap.org/*' => Http::response([['osm_type' => 'way', 'osm_id' => 4421, 'lat' => '40.18', 'lon' => '44.51', 'name' => 'Cafe', 'display_name' => 'Cafe, Abovyan St 1, Yerevan', 'address' => ['road' => 'Abovyan St', 'city' => 'Yerevan']]]),
+            'router.project-osrm.org/*' => Http::response(['code' => 'Ok', 'routes' => [['distance' => 1523.2, 'duration' => 311.8, 'geometry' => 'abc']]]),
             'catalog.api.2gis.com/3.0/suggests*' => Http::response(['meta' => ['code' => 200], 'result' => ['items' => [['id' => 't1', 'name' => 'Abovyan St 1', 'address_name' => 'Yerevan']]]]),
             'catalog.api.2gis.com/*' => Http::response(['meta' => ['code' => 200], 'result' => ['items' => [['id' => 't1', 'name' => 'Cafe', 'full_name' => 'Abovyan St 1', 'address_name' => 'Abovyan St 1', 'point' => ['lat' => 40.18, 'lon' => 44.51]]]]]),
             'routing.api.2gis.com/*' => Http::response(['result' => [['total_distance' => 1523, 'total_duration' => 312, 'maneuvers' => [['outcoming_path' => ['geometry' => [['selection' => 'LINESTRING(44.51 40.18, 44.52 40.19)']]]]]]]]),
         ]);
-        config(['services.maps.provider' => $provider, 'services.maps.google.key' => 'k', 'services.maps.2gis.key' => 'k']);
-        $placeId = $provider === 'fake' ? 'fake-abovyan-1' : 'g1';
+        config(['services.maps.provider' => $provider, 'services.maps.google.key' => 'k', 'services.maps.2gis.key' => 'k', 'services.maps.osm.nominatim_interval_ms' => 0]);
+        $placeId = match ($provider) {
+            'fake' => 'fake-abovyan-1',
+            'osm' => 'W4421',
+            default => 'g1',
+        };
         $place = ['place_id' => 'string|null', 'name' => 'string|null', 'address' => 'string|null', 'location' => ['lat' => 'float', 'lng' => 'float']];
 
         $this->assertSame(['suggestions' => ['list' => [['place_id' => 'string|null', 'text' => 'string|null', 'primary_text' => 'string|null', 'secondary_text' => 'string|null']]]],
@@ -305,6 +314,43 @@ class GeoApiTest extends TestCase
         }
 
         return get_debug_type($value) === 'null' ? 'string|null' : (is_string($value) ? 'string|null' : get_debug_type($value));
+    }
+
+    public function test_with_osm_a_route_during_an_osrm_outage_is_still_a_200_with_the_usual_shape_and_is_asked_again_next_time(): void
+    {
+        config(['services.maps.provider' => 'osm', 'services.maps.osm.nominatim_interval_ms' => 0]);
+        Http::fake(['router.project-osrm.org/*' => Http::sequence()->pushStatus(503)->push(['code' => 'Ok', 'routes' => [['distance' => 1600.4, 'duration' => 300, 'geometry' => 'abc']]])]);
+
+        $down = $this->get_('/api/v1/geo/route?from=40.18,44.51&to=40.19,44.52')->assertOk();
+        $this->assertSame(['distance_meters', 'duration_seconds', 'polyline'], array_keys($down->json('route')));
+        $this->assertSame((new RouteEstimator)->estimate(new GeoPoint(40.18, 44.51), new GeoPoint(40.19, 44.52))['distance_meters'], $down->json('route.distance_meters'), 'the straight line x 1.30 that fares use');
+
+        $this->get_('/api/v1/geo/route?from=40.18,44.51&to=40.19,44.52')->assertOk()->assertJsonPath('route.distance_meters', 1600)->assertJsonPath('route.polyline', 'abc');
+        $this->get_('/api/v1/geo/route?from=40.18,44.51&to=40.19,44.52')->assertOk();
+        Http::assertSentCount(2);
+    }
+
+    public function test_with_osm_no_route_is_still_404_route_not_found_and_a_nominatim_outage_is_502(): void
+    {
+        config(['services.maps.provider' => 'osm', 'services.maps.osm.nominatim_interval_ms' => 0]);
+        Http::fake([
+            'router.project-osrm.org/*' => Http::response(['code' => 'NoRoute']),
+            'nominatim.openstreetmap.org/*' => Http::response('down', 500),
+        ]);
+
+        $this->get_('/api/v1/geo/route?from=40.18,44.51&to=40.19,44.52')->assertNotFound()->assertJsonPath('code', 'route_not_found');
+        $this->get_('/api/v1/geo/autocomplete?q=abovyan')->assertStatus(502)->assertJsonPath('code', 'geo_provider_unavailable');
+    }
+
+    public function test_the_fare_estimate_does_not_depend_on_which_maps_provider_is_active(): void
+    {
+        config(['services.maps.provider' => 'osm']);
+        Http::fake();
+
+        $this->postJson('/api/v1/trips/fare-estimate', ['pickup' => ['lat' => 40.18, 'lng' => 44.51], 'dropoff' => ['lat' => 40.19, 'lng' => 44.51]], ['Authorization' => 'Bearer '.$this->token()])
+            ->assertStatus(422); // no fare rule in this database: the validation answers, and the maps are not asked
+
+        Http::assertNothingSent();
     }
 
     // ---- failures ----

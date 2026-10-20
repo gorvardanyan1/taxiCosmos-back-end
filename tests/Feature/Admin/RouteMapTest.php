@@ -43,7 +43,7 @@ class RouteMapTest extends AdminTestCase
             'settings gateways' => ['/admin/settings/gateways', 'Settings/Gateways', fn (Assert $p) => $p->has('gateways', 2)->where('gateways.0.masked_key', 'sk_live_…a91F')],
             'settings currencies' => ['/admin/settings/currencies', 'Settings/Currencies', fn (Assert $p) => $p->has('currencies', 4)->where('baseCurrency', 'AMD')->where('currencies.3.active', false)],
             'settings platform' => ['/admin/settings/platform', 'Settings/Platform', fn (Assert $p) => $p->has('settings', 7)],
-            'settings maps' => ['/admin/settings/maps', 'Settings/Maps', fn (Assert $p) => $p->where('maps.provider', 'google')],
+            'settings maps' => ['/admin/settings/maps', 'Settings/Maps', fn (Assert $p) => $p->where('maps.provider', 'osm')],
             'activity log' => ['/admin/activity-logs', 'ActivityLog/Index', fn (Assert $p) => $p->where('entries.total', 0)->where('expandedId', null)->where('expanded', null)->where('actions.export', '/admin/activity-logs/export')],
             'my account' => ['/admin/account', 'Account/Show', fn (Assert $p) => $p->where('tab', 'profile')->has('sessions', 1)->has('notification_preferences', 8)],
         ];
