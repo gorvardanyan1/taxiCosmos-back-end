@@ -4,6 +4,7 @@ namespace Tests\Feature\Geo;
 
 use App\Data\GeoPoint;
 use App\Exceptions\GeoException;
+use App\Models\User;
 use App\Services\Fares\RouteEstimator;
 use App\Services\Geo\NominatimThrottle;
 use App\Services\Geo\OsmProvider;
@@ -223,6 +224,50 @@ class OsmProviderTest extends TestCase
         Sleep::assertSleptTimes(1); // late enough: no wait
     }
 
+    public function test_a_request_that_cannot_get_its_turn_soon_fails_as_a_maps_outage_and_does_not_hold_a_worker(): void
+    {
+        Log::spy();
+        Sleep::fake(syncWithCarbon: true);
+        Http::fake();
+        // Another request is in the middle of its Nominatim turn.
+        $this->assertTrue(Cache::lock('geo:osm:nominatim:lock', 120)->get());
+        $osm = new OsmProvider(
+            ['nominatim_url' => self::NOMINATIM, 'osrm_url' => self::OSRM, 'user_agent' => self::UA, 'country_codes' => 'am', 'search_cache_ttl' => 0],
+            new NominatimThrottle(1000, maxWaitSeconds: 3),
+            new RouteEstimator,
+        );
+        $started = now();
+
+        try {
+            $osm->geocode('abovyan');
+            $this->fail('expected a maps outage');
+        } catch (GeoException $e) {
+            $this->assertSame(GeoException::providerUnavailable()->getMessage(), $e->getMessage());
+        }
+
+        $this->assertLessThanOrEqual(4, $started->diffInSeconds(now(), true), 'it gave up after the short wait, not after 30 s');
+        Http::assertNothingSent();
+        Log::shouldHaveReceived('warning')->once()->with('Maps provider call failed', ['provider' => 'osm', 'operation' => 'nominatim_throttle', 'status' => null]);
+    }
+
+    public function test_the_api_answers_502_geo_provider_unavailable_when_the_throttle_is_busy_and_recovers_when_it_is_free(): void
+    {
+        config(['services.maps.provider' => 'osm', 'services.maps.osm.nominatim_interval_ms' => 1000, 'services.maps.osm.nominatim_max_wait_seconds' => 1]);
+        Sleep::fake(syncWithCarbon: true);
+        Http::fake(['nominatim.openstreetmap.org/*' => Http::response([self::row()])]);
+        $busy = Cache::lock('geo:osm:nominatim:lock', 120);
+        $this->assertTrue($busy->get());
+        $token = User::factory()->rider()->create()->createToken('device', ['rider'])->plainTextToken;
+
+        $this->getJson('/api/v1/geo/autocomplete?q=abovyan', ['Authorization' => 'Bearer '.$token])
+            ->assertStatus(502)
+            ->assertExactJson(['message' => 'The maps service is not available right now. Please try again.', 'code' => 'geo_provider_unavailable']);
+
+        $busy->release();
+        app('auth')->forgetGuards();
+        $this->getJson('/api/v1/geo/autocomplete?q=abovyan', ['Authorization' => 'Bearer '.$token])->assertOk()->assertJsonPath('suggestions.0.place_id', 'W4421');
+    }
+
     public function test_a_self_hosted_nominatim_has_no_limit(): void
     {
         Sleep::fake();
@@ -275,6 +320,43 @@ class OsmProviderTest extends TestCase
         $osm->autocomplete('abovyan', new GeoPoint(40.18, 44.51));
 
         Http::assertSentCount(3);
+    }
+
+    public function test_place_details_and_geocode_are_remembered_per_language(): void
+    {
+        Http::fake([self::NOMINATIM.'/*' => Http::sequence()
+            ->push([self::row(['display_name' => 'Abovyan Street 12, Yerevan'])])
+            ->push([self::row(['display_name' => 'Abovyan Street 12 (ru)'])])
+            ->push([self::row(['display_name' => 'Geocoded in English'])])
+            ->push([self::row(['display_name' => 'Geocoded in Russian'])])]);
+        $osm = $this->osm();
+
+        $english = $osm->placeDetails('W4421')->address;
+        $osm->placeDetails('W4421'); // same language: from the cache
+        app()->setLocale('ru');
+        $russian = $osm->placeDetails('W4421')->address;
+        app()->setLocale('en');
+        $geocodedEnglish = $osm->geocode('abovyan 12')->address;
+        app()->setLocale('ru');
+        $geocodedRussian = $osm->geocode('abovyan 12')->address;
+
+        $this->assertSame(['Abovyan Street 12, Yerevan', 'Abovyan Street 12 (ru)', 'Geocoded in English', 'Geocoded in Russian'], [$english, $russian, $geocodedEnglish, $geocodedRussian]);
+        Http::assertSentCount(4);
+    }
+
+    public function test_the_grey_line_of_a_suggestion_is_the_locality_unless_it_just_repeats_the_bold_line(): void
+    {
+        Http::fake([self::NOMINATIM.'/*' => Http::response([
+            self::row(['osm_id' => 1, 'name' => 'Yerevan', 'display_name' => 'Yerevan, Armenia', 'address' => ['city' => 'Yerevan']]),
+            self::row(['osm_id' => 2, 'name' => '', 'display_name' => 'Somewhere, Armenia', 'address' => ['country' => 'Armenia']]),
+        ])]);
+
+        $suggestions = $this->osm()->autocomplete('yerevan');
+
+        $this->assertNull($suggestions[0]->secondaryText, 'the city named Yerevan in Yerevan: nothing to add');
+        $this->assertSame('Yerevan', $suggestions[0]->primaryText);
+        $this->assertNull($suggestions[1]->secondaryText, 'no locality known');
+        $this->assertSame('Somewhere', $suggestions[1]->primaryText, 'falls back to the first part of the address');
     }
 
     public function test_nothing_found_and_failures_are_asked_again(): void

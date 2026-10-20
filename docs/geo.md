@@ -23,6 +23,7 @@ The MVP uses free maps only. `OsmProvider` talks to **Nominatim** (`/search`, `/
 | `OSM_OSRM_URL` | `https://router.project-osrm.org` | Routing server. |
 | `OSM_USER_AGENT` | `TaxiKosmos/1.0 (...)` | Sent on every call. Nominatim blocks anonymous clients: put a real contact in it. |
 | `OSM_NOMINATIM_INTERVAL_MS` | `1000` | Minimum time between two Nominatim calls, shared by all workers (cache lock). `0` = no limit. |
+| `OSM_NOMINATIM_MAX_WAIT_SECONDS` | `3` | How long a request may queue for its turn. After that it fails with the usual 502 `geo_provider_unavailable` instead of holding a web worker. |
 | `OSM_COUNTRY_CODES` | `am` | Search is limited to these countries; empty = worldwide. |
 | `OSM_SEARCH_CACHE_TTL` | `86400` | Seconds a search, place or geocode answer is remembered (Redis). `0` = off. |
 

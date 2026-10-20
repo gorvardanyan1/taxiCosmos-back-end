@@ -63,7 +63,7 @@ class AppServiceProvider extends ServiceProvider
                         'country_codes' => (string) config('services.maps.osm.country_codes'),
                         'search_cache_ttl' => (int) config('services.maps.osm.search_cache_ttl'),
                     ],
-                    new NominatimThrottle((int) config('services.maps.osm.nominatim_interval_ms')),
+                    new NominatimThrottle((int) config('services.maps.osm.nominatim_interval_ms'), (int) config('services.maps.osm.nominatim_max_wait_seconds')),
                     $app->make(RouteEstimator::class),
                 ),
                 'fake' => $app->environment(['local', 'testing', 'e2e'])

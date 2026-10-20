@@ -61,6 +61,8 @@ return [
             'user_agent' => env('OSM_USER_AGENT', 'TaxiKosmos/1.0 (set OSM_USER_AGENT to a contact address)'),
             // Milliseconds between two calls to Nominatim (the public server allows one a second); 0 = no limit (self-hosted).
             'nominatim_interval_ms' => (int) env('OSM_NOMINATIM_INTERVAL_MS', 1000),
+            // Seconds a request may queue for its turn before it gives up with a 502 (a worker asleep in a queue starves the API).
+            'nominatim_max_wait_seconds' => (int) env('OSM_NOMINATIM_MAX_WAIT_SECONDS', 3),
             // Comma-separated ISO country codes the search is limited to (am = Armenia); empty = worldwide.
             'country_codes' => (string) env('OSM_COUNTRY_CODES', 'am'),
             // Seconds a search, place or geocode answer is remembered, 0 = off.
