@@ -67,7 +67,7 @@ return [
         // Highest surge multiplier ever applied, in hundredths (300 = 3.00x). Surge rules (P5-T4) may not exceed it.
         'surge_cap_hundredths' => (int) env('FARE_SURGE_CAP_HUNDREDTHS', 300),
 
-        // Until the maps provider supplies routes (P5-T1) the route is estimated from the straight line:
+        // The route is estimated from the straight line (fare estimates today, and the OSM provider when OSRM is down):
         // the distance is multiplied by this detour factor (130 = 1.30x) and driven at the average speed.
         'route_detour_percent' => (int) env('FARE_ROUTE_DETOUR_PERCENT', 130),
         'route_average_speed_kmh' => (int) env('FARE_ROUTE_AVERAGE_SPEED_KMH', 30),

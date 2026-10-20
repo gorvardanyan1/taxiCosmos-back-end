@@ -39,6 +39,8 @@ class CachingGeoProviderTest extends TestCase
 
             public bool $empty = false;
 
+            public bool $estimated = false;
+
             private function hit(string $name): void
             {
                 $this->calls[$name] = ($this->calls[$name] ?? 0) + 1;
@@ -80,14 +82,14 @@ class CachingGeoProviderTest extends TestCase
             {
                 $this->hit('route');
 
-                return $this->empty ? null : new GeoRoute(1000 + $this->calls['route'], 200, 'abc');
+                return $this->empty ? null : new GeoRoute(1000 + $this->calls['route'], 200, 'abc', $this->estimated);
             }
 
             public function estimateEta(GeoPoint $origin, GeoPoint $destination): ?GeoEstimate
             {
                 $this->hit('eta');
 
-                return $this->empty ? null : new GeoEstimate(900, 100 + $this->calls['eta']);
+                return $this->empty ? null : new GeoEstimate(900, 100 + $this->calls['eta'], $this->estimated);
             }
         };
     }
@@ -244,6 +246,29 @@ class CachingGeoProviderTest extends TestCase
         $inner->fail = false;
         $this->assertNotNull($cache->reverseGeocode($point), 'an earlier failure left nothing behind');
         $this->assertSame(4, $inner->calls['reverse']);
+    }
+
+    public function test_a_straight_line_estimate_is_returned_but_never_remembered_so_the_real_route_is_tried_again(): void
+    {
+        $inner = $this->inner();
+        $inner->estimated = true;
+        $cache = $this->cache($inner, 'osm');
+        $a = new GeoPoint(40.18, 44.51);
+        $b = new GeoPoint(40.19, 44.52);
+
+        $this->assertTrue($cache->getRoute($a, $b)->estimated);
+        $this->assertTrue($cache->estimateEta($a, $b)->estimated);
+        $cache->getRoute($a, $b);
+        $cache->estimateEta($a, $b);
+        $this->assertSame(2, $inner->calls['route']);
+        $this->assertSame(2, $inner->calls['eta']);
+
+        $inner->estimated = false; // OSRM is back
+        $route = $cache->getRoute($a, $b);
+        $this->assertFalse($route->estimated);
+        $this->assertSame(3, $inner->calls['route']);
+        $cache->getRoute($a, $b);
+        $this->assertSame(3, $inner->calls['route'], 'a real route is remembered as before');
     }
 
     public function test_autocomplete_details_and_geocode_always_reach_the_provider(): void

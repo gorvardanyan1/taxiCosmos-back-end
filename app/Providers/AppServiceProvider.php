@@ -12,9 +12,12 @@ use App\Events\Realtime\TripStatusChanged;
 use App\Events\Realtime\UserSuspended;
 use App\Listeners\NotifyByPush;
 use App\Models\User;
+use App\Services\Fares\RouteEstimator;
 use App\Services\Geo\CachingGeoProvider;
 use App\Services\Geo\FakeGeoProvider;
 use App\Services\Geo\GoogleMapsProvider;
+use App\Services\Geo\NominatimThrottle;
+use App\Services\Geo\OsmProvider;
 use App\Services\Geo\TwoGisProvider;
 use App\Services\Payments\PaymentGateways;
 use App\Services\Push\ExpoPushSender;
@@ -52,10 +55,21 @@ class AppServiceProvider extends ServiceProvider
             $inner = match ($name) {
                 'google' => new GoogleMapsProvider((string) config('services.maps.google.key')),
                 '2gis' => new TwoGisProvider((string) config('services.maps.2gis.key')),
+                'osm' => new OsmProvider(
+                    [
+                        'nominatim_url' => (string) config('services.maps.osm.nominatim_url'),
+                        'osrm_url' => (string) config('services.maps.osm.osrm_url'),
+                        'user_agent' => (string) config('services.maps.osm.user_agent'),
+                        'country_codes' => (string) config('services.maps.osm.country_codes'),
+                        'search_cache_ttl' => (int) config('services.maps.osm.search_cache_ttl'),
+                    ],
+                    new NominatimThrottle((int) config('services.maps.osm.nominatim_interval_ms')),
+                    $app->make(RouteEstimator::class),
+                ),
                 'fake' => $app->environment(['local', 'testing', 'e2e'])
                     ? $app->make(FakeGeoProvider::class)
                     : throw new RuntimeException('MAPS_PROVIDER=fake is only for local, testing and e2e environments.'),
-                default => throw new RuntimeException("Unknown MAPS_PROVIDER \"{$name}\" (use google or 2gis)."),
+                default => throw new RuntimeException("Unknown MAPS_PROVIDER \"{$name}\" (use osm, google or 2gis)."),
             };
 
             return new CachingGeoProvider($inner, $name, $app->make(CacheRepository::class));

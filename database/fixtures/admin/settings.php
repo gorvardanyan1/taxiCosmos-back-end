@@ -17,5 +17,5 @@ return [
         ['key' => 'admin_session_timeout', 'label' => 'Admin session timeout', 'value' => '30 minutes'],
         ['key' => 'support_contact', 'label' => 'Support contact', 'value' => 'support@taxikosmos.am · +374 10 555 010'],
     ],
-    'maps' => ['provider' => 'google', 'providers' => [['key' => 'google', 'name' => 'Google Maps'], ['key' => '2gis', 'name' => '2GIS']], 'masked_key' => 'AIza…39Fq'],
+    'maps' => ['provider' => 'osm', 'providers' => [['key' => 'osm', 'name' => 'OpenStreetMap'], ['key' => 'google', 'name' => 'Google Maps'], ['key' => '2gis', 'name' => '2GIS']], 'masked_key' => ''],
 ];

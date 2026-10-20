@@ -53,31 +53,47 @@ final class CachingGeoProvider implements GeoProvider
 
     public function getRoute(GeoPoint $origin, GeoPoint $destination): ?GeoRoute
     {
+        $estimated = false;
         $cached = $this->remember(
             'route:'.$this->round($origin).':'.$this->round($destination),
             (int) config('services.maps.cache.route_ttl'),
-            fn () => $this->inner->getRoute($origin, $destination)?->toArray(),
+            function () use ($origin, $destination, &$estimated) {
+                $route = $this->inner->getRoute($origin, $destination);
+                $estimated = $route?->estimated ?? false;
+
+                return $route?->toArray();
+            },
+            $estimated,
         );
 
-        return $cached === null ? null : GeoRoute::fromArray($cached);
+        return $cached === null ? null : new GeoRoute($cached['distance_meters'], $cached['duration_seconds'], $cached['polyline'], $estimated);
     }
 
     public function estimateEta(GeoPoint $origin, GeoPoint $destination): ?GeoEstimate
     {
+        $estimated = false;
         $cached = $this->remember(
             'eta:'.$this->round($origin).':'.$this->round($destination),
             (int) config('services.maps.cache.route_ttl'),
-            fn () => $this->inner->estimateEta($origin, $destination)?->toArray(),
+            function () use ($origin, $destination, &$estimated) {
+                $estimate = $this->inner->estimateEta($origin, $destination);
+                $estimated = $estimate?->estimated ?? false;
+
+                return $estimate?->toArray();
+            },
+            $estimated,
         );
 
-        return $cached === null ? null : GeoEstimate::fromArray($cached);
+        return $cached === null ? null : new GeoEstimate($cached['distance_meters'], $cached['duration_seconds'], $estimated);
     }
 
     /**
+     * An answer the fetch marked as an estimate (`$estimated`, set by the callback) is returned but not remembered.
+     *
      * @param  callable(): ?array<string, mixed>  $fetch
      * @return array<string, mixed>|null
      */
-    private function remember(string $key, int $ttl, callable $fetch): ?array
+    private function remember(string $key, int $ttl, callable $fetch, bool &$estimated = false): ?array
     {
         $key = "geo:{$this->provider}:".app()->getLocale().":{$key}";
 
@@ -87,7 +103,7 @@ final class CachingGeoProvider implements GeoProvider
 
         $fresh = $fetch();
 
-        if ($fresh !== null) {
+        if ($fresh !== null && ! $estimated) {
             $this->cache->put($key, $fresh, $ttl);
         }
 
