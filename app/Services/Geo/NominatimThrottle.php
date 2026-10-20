@@ -57,8 +57,9 @@ final class NominatimThrottle
     {
         $last = Cache::get(self::LAST_CALL_KEY);
 
-        if (is_int($last)) {
-            $wait = $this->intervalMilliseconds - (self::nowMilliseconds() - $last);
+        // Redis hands numbers back as strings ("1792522979836"), the array store as ints: both are a time.
+        if (is_numeric($last)) {
+            $wait = $this->intervalMilliseconds - (self::nowMilliseconds() - (int) $last);
 
             if ($wait > 0) {
                 Sleep::for($wait)->milliseconds();
