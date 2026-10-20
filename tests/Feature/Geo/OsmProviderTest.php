@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Geo;
 
+use App\Contracts\GeoProvider;
 use App\Data\GeoPoint;
 use App\Exceptions\GeoException;
 use App\Models\User;
@@ -9,6 +10,7 @@ use App\Services\Fares\RouteEstimator;
 use App\Services\Geo\NominatimThrottle;
 use App\Services\Geo\OsmProvider;
 use App\Support\EncodedPolyline;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -24,6 +26,8 @@ use Tests\TestCase;
  */
 class OsmProviderTest extends TestCase
 {
+    use RefreshDatabase; // the API tests below create a rider: it must be rolled back, not left for the tests that run after
+
     private const NOMINATIM = 'https://nominatim.test';
 
     private const OSRM = 'https://osrm.test';
@@ -266,6 +270,58 @@ class OsmProviderTest extends TestCase
         $busy->release();
         app('auth')->forgetGuards();
         $this->getJson('/api/v1/geo/autocomplete?q=abovyan', ['Authorization' => 'Bearer '.$token])->assertOk()->assertJsonPath('suggestions.0.place_id', 'W4421');
+    }
+
+    public function test_a_failed_nominatim_call_still_counts_towards_the_one_a_second_limit(): void
+    {
+        Sleep::fake();
+        $this->travelTo(now());
+        Http::fake([self::NOMINATIM.'/*' => Http::sequence()->pushStatus(503)->push([self::row()])]);
+        $osm = $this->osm(intervalMs: 1000);
+
+        try {
+            $osm->geocode('one');
+            $this->fail('expected a maps outage');
+        } catch (GeoException) {
+            // The server answered, so it was a request to Nominatim like any other.
+        }
+        Sleep::assertNeverSlept();
+
+        $osm->geocode('two');
+
+        Sleep::assertSequence([Sleep::for(1000)->milliseconds()]);
+    }
+
+    public function test_how_long_a_request_may_queue_comes_from_config(): void
+    {
+        config(['services.maps.provider' => 'osm', 'services.maps.osm.nominatim_interval_ms' => 1000, 'services.maps.osm.nominatim_max_wait_seconds' => 1]);
+        Sleep::fake(syncWithCarbon: true);
+        Http::fake();
+        $this->assertTrue(Cache::lock('geo:osm:nominatim:lock', 120)->get());
+        $started = now();
+
+        try {
+            app(GeoProvider::class)->geocode('abovyan');
+            $this->fail('expected a maps outage');
+        } catch (GeoException) {
+            // gave up
+        }
+
+        $waited = $started->diffInSeconds(now(), true);
+        $this->assertGreaterThan(0.5, $waited, 'it queued for its turn first');
+        $this->assertLessThan(2, $waited, 'one second was configured; the built-in default (three) would wait about 2.75 s here');
+    }
+
+    public function test_a_self_hosted_nominatim_never_waits_for_the_lock(): void
+    {
+        Sleep::fake(syncWithCarbon: true);
+        Http::fake([self::NOMINATIM.'/*' => Http::response([self::row()])]);
+        $this->assertTrue(Cache::lock('geo:osm:nominatim:lock', 120)->get(), 'another request is in the middle of its turn');
+
+        $place = $this->osm(intervalMs: 0)->geocode('abovyan');
+
+        $this->assertSame('W4421', $place->placeId);
+        Sleep::assertNeverSlept();
     }
 
     public function test_a_self_hosted_nominatim_has_no_limit(): void
