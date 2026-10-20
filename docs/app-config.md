@@ -47,7 +47,8 @@ An unknown `app` or `platform` is `422` with the usual `{"message", "errors": {f
   `1.2.0`; `1.2` means `1.2.0`).
 - **`update.update_available`**: `true` when a newer build than this one exists (`latest_version`) or the update is forced. The app
   may show a dismissible hint.
-- A minimum (or latest) version that is not set, or is not a version, is `null` and forces nobody. `store_url` and the support and
+- A minimum (or latest) version that is not set, or is not a version, is `null` and forces nobody. **The shipped default is `0.0.0`**,
+  so nobody is forced (the apps in development are `0.x`); set the real minimums on production when a build has to be retired. `store_url` and the support and
   legal values are `null` until configured (never an empty string).
 - **`features`**: the app hides what is `false`. The MVP is cash only, so all of them start `false`.
 - **`vehicle_classes[].name`** is in the language of the request (`Accept-Language`: `en`, `ru`, `hy`; anything else is English).

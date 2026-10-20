@@ -78,15 +78,16 @@ return [
         // Seconds a client or CDN may keep the answer (Cache-Control max-age).
         'cache_seconds' => (int) env('APP_CONFIG_CACHE_SECONDS', 300),
 
-        // Per app and platform: the oldest build allowed to run and the newest one in the store (x.y or x.y.z).
+        // Per app and platform: the oldest build allowed to run and the newest one in the store (x.y or x.y.z). The default is 0.0.0, i.e.
+        // nobody is forced: the apps in development are 0.x builds. Set the real minimum in .env when a build must be retired.
         'versions' => [
             'rider' => [
-                'ios' => ['minimum' => env('APP_RIDER_IOS_MIN_VERSION', '1.0.0'), 'latest' => env('APP_RIDER_IOS_LATEST_VERSION', '1.0.0')],
-                'android' => ['minimum' => env('APP_RIDER_ANDROID_MIN_VERSION', '1.0.0'), 'latest' => env('APP_RIDER_ANDROID_LATEST_VERSION', '1.0.0')],
+                'ios' => ['minimum' => env('APP_RIDER_IOS_MIN_VERSION', '0.0.0'), 'latest' => env('APP_RIDER_IOS_LATEST_VERSION', '0.0.0')],
+                'android' => ['minimum' => env('APP_RIDER_ANDROID_MIN_VERSION', '0.0.0'), 'latest' => env('APP_RIDER_ANDROID_LATEST_VERSION', '0.0.0')],
             ],
             'driver' => [
-                'ios' => ['minimum' => env('APP_DRIVER_IOS_MIN_VERSION', '1.0.0'), 'latest' => env('APP_DRIVER_IOS_LATEST_VERSION', '1.0.0')],
-                'android' => ['minimum' => env('APP_DRIVER_ANDROID_MIN_VERSION', '1.0.0'), 'latest' => env('APP_DRIVER_ANDROID_LATEST_VERSION', '1.0.0')],
+                'ios' => ['minimum' => env('APP_DRIVER_IOS_MIN_VERSION', '0.0.0'), 'latest' => env('APP_DRIVER_IOS_LATEST_VERSION', '0.0.0')],
+                'android' => ['minimum' => env('APP_DRIVER_ANDROID_MIN_VERSION', '0.0.0'), 'latest' => env('APP_DRIVER_ANDROID_LATEST_VERSION', '0.0.0')],
             ],
         ],
 

@@ -98,6 +98,85 @@ class AppConfigApiTest extends TestCase
         $this->assertSame([false, false, false], array_values($defaults['app_config']['features']['social_login']));
     }
 
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function everyApp(): array
+    {
+        return ['rider ios' => ['rider', 'ios'], 'rider android' => ['rider', 'android'], 'driver ios' => ['driver', 'ios'], 'driver android' => ['driver', 'android']];
+    }
+
+    #[DataProvider('everyApp')]
+    public function test_the_shipped_defaults_force_nobody_so_the_apps_in_development_keep_working(string $app, string $platform): void
+    {
+        // The config file as shipped, before any .env: the apps are 0.x builds today and must not be locked out by the first deploy.
+        $defaults = require base_path('config/taxikosmos.php');
+        config([
+            'taxikosmos.app_config.versions' => $defaults['app_config']['versions'],
+            'taxikosmos.app_config.store_urls' => $defaults['app_config']['store_urls'],
+        ]);
+
+        foreach (['0.1.0', '0.0.1', '1.0.0', '3.2.1'] as $version) {
+            $this->config_($app, $platform, $version)->assertOk()
+                ->assertJsonPath('update.force_update', false)
+                ->assertJsonPath('update.update_available', false);
+        }
+        // Still unsupported without a version: leaving the parameter out must not skip the gate.
+        $this->config_($app, $platform, null)->assertJsonPath('update.force_update', true);
+    }
+
+    /**
+     * @return array<string, array{string, list<string>}> the config key (under features) and the JSON path it must appear at
+     */
+    public static function featureFlags(): array
+    {
+        return [
+            'card_payments' => ['card_payments', ['card_payments']],
+            'wallet' => ['wallet', ['wallet']],
+            'masked_calls' => ['masked_calls', ['masked_calls']],
+            'sos' => ['sos', ['sos']],
+            'trip_share' => ['trip_share', ['trip_share']],
+            'social google' => ['social_login.google', ['social_login', 'google']],
+            'social apple' => ['social_login.apple', ['social_login', 'apple']],
+            'social facebook' => ['social_login.facebook', ['social_login', 'facebook']],
+        ];
+    }
+
+    /**
+     * @param  list<string>  $path
+     */
+    #[DataProvider('featureFlags')]
+    public function test_every_feature_flag_is_its_own_switch(string $configKey, array $path): void
+    {
+        $off = ['card_payments' => false, 'wallet' => false, 'masked_calls' => false, 'sos' => false, 'trip_share' => false, 'social_login' => ['google' => false, 'apple' => false, 'facebook' => false]];
+        config(['taxikosmos.app_config.features' => $off]);
+        config(["taxikosmos.app_config.features.{$configKey}" => true]);
+
+        $features = $this->config_('rider', 'ios', '1.2.0')->assertOk()->json('features');
+
+        $expected = $off;
+        data_set($expected, implode('.', $path), true);
+        $this->assertSame($expected, $features, "only {$configKey} is on");
+    }
+
+    public function test_configured_text_is_trimmed_and_a_blank_one_is_nothing(): void
+    {
+        config([
+            'taxikosmos.app_config.support' => ['phone' => '  +37410000000 ', 'email' => '   '],
+            'taxikosmos.app_config.legal' => ['terms' => ['en' => " https://taxikosmos.test/terms\n", 'ru' => '', 'hy' => null], 'privacy' => ['en' => ' ', 'ru' => null, 'hy' => null]],
+            'taxikosmos.app_config.store_urls.rider.ios' => '  https://apps.apple.com/app/rider  ',
+        ]);
+
+        $json = $this->config_('rider', 'ios', '1.3.0')->assertOk()->json();
+
+        $this->assertSame('+37410000000', $json['support']['phone']);
+        $this->assertNull($json['support']['email']);
+        $this->assertSame('https://taxikosmos.test/terms', $json['legal']['terms']['en']);
+        $this->assertNull($json['legal']['terms']['ru']);
+        $this->assertNull($json['legal']['privacy']['en']);
+        $this->assertSame('https://apps.apple.com/app/rider', $json['update']['store_url']);
+    }
+
     // ---- the update gate ----
 
     /**
