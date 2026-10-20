@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\SocialProvider;
+use App\Http\Controllers\Api\V1\AppConfigController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DriverApplicationController;
@@ -21,6 +22,10 @@ use App\Http\Controllers\Api\V1\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 // Mobile surface (rider and driver apps): JSON, Sanctum bearer tokens only, never a session.
+
+// What an app asks before anyone has signed in: may this build still run, which features are on (P14-T4). Public, cacheable.
+Route::get('app-config', AppConfigController::class)->middleware('throttle:app-config')->name('app-config');
+
 Route::prefix('auth')->group(function () {
     Route::post('otp/request', [AuthController::class, 'requestOtp'])->middleware('throttle:otp-request');
     Route::post('otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify');

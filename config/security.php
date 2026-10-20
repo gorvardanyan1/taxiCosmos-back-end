@@ -52,6 +52,7 @@ return [
         'login_ip' => (int) env('RATE_LIMIT_LOGIN_IP', 30),         // per IP, POST /login across all emails
         'api' => (int) env('RATE_LIMIT_API', 120),                 // per signed-in rider/driver, every authenticated /api/v1 call
         'geo' => (int) env('RATE_LIMIT_GEO', 60),                   // per signed-in rider/driver, the four /api/v1/geo endpoints together
+        'app_config' => (int) env('RATE_LIMIT_APP_CONFIG', 60),     // per address, GET /api/v1/app-config (public, asked at every app start)
         'payment' => (int) env('RATE_LIMIT_PAYMENT', 10),           // per signed-in user, payment endpoints (P6)
         'driver_location' => (int) env('RATE_LIMIT_DRIVER_LOCATION', 30),         // per driver, POST /api/v1/driver/location (the REST fallback for pings)
         'devices' => (int) env('RATE_LIMIT_DEVICES', 30),                          // per signed-in user, POST/DELETE /api/v1/devices (push tokens)

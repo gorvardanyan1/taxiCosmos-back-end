@@ -73,6 +73,51 @@ return [
         'route_average_speed_kmh' => (int) env('FARE_ROUTE_AVERAGE_SPEED_KMH', 30),
     ],
 
+    // What GET /api/v1/app-config tells the apps (P14-T4). Plain config, no admin screen: change .env and deploy (MVP scope).
+    'app_config' => [
+        // Seconds a client or CDN may keep the answer (Cache-Control max-age).
+        'cache_seconds' => (int) env('APP_CONFIG_CACHE_SECONDS', 300),
+
+        // Per app and platform: the oldest build allowed to run and the newest one in the store (x.y or x.y.z).
+        'versions' => [
+            'rider' => [
+                'ios' => ['minimum' => env('APP_RIDER_IOS_MIN_VERSION', '1.0.0'), 'latest' => env('APP_RIDER_IOS_LATEST_VERSION', '1.0.0')],
+                'android' => ['minimum' => env('APP_RIDER_ANDROID_MIN_VERSION', '1.0.0'), 'latest' => env('APP_RIDER_ANDROID_LATEST_VERSION', '1.0.0')],
+            ],
+            'driver' => [
+                'ios' => ['minimum' => env('APP_DRIVER_IOS_MIN_VERSION', '1.0.0'), 'latest' => env('APP_DRIVER_IOS_LATEST_VERSION', '1.0.0')],
+                'android' => ['minimum' => env('APP_DRIVER_ANDROID_MIN_VERSION', '1.0.0'), 'latest' => env('APP_DRIVER_ANDROID_LATEST_VERSION', '1.0.0')],
+            ],
+        ],
+
+        // Where the update screen sends people.
+        'store_urls' => [
+            'rider' => ['ios' => env('APP_RIDER_IOS_STORE_URL'), 'android' => env('APP_RIDER_ANDROID_STORE_URL')],
+            'driver' => ['ios' => env('APP_DRIVER_IOS_STORE_URL'), 'android' => env('APP_DRIVER_ANDROID_STORE_URL')],
+        ],
+
+        // Features the apps show only when they are on. The MVP is cash only, so everything money- and safety-related starts off.
+        'features' => [
+            'card_payments' => (bool) env('APP_FEATURE_CARD_PAYMENTS', false),
+            'wallet' => (bool) env('APP_FEATURE_WALLET', false),
+            'masked_calls' => (bool) env('APP_FEATURE_MASKED_CALLS', false),
+            'sos' => (bool) env('APP_FEATURE_SOS', false),
+            'trip_share' => (bool) env('APP_FEATURE_TRIP_SHARE', false),
+            'social_login' => [
+                'google' => (bool) env('APP_FEATURE_SOCIAL_GOOGLE', false),
+                'apple' => (bool) env('APP_FEATURE_SOCIAL_APPLE', false),
+                'facebook' => (bool) env('APP_FEATURE_SOCIAL_FACEBOOK', false),
+            ],
+        ],
+
+        'support' => ['phone' => env('SUPPORT_PHONE'), 'email' => env('SUPPORT_EMAIL')],
+
+        'legal' => [
+            'terms' => ['en' => env('LEGAL_TERMS_URL_EN'), 'ru' => env('LEGAL_TERMS_URL_RU'), 'hy' => env('LEGAL_TERMS_URL_HY')],
+            'privacy' => ['en' => env('LEGAL_PRIVACY_URL_EN'), 'ru' => env('LEGAL_PRIVACY_URL_RU'), 'hy' => env('LEGAL_PRIVACY_URL_HY')],
+        ],
+    ],
+
     // Saved places a rider may keep (home, work, others).
     'saved_places' => [
         'max' => (int) env('SAVED_PLACES_MAX', 20),
