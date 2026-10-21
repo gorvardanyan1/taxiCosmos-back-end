@@ -205,6 +205,9 @@ class AppServiceProvider extends ServiceProvider
         // The maps endpoints (/api/v1/geo/*): every call that misses the cache costs money, so each rider or driver gets a budget.
         RateLimiter::for('geo', fn (Request $request) => Limit::perMinute(config('security.rate_limits.geo'))->by('geo:'.$caller($request)));
 
+        // GET /api/v1/app-config is public (every app start, before sign-in), so it is limited by address.
+        RateLimiter::for('app-config', fn (Request $request) => Limit::perMinute(config('security.rate_limits.app_config'))->by('app-config:'.$request->ip()));
+
         // Payment endpoints (P6) attach this: card testing and double charges are attacks, not traffic.
         RateLimiter::for('payment', fn (Request $request) => Limit::perMinute(config('security.rate_limits.payment'))->by('payment:'.$caller($request)));
     }
