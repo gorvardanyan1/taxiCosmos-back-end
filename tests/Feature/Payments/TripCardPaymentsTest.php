@@ -13,6 +13,7 @@ use App\Exceptions\PaymentGatewayException;
 use App\Models\DriverProfile;
 use App\Models\Transaction;
 use App\Models\Trip;
+use App\Models\User;
 use App\Services\Payments\OutstandingBalance;
 use App\Services\Payments\PaymentProcessor;
 use App\Services\Payments\TripCardPayments;
@@ -370,7 +371,9 @@ class TripCardPaymentsTest extends CardPaymentsTestCase
         $card = $this->card($rider);
         $running = $this->cardTrip($rider, $card, 'requested');
         $old = $this->trips->hold($running);
-        $finished = $this->cardTrip($rider, $card, 'requested');
+        // Another rider's trip, so each rider has only one active trip (P7-T6).
+        $other = User::factory()->rider()->create();
+        $finished = $this->cardTrip($other, $this->card($other), 'requested');
         $finishedHold = $this->trips->hold($finished);
         $finished->fresh()->transitionTo(TripStatus::Cancelled, TripCancelledBy::Rider, 'x');
 

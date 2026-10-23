@@ -1,7 +1,7 @@
 # Trips
 
 The `trips` table (P2-T4) is the record of a ride. Admin screens (P7-T1) and the mobile API (P7-T6/T7)
-build on it; this task adds the schema, model, enums and factory only.
+build on it; this task adds the schema, model, enums and factory only. The mobile endpoints are documented in `docs/trips-api.md`.
 
 ## Locations
 

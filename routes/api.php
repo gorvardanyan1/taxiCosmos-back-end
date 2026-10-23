@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\V1\DriverApplicationController;
 use App\Http\Controllers\Api\V1\DriverAvailabilityController;
 use App\Http\Controllers\Api\V1\DriverBankAccountController;
 use App\Http\Controllers\Api\V1\DriverDocumentController;
+use App\Http\Controllers\Api\V1\DriverEarningsController;
 use App\Http\Controllers\Api\V1\DriverLocationController;
 use App\Http\Controllers\Api\V1\DriverProfileController;
+use App\Http\Controllers\Api\V1\DriverTripController;
 use App\Http\Controllers\Api\V1\DriverVehicleController;
 use App\Http\Controllers\Api\V1\FareEstimateController;
 use App\Http\Controllers\Api\V1\GeoController;
@@ -19,6 +21,7 @@ use App\Http\Controllers\Api\V1\OutstandingBalanceController;
 use App\Http\Controllers\Api\V1\PaymentMethodController;
 use App\Http\Controllers\Api\V1\SavedPlaceController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
+use App\Http\Controllers\Api\V1\TripController;
 use Illuminate\Support\Facades\Route;
 
 // Mobile surface (rider and driver apps): JSON, Sanctum bearer tokens only, never a session.
@@ -122,6 +125,34 @@ Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:driver'])-
 Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:driver'])->prefix('driver')->group(function () {
     Route::post('location', DriverLocationController::class)->middleware('throttle:driver-location');
     Route::post('availability', DriverAvailabilityController::class)->middleware('throttle:driver-availability');
+});
+
+// Trips (P7-T6), rider app: request and cancel (retry-safe through the Idempotency-Key header), the current trip, history and receipts. A rider only
+// ever reaches their own trips. `current` is declared before `{trip}` so it is not read as an id.
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:rider', 'throttle:trips'])->prefix('trips')->name('trips.')->group(function () {
+    Route::get('current', [TripController::class, 'current'])->name('current');
+    Route::get('/', [TripController::class, 'index'])->name('index');
+    Route::get('{trip}', [TripController::class, 'show'])->whereNumber('trip')->name('show');
+    Route::get('{trip}/receipt', [TripController::class, 'receipt'])->whereNumber('trip')->name('receipt');
+
+    Route::middleware('idempotent')->group(function () {
+        Route::post('/', [TripController::class, 'store'])->name('store');
+        Route::post('{trip}/cancel', [TripController::class, 'cancel'])->whereNumber('trip')->name('cancel');
+    });
+});
+
+// Trips (P7-T6), driver app: the trip they are on, finished trips with earnings, and the steps. A driver only ever reaches trips assigned to them.
+Route::middleware(['auth:sanctum', 'mobile', 'throttle:api', 'ability:driver', 'throttle:trips'])->prefix('driver')->name('driver.')->group(function () {
+    Route::get('trips/current', [DriverTripController::class, 'current'])->name('trips.current');
+    Route::get('trips', [DriverTripController::class, 'index'])->name('trips.index');
+    Route::get('earnings', DriverEarningsController::class)->name('earnings');
+
+    Route::middleware('idempotent')->prefix('trips/{trip}')->whereNumber('trip')->name('trips.')->group(function () {
+        Route::post('arrived', [DriverTripController::class, 'arrived'])->name('arrived');
+        Route::post('start', [DriverTripController::class, 'start'])->name('start');
+        Route::post('complete', [DriverTripController::class, 'complete'])->name('complete');
+        Route::post('cancel', [DriverTripController::class, 'cancel'])->name('cancel');
+    });
 });
 
 // Address search, pickup pin and route preview for both apps (a phone-less pending session cannot use them). Each call that misses

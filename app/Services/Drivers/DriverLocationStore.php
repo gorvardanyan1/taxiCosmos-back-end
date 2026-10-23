@@ -33,6 +33,17 @@ class DriverLocationStore
     }
 
     /**
+     * Where the driver last reported from, or null when they have no position (offline, never pinged).
+     */
+    public function position(int $driverUserId): ?GeoPoint
+    {
+        $found = $this->redis->raw(['GEOPOS', $this->locationsKey(), (string) $driverUserId]);
+        $point = is_array($found) ? ($found[0] ?? null) : null;
+
+        return is_array($point) && count($point) === 2 ? new GeoPoint((float) $point[1], (float) $point[0]) : null;
+    }
+
+    /**
      * remove() for callers that must not fail because Redis is down (the database change is already committed): a failure is
      * logged and reported as false, and the stale sweep removes what is left.
      */

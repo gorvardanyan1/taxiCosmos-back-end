@@ -73,6 +73,18 @@ return [
         'route_average_speed_kmh' => (int) env('FARE_ROUTE_AVERAGE_SPEED_KMH', 30),
     ],
 
+    'trips' => [
+        // The pickup and drop-off of a trip request must be where the estimate (quote) was made, give or take this many metres:
+        // the price was worked out for that route, so another route needs a new estimate.
+        'quote_location_tolerance_meters' => (int) env('TRIP_QUOTE_TOLERANCE_METERS', 100),
+
+        // Position pings further apart in time than this are not counted as one drive when the distance is summed (the app was closed).
+        'ping_gap_seconds' => (int) env('TRIP_PING_GAP_SECONDS', 300),
+
+        // A jump between two pings that would need more than this speed is a GPS glitch and is left out of the driven distance.
+        'max_speed_kmh' => (int) env('TRIP_MAX_SPEED_KMH', 200),
+    ],
+
     // What GET /api/v1/app-config tells the apps (P14-T4). Plain config, no admin screen: change .env and deploy (MVP scope).
     'app_config' => [
         // Seconds a client or CDN may keep the answer (Cache-Control max-age).
