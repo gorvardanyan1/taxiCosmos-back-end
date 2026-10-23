@@ -89,4 +89,77 @@ class TripServiceTest extends TripApiTestCase
         $this->assertSame($first->id, $trip->refresh()->driver_id);
         $this->assertSame(DriverAvailability::Online, $second->refresh()->availability);
     }
+
+    // ---- row locks: what keeps two racing calls from both winning ----
+
+    /**
+     * @param  list<array{sql: string, depth: int}>  $statements
+     */
+    private function firstIndex(array $statements, string $needle, bool $locking = false): ?int
+    {
+        foreach ($statements as $i => $statement) {
+            if (str_contains($statement['sql'], $needle) && (! $locking || str_contains($statement['sql'], 'for update'))) {
+                return $i;
+            }
+        }
+
+        return null;
+    }
+
+    public function test_every_step_locks_the_trip_row_inside_its_transaction_before_it_reads_anything_else(): void
+    {
+        [$trip, , $driverToken] = $this->matched();
+        $steps = [
+            'arrived' => fn () => $this->act("/api/v1/driver/trips/{$trip->id}/arrived", $driverToken)->assertOk(),
+            'start' => fn () => $this->act("/api/v1/driver/trips/{$trip->id}/start", $driverToken)->assertOk(),
+            'complete' => fn () => $this->act("/api/v1/driver/trips/{$trip->id}/complete", $driverToken)->assertOk(),
+        ];
+
+        foreach ($steps as $name => $step) {
+            $statements = $this->sqlDuring($step);
+
+            $lock = $this->firstIndex($statements, 'from "trips"', locking: true);
+            $this->assertNotNull($lock, "{$name} locks the trip row");
+            $this->assertGreaterThan(0, $statements[$lock]['depth'], "{$name} takes the lock inside a transaction");
+            // The trip is read under the lock, so a competing call cannot change it between the read and the write: nothing the step decides
+            // from (the fare rule, the commission rule, the pings) is read first.
+            foreach (['from "fare_rules"', 'from "commission_rules"', 'from "driver_profiles" where "driver_profiles"."id"'] as $later) {
+                $read = $this->firstIndex($statements, $later);
+                $this->assertTrue($read === null || $read > $lock, "{$name} reads {$later} only after the lock");
+            }
+        }
+    }
+
+    public function test_a_rider_cancelling_locks_the_trip_row_inside_its_transaction(): void
+    {
+        $trip = $this->requested();
+
+        $statements = $this->sqlDuring(fn () => $this->act("/api/v1/trips/{$trip->id}/cancel", $this->riderToken)->assertOk());
+
+        $lock = $this->firstIndex($statements, 'from "trips"', locking: true);
+        $this->assertNotNull($lock);
+        $this->assertGreaterThan(0, $statements[$lock]['depth']);
+    }
+
+    public function test_assigning_locks_the_driver_row_inside_the_transaction_so_one_driver_cannot_take_two_trips_at_once(): void
+    {
+        [, $profile] = $this->driver(DriverAvailability::Online);
+        $trip = $this->requested();
+
+        $locks = $this->profileLocksDuring(fn () => app(TripService::class)->assignDriver($trip, $profile));
+
+        $this->assertNotEmpty($locks, 'the driver profile is locked before the online check');
+        $this->assertGreaterThan(0, min(array_column($locks, 'depth')));
+    }
+
+    public function test_freeing_a_driver_locks_their_row_inside_the_transaction(): void
+    {
+        [$trip, , $driverToken] = $this->matched();
+
+        $locks = $this->profileLocksDuring(fn () => $this->act("/api/v1/trips/{$trip->id}/cancel", $this->riderToken)->assertOk());
+
+        $this->assertNotEmpty($locks, 'cancelling a matched trip locks the driver before freeing them');
+        $this->assertGreaterThan(0, min(array_column($locks, 'depth')));
+        $this->assertNotEmpty($driverToken);
+    }
 }

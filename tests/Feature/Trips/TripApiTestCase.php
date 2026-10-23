@@ -10,6 +10,7 @@ use App\Models\Trip;
 use App\Models\User;
 use App\Models\Zone;
 use App\Services\Trips\TripService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\Feature\DriverLocation\DriverLocationTestCase;
 
@@ -41,6 +42,24 @@ abstract class TripApiTestCase extends DriverLocationTestCase
         CommissionRule::factory()->forZone($this->zone)->create();
         $this->rider = User::factory()->rider()->withPhone('+37491234567')->create(['name' => 'Anna Rider']);
         $this->riderToken = $this->rider->createToken('device', ['rider'])->plainTextToken;
+    }
+
+    /**
+     * Run the callback and return every SQL statement it ran with the transaction depth it ran at, in order: a row lock taken outside a
+     * transaction is released at once and protects nothing.
+     *
+     * @return list<array{sql: string, depth: int}>
+     */
+    protected function sqlDuring(callable $callback): array
+    {
+        $statements = [];
+        DB::listen(function ($query) use (&$statements) {
+            $statements[] = ['sql' => strtolower($query->sql), 'depth' => DB::transactionLevel()];
+        });
+
+        $callback();
+
+        return $statements;
     }
 
     protected function key(): string
