@@ -27,9 +27,9 @@ final class RouteEstimator
     }
 
     /**
-     * Great-circle distance (haversine). The only floats here are geometry, never money.
+     * Great-circle distance (haversine), also used to sum a driven track and to compare two places. The only floats here are geometry, never money.
      */
-    private function straightLineMeters(GeoPoint $from, GeoPoint $to): float
+    public function straightLineMeters(GeoPoint $from, GeoPoint $to): float
     {
         $dLat = deg2rad($to->latitude - $from->latitude);
         $dLng = deg2rad($to->longitude - $from->longitude);

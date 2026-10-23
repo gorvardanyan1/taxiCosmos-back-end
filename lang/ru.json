@@ -904,5 +904,12 @@
     "Only a succeeded charge or capture can be refunded.": "Вернуть можно только успешное списание.",
     "The refund is more than what is left to refund.": "Сумма возврата больше остатка, доступного для возврата.",
     "This card is paying for a trip in progress. Remove it after the trip.": "Этой картой оплачивается текущая поездка. Удалите её после поездки.",
-    "You have reached the number of cards you can keep. Remove one first.": "Достигнуто максимальное количество карт. Сначала удалите одну."
+    "You have reached the number of cards you can keep. Remove one first.": "Достигнуто максимальное количество карт. Сначала удалите одну.",
+    "The receipt is ready once the trip is completed.": "Чек будет готов после завершения поездки.",
+    "Only cash is available for now.": "Пока доступна только оплата наличными.",
+    "This request needs an Idempotency-Key header of 8 to 64 letters, digits, - or _.": "Для этого запроса нужен заголовок Idempotency-Key из 8–64 букв, цифр, - или _.",
+    "This Idempotency-Key was already used for a different request.": "Этот Idempotency-Key уже использован для другого запроса.",
+    "The first request with this Idempotency-Key is still running. Try again in a moment.": "Первый запрос с этим Idempotency-Key ещё выполняется. Повторите через мгновение.",
+    "You already have a trip in progress.": "У вас уже есть активная поездка.",
+    "The pickup or drop-off is not where the price was worked out. Please get a new estimate.": "Точка посадки или назначения не совпадает с той, для которой рассчитана цена. Запросите новую оценку."
 }

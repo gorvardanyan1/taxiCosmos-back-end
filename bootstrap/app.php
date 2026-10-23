@@ -5,6 +5,7 @@ use App\Exceptions\DriverStatusException;
 use App\Exceptions\GeoException;
 use App\Http\Middleware\AuthenticateSocketService;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
+use App\Http\Middleware\EnforceIdempotency;
 use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\EnsureMobileClient;
 use App\Http\Middleware\EnsureTwoFactorSetUp;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureAdminAccess::class,
             'mobile' => EnsureMobileClient::class,
+            'idempotent' => EnforceIdempotency::class,
             'socket.service' => AuthenticateSocketService::class,
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,

@@ -39,6 +39,7 @@ use App\Services\MobileAuth\MobileSessionService;
 use App\Services\Payments\SavedCards;
 use App\Services\Payments\TripCardPayments;
 use App\Services\Push\LogPushSender;
+use App\Services\Trips\TripService;
 use App\Support\BlindIndex;
 use App\Support\E164PhoneNumber;
 use Illuminate\Support\Facades\Cache;
@@ -101,6 +102,9 @@ final class E2eFixtures
             'approve_documents' => $this->approveDocuments($a),
             'logged_mail' => $this->loggedMail($a),
             'dispatch_trip_event' => $this->dispatchTripEvent($a),
+            'assign_driver' => $this->assignDriver($a),
+            'add_pings' => $this->addPings($a),
+            'age_trip' => $this->ageTrip($a),
             'driver_location_state' => $this->driverLocationState($a),
             'age_driver_ping' => $this->ageDriverPing($a),
             'sweep_stale_drivers' => $this->sweepStaleDrivers(),
@@ -637,6 +641,47 @@ final class E2eFixtures
     }
 
     /**
+     * A driver accepts a trip, as dispatch (P7-T7) will do it: the same TripService::assignDriver the offer-accept endpoint will call.
+     * {trip_id, driver_id}
+     */
+    private function assignDriver(array $a): array
+    {
+        $trip = app(TripService::class)->assignDriver(Trip::query()->findOrFail((int) $a['trip_id']), DriverProfile::query()->findOrFail((int) $a['driver_id']));
+
+        return ['id' => $trip->id, 'status' => $trip->status->value, 'driver_id' => $trip->driver_id];
+    }
+
+    /**
+     * Pretend the trip's steps happened `seconds` earlier (a ride cannot be waited for in a spec). {trip_id, seconds}
+     */
+    private function ageTrip(array $a): array
+    {
+        $seconds = (int) $a['seconds'];
+        $aged = DB::table('trips')->where('id', (int) $a['trip_id'])->update([
+            'matched_at' => DB::raw("matched_at - interval '{$seconds} seconds'"),
+            'arrived_at' => DB::raw("arrived_at - interval '{$seconds} seconds'"),
+            'started_at' => DB::raw("started_at - interval '{$seconds} seconds'"),
+        ]);
+
+        return ['aged' => $aged];
+    }
+
+    /**
+     * Pings of a driver in MongoDB history, as the app's location calls leave them. {driver_user_id, driver_id, points: [[lat, lng, seconds_ago]]}
+     */
+    private function addPings(array $a): array
+    {
+        foreach ($a['points'] as [$lat, $lng, $secondsAgo]) {
+            DriverLocationPing::query()->create([
+                'driver_user_id' => (int) $a['driver_user_id'], 'driver_profile_id' => (int) $a['driver_id'],
+                'location' => ['type' => 'Point', 'coordinates' => [(float) $lng, (float) $lat]], 'source' => 'rest', 'recorded_at' => now()->subSeconds((int) $secondsAgo),
+            ]);
+        }
+
+        return ['added' => count($a['points'])];
+    }
+
+    /**
      * Where Redis and MongoDB say a driver is: position [lng, lat] and ping time from the geo / last-seen sets, and the history
      * pings kept in MongoDB (newest first). Read-only. {driver_user_id}
      */
@@ -726,6 +771,9 @@ final class E2eFixtures
             return ['trip_id' => $trip->id, 'held' => $hold->amount, 'payment_status' => $trip->fresh()->payment_status->value];
         } catch (PaymentException $e) {
             return ['trip_id' => $trip->id, 'refused' => $e->errorCode, 'status' => $e->status];
+        } finally {
+            // The probe is over: the rider may have only one active trip (P7-T6), and a spec asks this again for the same rider.
+            DB::table('trips')->where('id', $trip->id)->update(['status' => TripStatus::Cancelled->value, 'cancelled_by' => 'system', 'cancelled_at' => now()]);
         }
     }
 

@@ -171,6 +171,7 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('socket-ticket', fn (Request $request) => Limit::perMinute(config('security.rate_limits.socket_ticket'))->by('socket-ticket:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        RateLimiter::for('trips', fn (Request $request) => Limit::perMinute(config('security.rate_limits.trips'))->by('trips:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
         RateLimiter::for('fare-estimate', fn (Request $request) => Limit::perMinute(30)->by('fare-estimate:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }
 

@@ -904,5 +904,12 @@
     "Only a succeeded charge or capture can be refunded.": "Կարելի է վերադարձնել միայն հաջողված գանձումը։",
     "The refund is more than what is left to refund.": "Վերադարձի գումարը գերազանցում է վերադարձման ենթակա մնացորդը։",
     "This card is paying for a trip in progress. Remove it after the trip.": "Այս քարտով վճարվում է ընթացիկ ուղևորությունը։ Հեռացրեք այն ուղևորությունից հետո։",
-    "You have reached the number of cards you can keep. Remove one first.": "Դուք հասել եք քարտերի առավելագույն քանակին։ Նախ հեռացրեք մեկը։"
+    "You have reached the number of cards you can keep. Remove one first.": "Դուք հասել եք քարտերի առավելագույն քանակին։ Նախ հեռացրեք մեկը։",
+    "The receipt is ready once the trip is completed.": "Անդորրագիրը կպատրաստվի ուղևորության ավարտից հետո։",
+    "Only cash is available for now.": "Առայժմ հասանելի է միայն կանխիկ վճարումը։",
+    "This request needs an Idempotency-Key header of 8 to 64 letters, digits, - or _.": "Այս հարցման համար անհրաժեշտ է Idempotency-Key վերնագիր՝ 8–64 տառ, թիվ, - կամ _։",
+    "This Idempotency-Key was already used for a different request.": "Այս Idempotency-Key-ն արդեն օգտագործվել է մեկ այլ հարցման համար։",
+    "The first request with this Idempotency-Key is still running. Try again in a moment.": "Այս Idempotency-Key-ով առաջին հարցումը դեռ կատարվում է։ Փորձեք մի պահ անց։",
+    "You already have a trip in progress.": "Դուք արդեն ունեք ընթացիկ ուղևորություն։",
+    "The pickup or drop-off is not where the price was worked out. Please get a new estimate.": "Նստեցման կամ ավարտի կետը չի համապատասխանում գնահաշվարկի վայրին։ Խնդրում ենք նոր գնահատական ստանալ։"
 }

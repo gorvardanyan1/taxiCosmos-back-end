@@ -59,6 +59,7 @@ return [
         'driver_availability' => (int) env('RATE_LIMIT_DRIVER_AVAILABILITY', 10), // per driver, POST /api/v1/driver/availability (going online/offline)
         'driver_onboarding' => (int) env('RATE_LIMIT_DRIVER_ONBOARDING', 30),     // per driver, the /api/v1/driver application, profile, vehicle and bank-account calls
         'driver_documents' => (int) env('RATE_LIMIT_DRIVER_DOCUMENTS', 20),       // per driver, POST /api/v1/driver/documents (uploads)
+        'trips' => (int) env('RATE_LIMIT_TRIPS', 60),                              // per signed-in rider/driver, the /api/v1 trip calls (request, cancel, status steps, reads)
         'support_tickets' => (int) env('RATE_LIMIT_SUPPORT_TICKETS', 20),         // per signed-in rider/driver, /api/v1/support-tickets (open, list, write)
         'socket_auth' => (int) env('RATE_LIMIT_SOCKET_AUTH', 1200),               // per calling address, POST /api/v1/internal/socket-auth (every socket connect)
         'socket_ticket' => (int) env('RATE_LIMIT_SOCKET_TICKET', 20),             // per signed-in admin, GET /admin/socket-ticket
